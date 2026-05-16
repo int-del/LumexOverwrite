@@ -1,6 +1,6 @@
 ﻿// Lumex Party 专用配置文件覆写脚本
-// 引用链接: https://raw.githubusercontent.com/TamperAcc/Lumex/main/LumexParty/Lumex_active.js
-// 加速链接: https://cdn.jsdelivr.net/gh/TamperAcc/Lumex@main/LumexParty/Lumex_active.js
+// 引用链接: https://raw.githubusercontent.com/int-del/LumexOverwrite/main/LumexParty/Lumex_active.js
+// 加速链接: https://cdn.jsdelivr.net/gh/int-del/LumexOverwrite@main/LumexParty/Lumex_active.js
 // 版本: V3.7  | 更新日期: 2026-05-04
 // Sec: 移除硬编码 secret，改为注释说明（防止密码通过公开 CDN 泄露）
 // Fix: 修正 skip-auth-prefixes 为 127.0.0.1/32（原 /8 过宽，存在局域网绕过风险）

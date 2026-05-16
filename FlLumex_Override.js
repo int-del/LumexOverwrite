@@ -1,6 +1,6 @@
 ﻿// FLLumex / Lumex Party 配置文件覆写脚本
-// 引用链接: https://raw.githubusercontent.com/TamperAcc/Lumex/main/FlLumex_Override.js
-// 加速链接: https://cdn.jsdelivr.net/gh/TamperAcc/Lumex@main/FlLumex_Override.js
+// 引用链接: https://raw.githubusercontent.com/int-del/LumexOverwrite/main/FlLumex_Override.js
+// 加速链接: https://cdn.jsdelivr.net/gh/int-del/LumexOverwrite@main/FlLumex_Override.js
 // 版本: v1.25 (自动更新版) | 更新日期: 2026-03-08
 // 移植自 LumexVerge.yaml "PC 端终极优化版"
 

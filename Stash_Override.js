@@ -1,6 +1,6 @@
 ﻿// Stash iOS 专用配置文件覆写脚本 (JS 版)
-// 引用链接: https://raw.githubusercontent.com/TamperAcc/Lumex/main/Stash_Override.js
-// 加速链接: https://cdn.jsdelivr.net/gh/TamperAcc/Lumex@main/Stash_Override.js
+// 引用链接: https://raw.githubusercontent.com/int-del/LumexOverwrite/main/Stash_Override.js
+// 加速链接: https://cdn.jsdelivr.net/gh/int-del/LumexOverwrite@main/Stash_Override.js
 // 版本: v1.28 (自动更新版) | 更新日期: 2026-03-08
 // 说明: 移植自 Lumex_Override.js，针对 iOS/macOS 进行了 Stash 特性适配 (Tiles/无 Exe/Sniffer)
 

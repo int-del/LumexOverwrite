@@ -1,7 +1,7 @@
 # Last Updated: 2026-03-07 [IosStash.stoverride v1.04]
 # 移植自 PC 端 Lumex_Override.js v1.90
-# 引用链接: https://raw.githubusercontent.com/TamperAcc/Lumex/main/IosStash.stoverride
-# 加速链接: https://cdn.jsdelivr.net/gh/TamperAcc/Lumex@main/IosStash.stoverride
+# 引用链接: https://raw.githubusercontent.com/int-del/LumexOverwrite/main/IosStash.stoverride
+# 加速链接: https://cdn.jsdelivr.net/gh/int-del/LumexOverwrite@main/IosStash.stoverride
 # Stash 元数据
 name: "IosStash.stoverride v1.02"
 desc: "v1.02 (适配 Lumex v1.9.1)"

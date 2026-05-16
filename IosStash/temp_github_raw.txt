@@ -1,6 +1,6 @@
 ﻿﻿# Last Updated: 2026-02-22 [Stash v1.99]
-# 引用链接: https://raw.githubusercontent.com/TamperAcc/Lumex/main/IosStash/Stash.stoverride
-# 加速链接: https://cdn.jsdelivr.net/gh/TamperAcc/Lumex@main/IosStash/Stash.stoverride
+# 引用链接: https://raw.githubusercontent.com/int-del/LumexOverwrite/main/IosStash/Stash.stoverride
+# 加速链接: https://cdn.jsdelivr.net/gh/int-del/LumexOverwrite@main/IosStash/Stash.stoverride
 # Stash 元数据
 name: "Stash v1.99"
 desc: "v1.99 | 优化: 强制锁定默认运行模式为 Rule"

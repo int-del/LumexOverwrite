@@ -1,6 +1,6 @@
 // Lumex Party 专用配置文件覆写脚本
-// 引用链接: https://raw.githubusercontent.com/TamperAcc/Lumex/main/LumexParty/Lumex.js
-// 加速链接: https://cdn.jsdelivr.net/gh/TamperAcc/Lumex@main/LumexParty/Lumex.js
+// 引用链接: https://raw.githubusercontent.com/int-del/LumexOverwrite/main/LumexParty/Lumex.js
+// 加速链接: https://cdn.jsdelivr.net/gh/int-del/LumexOverwrite@main/LumexParty/Lumex.js
 // 版本: v2.27  | 更新日期: 2026-03-10
 // Phase 1.1: 加权评分 + 自适应容差版 (Gemini/Copilot/GitHub Copilot 多 URL 健康检查)
 // BugFix: 全组启用多 URL 模式，并修复 ChatGPT 健康检查循环问题
