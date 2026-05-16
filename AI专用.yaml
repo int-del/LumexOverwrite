@@ -300,6 +300,7 @@ proxy-groups:
   # 开发工具
   - PROCESS-NAME,git.exe,国外通用
   - PROCESS-NAME,Code.exe,自动选择
+  - PROCESS-NAME,Antigravity.exe,AI自动优选
   - PROCESS-NAME,cursor.exe,自动选择
   - PROCESS-NAME,idea64.exe,自动选择
   - PROCESS-NAME,pycharm64.exe,自动选择

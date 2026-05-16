@@ -546,6 +546,10 @@ function main(config) {
     "DOMAIN-SUFFIX,proactivebackend-pa.googleapis.com,Gemini",
     "DOMAIN-SUFFIX,opa-pa.googleapis.com,Gemini",
     "DOMAIN-SUFFIX,waa-pa.googleapis.com,Gemini", // 新增: Web & App Activity
+    "DOMAIN-SUFFIX,cloudcode-pa.googleapis.com,Gemini", // Antigravity AI
+    "DOMAIN-SUFFIX,daily-cloudcode-pa.googleapis.com,Gemini", // Antigravity AI
+    "DOMAIN-SUFFIX,antigravity-unleash.goog,Gemini", // Antigravity AI
+    "DOMAIN-KEYWORD,antigravity-auto-updater,Gemini", // Antigravity Updater
     "DOMAIN-SUFFIX,client-channel.google.com,Gemini",
     "DOMAIN-SUFFIX,assistant.google.com,Gemini",
     "DOMAIN-SUFFIX,ai.google.com,Gemini",
@@ -640,6 +644,7 @@ function main(config) {
     "PROCESS-NAME,IDMan.exe,DIRECT",
     "PROCESS-NAME,git.exe,自动选择",
     "PROCESS-NAME,Code.exe,自动选择",
+    "PROCESS-NAME,Antigravity.exe,Gemini",
     "PROCESS-NAME,cursor.exe,Cursor",
     "PROCESS-NAME,Cursor.exe,Cursor",
     "PROCESS-NAME,claude.exe,Claude", // Fix: Claude 桌面端进程强制走 Claude 组
