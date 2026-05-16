@@ -557,6 +557,7 @@
     "DOMAIN-SUFFIX,ai.google.com,Gemini",
     "DOMAIN-SUFFIX,aistudio.google.com,Gemini",
     "DOMAIN-SUFFIX,makersuite.google.com,Gemini",
+    "DOMAIN,ohttp-relay-safebrowsing-chrome.google.fastly-edge.com,Gemini", // 新增: Chrome 安全浏览中继也分流至 Gemini
     "DOMAIN-SUFFIX,googleapis.cn,Google", // 🔴 Fix: Google 中国 CDN，涵盖全部 Google 服务，应走可手动切换的 Google 组而非锁死 Gemini
     "DOMAIN-SUFFIX,deepmind.com,Gemini", // DeepMind 相关
     "DOMAIN-SUFFIX,deepmind.google,Gemini", // DeepMind 相关
