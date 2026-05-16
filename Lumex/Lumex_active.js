@@ -1,7 +1,7 @@
 ﻿// Lumex Party 专用配置文件覆写脚本
 // 引用链接: https://raw.githubusercontent.com/int-del/LumexOverwrite/main/Lumex_active.js
 // 加速链接: https://cdn.jsdelivr.net/gh/int-del/LumexOverwrite@main/Lumex_active.js
-// 版本: V3.7  | 更新日期: 2026-05-04
+// 版本: V3.8  | 更新日期: 2026-05-17
 // Sec: 移除硬编码 secret，改为注释说明（防止密码通过公开 CDN 泄露）
 // Fix: 修正 skip-auth-prefixes 为 127.0.0.1/32（原 /8 过宽，存在局域网绕过风险）
 // Fix: 新增 Statsig 域名分流至 Claude 组（Anthropic A/B 测试与功能开关服务）
@@ -10,6 +10,7 @@
 // Fix: 新增 Claude 官方域名分流，强制走 Gemini 组以避开香港/日韩节点封锁
 // Fix: 强制 Vertex AI / Gemini API 走 Gemini 分组，防止 SSL 被拦截
 // Fix: Telegram 规则顺序、googleapis.cn 策略纠正、TUN LAN 排除
+// Opt: Gemini 组排除名称含一分、三毛的节点
 // Opt: AI 组 adaptive-cooldown-sec 独立缩短至 60s，加快坏节点恢复
 // Opt: ChatGPT/Cursor/Gemini/Claude 组改为白名单过滤，锁定低延迟节点
 // Fix: 补全 Copilot/GitHub Copilot 官方封锁地区列表
@@ -24,9 +25,9 @@
 // ⚠️  安全警告：config["secret"] 字段为示例占位值，请在本地替换为强密码，
 //     切勿将真实密码提交到公开仓库，否则任何人均可访问你的代理控制 API。
 
-function main(config) {
+  function main(config) {
   // 打印版本号，用于确认是否下载到了最新版
-  console.log("✅ 加载脚本 V3.7 (兼容性: 补全 url 字段，修正 GitHub 规则过宽问题)...");
+  console.log("✅ 加载脚本 V3.8 (兼容性: 补全 url 字段，修正 GitHub 规则过宽问题)...");
 
   // 关键修复：如果 config 为空，必须返回空对象 {} 而不是 null
 
@@ -278,6 +279,7 @@ function main(config) {
       "use": ["组合机场"], // 引入代理集
       // 🚀 白名单锁定亚洲低延迟 + 美国兜底，JP/KR 已确认 Gemini 可用
       "filter": "(?i)(台湾|\\bTW\\b|Taiwan|日本|\\bJP\\b|Japan|韩国|\\bKR\\b|Korea|新加坡|\\bSG\\b|Singapore|美国|\\bUS\\b)",
+      "exclude-filter": "^(一分|三毛)", // 剔除前缀为“一分”、“三毛”的节点
       "url": "https://gemini.google.com", // 标准 Lumex 兼容字段
       // 🚀 多 URL 健康检查配置 (启用加权评分 + 自适应容差)
       "urls": [
