@@ -1,20 +1,20 @@
 import re
 
-with open('Mihomo_Override.js', 'r', encoding='utf-8') as f:
+with open('Lumex_Override.js', 'r', encoding='utf-8') as f:
     content = f.read()
 
 # 1. Remove auto-update from profile
-content = re.sub(r'    "store-fake-ip": true,\r?\n    "auto-update": true', r'    "store-fake-ip": true // ÓÅ»¯£º³Ö¾Ã»¯ Fake-IP »º´æ£¬ÖØÆôºóÃëÁ¬', content)
+content = re.sub(r'    "store-fake-ip": true,\r?\n    "auto-update": true', r'    "store-fake-ip": true // ï¿½Å»ï¿½ï¿½ï¿½ï¿½Ö¾Ã»ï¿½ Fake-IP ï¿½ï¿½ï¿½æ£¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½', content)
 
 # 2. Remove route-exclude-address from tun
-content = re.sub(r'    "dns-hijack": \["any:53"\],\r?\n    "route-exclude-address": \[.*?\] // ÓÅ»¯£ºÔö¼Ó×é²¥ºÍ¹ã²¥µØÖ·ÅÅ³ý£¬³¹µ×½â¾ö¾ÖÓòÍø·¢ÏÖÎÊÌâ\r?\n', r'    "dns-hijack": ["any:53"]\n', content)
+content = re.sub(r'    "dns-hijack": \["any:53"\],\r?\n    "route-exclude-address": \[.*?\] // ï¿½Å»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½é²¥ï¿½Í¹ã²¥ï¿½ï¿½Ö·ï¿½Å³ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½\r?\n', r'    "dns-hijack": ["any:53"]\n', content)
 
 # 3. Add unified-delay and keep-alive-interval to global config
-content = re.sub(r'  config\["client-fingerprint"\] = "chrome"; // Éý¼¶Ö¸ÎÆÒÔ¸üºÃµØÖ§³Ö HTTP/3\r?\n', r'  config["client-fingerprint"] = "chrome"; // Éý¼¶Ö¸ÎÆÒÔ¸üºÃµØÖ§³Ö HTTP/3\n  config["unified-delay"] = true; // ¿ªÆôÍ³Ò»ÑÓ³Ù£¬¸ü×¼È·\n  config["keep-alive-interval"] = 15; // ÓÅ»¯£º¿ÕÏÐÁ¬½ÓÌ½²â¼ä¸ô\n', content)
+content = re.sub(r'  config\["client-fingerprint"\] = "chrome"; // ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½ï¿½Ô¸ï¿½ï¿½Ãµï¿½Ö§ï¿½ï¿½ HTTP/3\r?\n', r'  config["client-fingerprint"] = "chrome"; // ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½ï¿½Ô¸ï¿½ï¿½Ãµï¿½Ö§ï¿½ï¿½ HTTP/3\n  config["unified-delay"] = true; // ï¿½ï¿½ï¿½ï¿½Í³Ò»ï¿½Ó³Ù£ï¿½ï¿½ï¿½×¼È·\n  config["keep-alive-interval"] = 15; // ï¿½Å»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ì½ï¿½ï¿½ï¿½ï¿½\n', content)
 
 # 4. Remove unified-delay from proxy-groups
-content = re.sub(r'      "unified-delay": true, // ¿ªÆôÍ³Ò»ÑÓ³Ù£¬¸ü×¼È·\r?\n', r'', content)
+content = re.sub(r'      "unified-delay": true, // ï¿½ï¿½ï¿½ï¿½Í³Ò»ï¿½Ó³Ù£ï¿½ï¿½ï¿½×¼È·\r?\n', r'', content)
 content = re.sub(r'      "unified-delay": true,\r?\n', r'', content)
 
-with open('Mihomo_Override.js', 'w', encoding='utf-8', newline='\n') as f:
+with open('Lumex_Override.js', 'w', encoding='utf-8', newline='\n') as f:
     f.write(content)

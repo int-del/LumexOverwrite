@@ -1,26 +1,26 @@
-# Clash Configuration Repository
+# Lumex Configuration Repository
 
 ## 维护说明 (Maintenance)
 
 **推送更新 (Push Updates)**:
-由于本地文件存储在 `Clash/` 子目录，但远程链接指向仓库根目录，必须使用 `git subtree` 命令推送：
+由于本地文件存储在 `Lumex/` 子目录，但远程链接指向仓库根目录，必须使用 `git subtree` 命令推送：
 ```powershell
 # 在 Git/ 根目录下执行:
-git subtree push --prefix Clash origin main
+git subtree push --prefix Lumex origin main
 ```
 
 ## 配置文件说明 (Configuration Profiles)
 
 本仓库提供两种针对不同平台深度优化的配置文件。请根据您的客户端选择合适的链接。
 
-### 1. [Clash.yaml](https://raw.githubusercontent.com/TamperAcc/Clash/main/Clash.yaml)
-> **适用平台**: Windows / Linux / macOS (Clash Verge, Mihomo, Clash for Windows)
+### 1. [Lumex.yaml](https://raw.githubusercontent.com/TamperAcc/Lumex/main/Lumex.yaml)
+> **适用平台**: Windows / Linux / macOS (Lumex Verge, Lumex, Lumex for Windows)
 
 *   **平台适配**: 包含针对 Windows 进程名 (`.exe`) 的分流规则。
 *   **性能优化**: 默认关闭 QUIC Sniffer 以降低 CPU 占用；开启 DoQ (DNS over QUIC) 极速解析。
 *   **开发友好**: 修复 VS Code 本地回环 (`localhost`, `127.0.0.1`) 连接问题。
 
-### 2. [Stash.yaml](https://raw.githubusercontent.com/TamperAcc/Clash/main/Stash.yaml)
+### 2. [Stash.yaml](https://raw.githubusercontent.com/TamperAcc/Lumex/main/Stash.yaml)
 > **适用平台**: iOS / macOS (Stash)
 
 *   **省电特化**:
@@ -32,7 +32,7 @@ git subtree push --prefix Clash origin main
     *   **进程匹配**: 移除 `.exe` 后缀，适配 macOS 应用生态。
 *   **DNS 增强**: 采用 DoQ 协议 (`quic://dns.alidns.com`)，在 4G/5G 切换时连接更稳定。
 
-### 3. [Stash.stoverride](https://raw.githubusercontent.com/TamperAcc/Clash/main/Stash.stoverride)
+### 3. [Stash.stoverride](https://raw.githubusercontent.com/TamperAcc/Lumex/main/Stash.stoverride)
 > **适用平台**: iOS (Stash) - 终极覆写版 (Ultimate Override)
 
 *   **功能定位**: 基于标准版配置的增强型覆写文件，需在 Stash "配置列表 -> 覆写" 中加载。
@@ -49,12 +49,12 @@ git subtree push --prefix Clash origin main
 
 *   **桌面端 (Windows / Mac / Linux)**:
     ```url
-    https://raw.githubusercontent.com/TamperAcc/Clash/main/Clash.yaml
+    https://raw.githubusercontent.com/TamperAcc/Lumex/main/Lumex.yaml
     ```
 
 *   **移动端 (iOS Stash)**:
     ```url
-    https://raw.githubusercontent.com/TamperAcc/Clash/main/Stash.yaml
+    https://raw.githubusercontent.com/TamperAcc/Lumex/main/Stash.yaml
     ```
 
 ## 核心优化技术 (Key Technologies)

@@ -3,5 +3,5 @@ with open(r'c:\Users\70708\AppData\Roaming\Code\User\workspaceStorage\685f25e789
     html = f.read()
 text = re.sub(r'<[^>]+>', ' ', html)
 text = re.sub(r'\s+', ' ', text)
-with open(r'G:\Git\Clash\tools\extracted.txt', 'w', encoding='utf-8') as f:
+with open(r'G:\Git\Lumex\tools\extracted.txt', 'w', encoding='utf-8') as f:
     f.write(text)

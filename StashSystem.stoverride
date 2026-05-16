@@ -1,7 +1,7 @@
 # Last Updated: 2026-02-17 [Stash Override v1.75]
-# 移植自 PC 端 Mihomo_Override.js v1.89
-# 引用链接: https://raw.githubusercontent.com/TamperAcc/Clash/main/StashSystem.stoverride
-# 加速链接: https://cdn.jsdelivr.net/gh/TamperAcc/Clash@main/StashSystem.stoverride
+# 移植自 PC 端 Lumex_Override.js v1.89
+# 引用链接: https://raw.githubusercontent.com/TamperAcc/Lumex/main/StashSystem.stoverride
+# 加速链接: https://cdn.jsdelivr.net/gh/TamperAcc/Lumex@main/StashSystem.stoverride
 # Stash 元数据
 name: "StashSystem.stoverride v1.01"
 desc: "v1.01 
@@ -52,7 +52,7 @@ dns:
     - "+.xboxlive.com"
     - "+.msftconnecttest.com"
     - "+.msftncsi.com"
-    # ⬇️ 同步 Mihomo: 补充 NTP 和 协议相关过滤
+    # ⬇️ 同步 Lumex: 补充 NTP 和 协议相关过滤
     - "+.ntp.org"
     - "+.pool.ntp.org"
     - "+.stun.protocol.org"

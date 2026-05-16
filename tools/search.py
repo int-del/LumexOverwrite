@@ -2,7 +2,7 @@ import urllib.request
 import urllib.parse
 import re
 
-query = 'Mihomo Party v1.9.1 release notes changelog override script'
+query = 'Lumex Party v1.9.1 release notes changelog override script'
 url = 'https://html.duckduckgo.com/html/?q=' + urllib.parse.quote(query)
 req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'})
 try:

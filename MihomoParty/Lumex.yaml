@@ -1,12 +1,12 @@
-# Mihomo Party 专用配置文件 (由 Mihomo.js 转换而来)
-# 引用链接: https://raw.githubusercontent.com/TamperAcc/Clash/main/MihomoParty/Mihomo.yaml
-# 加速链接: https://cdn.jsdelivr.net/gh/TamperAcc/Clash@main/MihomoParty/Mihomo.yaml
+# Lumex Party 专用配置文件 (由 Lumex.js 转换而来)
+# 引用链接: https://raw.githubusercontent.com/TamperAcc/Lumex/main/LumexParty/Lumex.yaml
+# 加速链接: https://cdn.jsdelivr.net/gh/TamperAcc/Lumex@main/LumexParty/Lumex.yaml
 # 版本: v2.12 | 更新日期: 2026-03-08
 # 说明: 
-# 1. 本文件为完整的 YAML 配置，可直接作为 Mihomo Party 的【配置(Profile)】导入使用。
+# 1. 本文件为完整的 YAML 配置，可直接作为 Lumex Party 的【配置(Profile)】导入使用。
 # 2. 相比 JS 覆写脚本，YAML 格式解析更快，且原生支持。
 # 3. 节点指纹 (client-fingerprint) 和 UDP 开启已通过 proxy-providers 的 override 字段实现。
-# 4. 新增 expected-status 特性，要求 Mihomo v1.18+ 内核以防止节点假连通。
+# 4. 新增 expected-status 特性，要求 Lumex v1.18+ 内核以防止节点假连通。
 
 log-level: info
 tcp-concurrent: true
@@ -141,7 +141,7 @@ proxy-providers:
       enable: true
       url: https://www.gstatic.com/generate_204
       interval: 240
-      expected-status: '204' # 🚀 依赖 Mihomo 1.18+ 内核功能：防止流量耗尽/被墙的情况导致假连通
+      expected-status: '204' # 🚀 依赖 Lumex 1.18+ 内核功能：防止流量耗尽/被墙的情况导致假连通
     override:
       client-fingerprint: chrome
       udp: true
@@ -154,7 +154,7 @@ proxy-groups:
       - 组合机场
     filter: ^(?!.*(IEPL|俄罗斯|Russia|RU|朝鲜|Korea|KP|古巴|Cuba|CU)).*
     url: https://www.gstatic.com/generate_204
-    expected-status: '204' # 🚀 依赖 Mihomo 1.18+ 内核功能：防止劣质/被封节点强行返回 403/302 导致测速被骗
+    expected-status: '204' # 🚀 依赖 Lumex 1.18+ 内核功能：防止劣质/被封节点强行返回 403/302 导致测速被骗
     interval: 120
     tolerance: 100
     lazy: false
@@ -178,7 +178,7 @@ proxy-groups:
       - 组合机场
     filter: ^(?!.*(俄罗斯|香港|HongKong|HK|Russia|RU|澳门|Macau|MO|立陶宛|Lithuania|LT|朝鲜|Korea|KP|KR|韩国|古巴|Cuba|CU|CN|China|中国|日本|Japan|JP)).*
     url: https://gemini.google.com
-    expected-status: '200/301/302/307/308' # 🎯 Mihomo专用语法(不能用正则): 用斜杠分隔或使用A-B格式，允许200和30x，严格拦截被送中(403/404)或被拦截的节点
+    expected-status: '200/301/302/307/308' # 🎯 Lumex专用语法(不能用正则): 用斜杠分隔或使用A-B格式，允许200和30x，严格拦截被送中(403/404)或被拦截的节点
     interval: 420
     tolerance: 100
     lazy: true

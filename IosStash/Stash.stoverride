@@ -1,7 +1,7 @@
 ﻿#SUBSCRIBED http://104.194.75.174:3001/api/file/Stash.stoverride
 # Last Updated: 2026-03-08 [Stash v2.12]
-# 引用链接: https://raw.githubusercontent.com/TamperAcc/Clash/main/IosStash/Stash.stoverride
-# 加速链接: https://cdn.jsdelivr.net/gh/TamperAcc/Clash@main/IosStash/Stash.stoverride
+# 引用链接: https://raw.githubusercontent.com/TamperAcc/Lumex/main/IosStash/Stash.stoverride
+# 加速链接: https://cdn.jsdelivr.net/gh/TamperAcc/Lumex@main/IosStash/Stash.stoverride
 # ==========================================
 # 核心网络设置 (TCP/DNS/MitM/HTTP)
 # ==========================================
@@ -37,7 +37,7 @@ dns:
     - "*.bambulab.cn"
     - "*.stun.*.*"
     - "*.stun.*"
-    # ⬇️ 同步 Mihomo: 补充 NTP 和 协议相关过滤
+    # ⬇️ 同步 Lumex: 补充 NTP 和 协议相关过滤
     - "+.ntp.org"
     - "+.pool.ntp.org"
     - "+.stun.protocol.org"

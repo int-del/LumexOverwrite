@@ -1,6 +1,6 @@
-// Mihomo Party 专用配置文件覆写脚本
-// 引用链接: https://raw.githubusercontent.com/TamperAcc/Clash/main/MihomoParty/Mihomo_active.js
-// 加速链接: https://cdn.jsdelivr.net/gh/TamperAcc/Clash@main/MihomoParty/Mihomo_active.js
+// Lumex Party 专用配置文件覆写脚本
+// 引用链接: https://raw.githubusercontent.com/TamperAcc/Lumex/main/LumexParty/Lumex_active.js
+// 加速链接: https://cdn.jsdelivr.net/gh/TamperAcc/Lumex@main/LumexParty/Lumex_active.js
 // 版本: V3.7  | 更新日期: 2026-05-04
 // Sec: 移除硬编码 secret，改为注释说明（防止密码通过公开 CDN 泄露）
 // Fix: 修正 skip-auth-prefixes 为 127.0.0.1/32（原 /8 过宽，存在局域网绕过风险）
@@ -19,7 +19,7 @@
 //
 // ⚠️  内核依赖声明：本脚本中 adaptive-heavy / adaptive-mode / switch-cost-* /
 //     hierarchical-* / bandit-mode 等参数为 LumexCore 定制内核专属扩展，
-//     在标准 Mihomo 内核下会被静默忽略，需配合 LumexCore 使用才能发挥完整效果。
+//     在标准 Lumex 内核下会被静默忽略，需配合 LumexCore 使用才能发挥完整效果。
 //
 // ⚠️  安全警告：config["secret"] 字段为示例占位值，请在本地替换为强密码，
 //     切勿将真实密码提交到公开仓库，否则任何人均可访问你的代理控制 API。
@@ -45,7 +45,7 @@ function main(config) {
   config["bind-address"] = "*";
   // 开启本地控制面 API，供脚本压测与运行时观测使用
   config["external-controller"] = "127.0.0.1:9090";
-  // ⚠️ 请在本地 mihomo.yaml 中手动设置 secret，此处不写入默认值以避免密码泄露至公开仓库。
+  // ⚠️ 请在本地 Lumex.yaml 中手动设置 secret，此处不写入默认值以避免密码泄露至公开仓库。
   // config["secret"] = "YOUR_STRONG_PASSWORD_HERE";
   config["find-process-mode"] = "strict";
   config["profile"] = {
@@ -184,7 +184,7 @@ function main(config) {
         "hierarchical": true,
         "url": "https://www.gstatic.com/generate_204",
         "interval": 240, // 🎯 平衡点：240s 保持高频但避免过度采样，网络稳定时间充足
-        "expected-status": "204" // 🚀 依赖 Mihomo 1.18+ 内核功能：预期的 HTTP 状态码，防流量耗尽/被墙等假连通情况 (自动踢出跳转节点的防挂神器)
+        "expected-status": "204" // 🚀 依赖 Lumex 1.18+ 内核功能：预期的 HTTP 状态码，防流量耗尽/被墙等假连通情况 (自动踢出跳转节点的防挂神器)
       }
     }
   };
@@ -231,7 +231,7 @@ function main(config) {
       "icon": "https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/Urltest.png",
       "use": ["组合机场"], // 引入代理集
       "filter": "^(?!.*(俄罗斯|Russia|RU|朝鲜|Korea|KP|古巴|Cuba|CU)).*", // 排除过期/流量/IEPL/RU/KP/CU
-      "url": "https://www.gstatic.com/generate_204", // 标准 Mihomo 兼容字段（非 LumexCore 内核使用此值）
+      "url": "https://www.gstatic.com/generate_204", // 标准 Lumex 兼容字段（非 LumexCore 内核使用此值）
       "urls": [
         {
           "url": "https://www.gstatic.com/generate_204",
@@ -254,7 +254,7 @@ function main(config) {
       "icon": "https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/Emby.png",
       "use": ["组合机场"], // 引入代理集
       "filter": "^(?!.*(俄罗斯|Russia|RU|朝鲜|Korea|KP|古巴|Cuba|CU|日本|Japan|JP)).*", // 额外排除日本节点
-      "url": "https://www.gstatic.com/generate_204", // 标准 Mihomo 兼容字段
+      "url": "https://www.gstatic.com/generate_204", // 标准 Lumex 兼容字段
       "urls": [
         {
           "url": "https://www.gstatic.com/generate_204",
@@ -278,7 +278,7 @@ function main(config) {
       "use": ["组合机场"], // 引入代理集
       // 🚀 白名单锁定亚洲低延迟 + 美国兜底，JP/KR 已确认 Gemini 可用
       "filter": "(?i)(台湾|\\bTW\\b|Taiwan|日本|\\bJP\\b|Japan|韩国|\\bKR\\b|Korea|新加坡|\\bSG\\b|Singapore|美国|\\bUS\\b)",
-      "url": "https://gemini.google.com", // 标准 Mihomo 兼容字段
+      "url": "https://gemini.google.com", // 标准 Lumex 兼容字段
       // 🚀 多 URL 健康检查配置 (启用加权评分 + 自适应容差)
       "urls": [
         {
@@ -305,7 +305,7 @@ function main(config) {
       "use": ["组合机场"],
       // 🚀 白名单锁定亚洲低延迟 + 美国兜底，JP/KR/TW 均对 Anthropic 可用
       "filter": "(?i)(台湾|\\bTW\\b|Taiwan|日本|\\bJP\\b|Japan|韩国|\\bKR\\b|Korea|新加坡|\\bSG\\b|Singapore|美国|\\bUS\\b)",
-      "url": "https://api.anthropic.com", // 标准 Mihomo 兼容字段
+      "url": "https://api.anthropic.com", // 标准 Lumex 兼容字段
       "urls": [
         {
           "url": "https://api.anthropic.com",
@@ -330,7 +330,7 @@ function main(config) {
       "icon": "https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/Microsoft.png",
       "use": ["组合机场"], // 引入代理集
       "filter": "^(?!.*(俄罗斯|Russia|RU|朝鲜|Korea|KP|古巴|Cuba|CU|CN|China|中国)).*", // 补全：排除 RU/KP/CU/CN
-      "url": "https://www.bing.com", // 标准 Mihomo 兼容字段
+      "url": "https://www.bing.com", // 标准 Lumex 兼容字段
       "urls": [
         {
           "url": "https://www.bing.com",
@@ -356,7 +356,7 @@ function main(config) {
       "icon": "https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/github.png",
       "use": ["组合机场"], // 引入代理集
       "filter": "^(?!.*(俄罗斯|Russia|RU|朝鲜|Korea|KP|古巴|Cuba|CU|伊朗|Iran|IR|叙利亚|Syria|SY|白俄罗斯|Belarus|BY|CN|China|中国)).*", // 补全：官方封锁全列表
-      "url": "https://api.github.com", // 标准 Mihomo 兼容字段
+      "url": "https://api.github.com", // 标准 Lumex 兼容字段
       "urls": [
         {
           "url": "https://api.github.com",
@@ -380,7 +380,7 @@ function main(config) {
       "icon": "https://www.google.com/s2/favicons?domain=cursor.com&sz=128",
       "use": ["组合机场"], // 引入代理集
       "filter": "(?i)(美国|\\bUS\\b|日本|\\bJP\\b|Japan|新加坡|\\bSG\\b|Singapore|台湾|\\bTW\\b|Taiwan|英国|\\bUK\\b|\\bGB\\b|加拿大|\\bCA\\b|澳大利亚|\\bAU\\b|Australia)",
-      "url": "https://api2.cursor.sh", // 标准 Mihomo 兼容字段
+      "url": "https://api2.cursor.sh", // 标准 Lumex 兼容字段
       "urls": [
         {
           "url": "https://api2.cursor.sh",
@@ -405,7 +405,7 @@ function main(config) {
       "icon": "https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/OpenAI.png",
       "use": ["组合机场"], // 引入代理集
       "filter": "(?i)(美国|\\bUS\\b|日本|\\bJP\\b|Japan|新加坡|\\bSG\\b|Singapore|台湾|\\bTW\\b|Taiwan|英国|\\bUK\\b|\\bGB\\b|加拿大|\\bCA\\b|澳大利亚|\\bAU\\b|Australia)",
-      "url": "https://chatgpt.com", // 标准 Mihomo 兼容字段
+      "url": "https://chatgpt.com", // 标准 Lumex 兼容字段
       "urls": [
         {
           "url": "https://chatgpt.com",
@@ -431,7 +431,7 @@ function main(config) {
       "use": ["组合机场"], // 引入代理集
       "filter": "^(?!.*(俄罗斯|Russia|RU)).*",
       // 排除立陶宛防止假延迟？扁平化测速会自动剔除假延迟节点，故不再强制正则排除，靠测速说话
-      "url": "https://api.telegram.org", // 标准 Mihomo 兼容字段
+      "url": "https://api.telegram.org", // 标准 Lumex 兼容字段
       "urls": [
         {
           "url": "https://api.telegram.org",
@@ -613,7 +613,7 @@ function main(config) {
     
     // 强制 gemini.google.com 走 Gemini 策略组 (防止被 GEOSITE,google 抢占)
     // 虽然上面有了 DOMAIN-SUFFIX，但为了保险起见，显式声明 GEOSITE 规则顺序
-    // 注意: 在 Clash/Mihomo 中，前面的规则优先级更高。
+    // 注意: 在 Lumex/Lumex 中，前面的规则优先级更高。
     // 我们已经在前面放置了 DOMAIN-SUFFIX 规则，理论上已经生效。
     // 问题可能出在 Gemini 策略组选到了香港/澳门节点。
     
@@ -795,7 +795,7 @@ function main(config) {
     });
   }
 
-  // 遍历所有节点，为没有设置指纹的节点添加默认指纹 (Mihomo 1.18+ 弃用了全局 client-fingerprint)
+  // 遍历所有节点，为没有设置指纹的节点添加默认指纹 (Lumex 1.18+ 弃用了全局 client-fingerprint)
   // 同时强制开启 UDP，防止部分机场节点配置遗漏导致游戏/语音不通
   if (config.proxies && Array.isArray(config.proxies)) {
     config.proxies.forEach(function(proxy) {

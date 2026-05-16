@@ -1,6 +1,6 @@
 ﻿﻿# Last Updated: 2026-02-22 [Stash v1.99]
-# 引用链接: https://raw.githubusercontent.com/TamperAcc/Clash/main/IosStash/Stash.stoverride
-# 加速链接: https://cdn.jsdelivr.net/gh/TamperAcc/Clash@main/IosStash/Stash.stoverride
+# 引用链接: https://raw.githubusercontent.com/TamperAcc/Lumex/main/IosStash/Stash.stoverride
+# 加速链接: https://cdn.jsdelivr.net/gh/TamperAcc/Lumex@main/IosStash/Stash.stoverride
 # Stash 元数据
 name: "Stash v1.99"
 desc: "v1.99 | 优化: 强制锁定默认运行模式为 Rule"
@@ -40,7 +40,7 @@ dns:
     - "*.bambulab.cn"
     - "*.stun.*.*"
     - "*.stun.*"
-    # ⬇️ 同步 Mihomo: 补充 NTP 和 协议相关过滤
+    # ⬇️ 同步 Lumex: 补充 NTP 和 协议相关过滤
     - "+.ntp.org"
     - "+.pool.ntp.org"
     - "+.stun.protocol.org"
@@ -104,7 +104,7 @@ sniffer:
 proxy-providers:
   组合机场:
     type: http
-    url: "https://sub.store/download/collection/%E7%BB%84%E5%90%88%E6%9C%BA%E5%9C%BA?target=ClashMeta"
+    url: "https://sub.store/download/collection/%E7%BB%84%E5%90%88%E6%9C%BA%E5%9C%BA?target=LumexMeta"
     interval: 86400
     path: ./proxies/sub_store_collection.yaml
     # 🚀 内存优化: 在源头直接过滤掉垃圾节点，防止它们进入内存和 UI

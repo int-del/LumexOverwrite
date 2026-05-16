@@ -1,12 +1,12 @@
-﻿// FLClash / Mihomo Party 配置文件覆写脚本
-// 引用链接: https://raw.githubusercontent.com/TamperAcc/Clash/main/FlClash_Override.js
-// 加速链接: https://cdn.jsdelivr.net/gh/TamperAcc/Clash@main/FlClash_Override.js
+﻿// FLLumex / Lumex Party 配置文件覆写脚本
+// 引用链接: https://raw.githubusercontent.com/TamperAcc/Lumex/main/FlLumex_Override.js
+// 加速链接: https://cdn.jsdelivr.net/gh/TamperAcc/Lumex@main/FlLumex_Override.js
 // 版本: v1.25 (自动更新版) | 更新日期: 2026-03-08
-// 移植自 ClashVerge.yaml "PC 端终极优化版"
+// 移植自 LumexVerge.yaml "PC 端终极优化版"
 
 function main(config) {
   // 打印日志方便调试 (在软件日志中可见)
-  console.log("🔵 [Script] 正在应用 FlClash 覆写脚本 v1.22...");
+  console.log("🔵 [Script] 正在应用 FlLumex 覆写脚本 v1.22...");
 
 
 
@@ -377,7 +377,7 @@ function main(config) {
     "MATCH,国外通用"
   ];
 
-  // 遍历所有节点，为没有设置指纹的节点添加默认指纹 (Mihomo 1.18+ 弃用了全局 client-fingerprint)
+  // 遍历所有节点，为没有设置指纹的节点添加默认指纹 (Lumex 1.18+ 弃用了全局 client-fingerprint)
   // 同时强制开启 UDP，防止部分机场节点配置遗漏导致游戏/语音不通
   if (config.proxies && Array.isArray(config.proxies)) {
     config.proxies.forEach(function(proxy) {
