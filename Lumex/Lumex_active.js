@@ -1,8 +1,7 @@
 ﻿// Lumex Party 专用配置文件覆写脚本
 // 引用链接: https://raw.githubusercontent.com/int-del/LumexOverwrite/main/Lumex_active.js
 // 加速链接: https://cdn.jsdelivr.net/gh/int-del/LumexOverwrite@main/Lumex_active.js
-// 版本: V3.9-temp  | 更新日期: 2026-05-17
-// Temp: 强制所有 VS Code (Code.exe/Code - Insiders.exe) 相关流量走 Gemini 组
+// 版本: V3.8  | 更新日期: 2026-05-17
 // Sec: 移除硬编码 secret，改为注释说明（防止密码通过公开 CDN 泄露）
 // Fix: 修正 skip-auth-prefixes 为 127.0.0.1/32（原 /8 过宽，存在局域网绕过风险）
 // Fix: 新增 Statsig 域名分流至 Claude 组（Anthropic A/B 测试与功能开关服务）
@@ -28,7 +27,7 @@
 
   function main(config) {
   // 打印版本号，用于确认是否下载到了最新版
-  console.log("✅ 加载脚本 V3.9-temp (临时修改: VS Code 全部流量强制走 Gemini 组)...");
+  console.log("✅ 加载脚本 V3.8 (兼容性: 补全 url 字段，修正 GitHub 规则过宽问题)...");
 
   // 关键修复：如果 config 为空，必须返回空对象 {} 而不是 null
 
@@ -647,8 +646,7 @@
     "PROCESS-NAME,uTorrent.exe,DIRECT",
     "PROCESS-NAME,IDMan.exe,DIRECT",
     "PROCESS-NAME,git.exe,自动选择",
-    "PROCESS-NAME,Code.exe,Gemini", // Temp: VS Code 流量全部引流至 Gemini
-    "PROCESS-NAME,Code - Insiders.exe,Gemini", // Temp: VS Code Insiders 流量全部引流至 Gemini
+    "PROCESS-NAME,Code.exe,自动选择",
     "PROCESS-NAME,Antigravity.exe,Gemini",
     "PROCESS-NAME,cursor.exe,Cursor",
     "PROCESS-NAME,Cursor.exe,Cursor",
