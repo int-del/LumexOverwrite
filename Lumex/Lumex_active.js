@@ -1,7 +1,7 @@
 ﻿// Lumex Party 专用配置文件覆写脚本
 // 引用链接: https://raw.githubusercontent.com/int-del/LumexOverwrite/main/Lumex_active.js
 // 加速链接: https://cdn.jsdelivr.net/gh/int-del/LumexOverwrite@main/Lumex_active.js
-// 版本: V3.9-temp  | 更新日期: 2026-05-17
+// 版本: V4.0-AntiCN  | 更新日期: 2026-05-17
 // Temp: 强制所有 VS Code (Code.exe/Code - Insiders.exe) 相关流量走 Gemini 组
 // Sec: 移除硬编码 secret，改为注释说明（防止密码通过公开 CDN 泄露）
 // Fix: 修正 skip-auth-prefixes 为 127.0.0.1/32（原 /8 过宽，存在局域网绕过风险）
@@ -28,7 +28,7 @@
 
   function main(config) {
   // 打印版本号，用于确认是否下载到了最新版
-  console.log("✅ 加载脚本 V3.9-temp (临时修改: VS Code 全部流量强制走 Gemini 组)...");
+  console.log("✅ 加载脚本 V4.0-AntiCN (新增 Expected-Body 底层防送中排雷机制)...");
 
   // 关键修复：如果 config 为空，必须返回空对象 {} 而不是 null
 
@@ -282,17 +282,19 @@
       "filter": "(?i)(台湾|\\bTW\\b|Taiwan|日本|\\bJP\\b|Japan|韩国|\\bKR\\b|Korea|新加坡|\\bSG\\b|Singapore|美国|\\bUS\\b)",
       "exclude-filter": "^(一分|三毛)", // 剔除前缀为“一分”、“三毛”的节点
       "url": "https://gemini.google.com", // 标准 Lumex 兼容字段
-      // 🚀 多 URL 健康检查配置 (启用加权评分 + 自适应容差)
+      // 🚀 多 URL 健康检查配置 (启用加权评分 + 自适应容差 + 底层正文防送中检测)
+      // 使用 Cloudflare trace 判定真实出口是否被送中 (CN/HK)
       "urls": [
         {
-          "url": "https://gemini.google.com",
-          "weight": 0.7, // 主 URL 权重 70%
-          "expected-status": "200/301/302/307/308"
+          "url": "https://chatgpt.com/cdn-cgi/trace",
+          "weight": 0.6, // 主检测 URL
+          "expected-status": "200",
+          "expected-body": "loc=(?!CN|HK)[A-Z]{2}" // 【核心排雷】：只要是 loc=CN 或 loc=HK，立刻斩断并判为离线
         },
         {
-          "url": "https://www.google.com",
-          "weight": 0.3, // 次 URL 权重 30%
-          "expected-status": "200"
+          "url": "https://gemini.google.com/app",
+          "weight": 0.4, // 次检测 URL，保障真实业务可达性
+          "expected-status": "200/301/302/307/308"
         }
       ],
       "interval": 300, // 🎯 AI 核心业务：5 分钟周期保证即时性
