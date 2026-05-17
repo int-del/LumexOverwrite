@@ -1,7 +1,7 @@
 ﻿// Lumex Party 专用配置文件覆写脚本
 // 引用链接: https://raw.githubusercontent.com/int-del/LumexOverwrite/main/Lumex_active.js
 // 加速链接: https://cdn.jsdelivr.net/gh/int-del/LumexOverwrite@main/Lumex_active.js
-// 版本: V4.0-AntiCN  | 更新日期: 2026-05-17
+// 版本: V4.1-AntiCN  | 更新日期: 2026-05-17
 // Temp: 强制所有 VS Code (Code.exe/Code - Insiders.exe) 相关流量走 Gemini 组
 // Sec: 移除硬编码 secret，改为注释说明（防止密码通过公开 CDN 泄露）
 // Fix: 修正 skip-auth-prefixes 为 127.0.0.1/32（原 /8 过宽，存在局域网绕过风险）
@@ -15,6 +15,9 @@
 // Opt: AI 组 adaptive-cooldown-sec 独立缩短至 60s，加快坏节点恢复
 // Opt: ChatGPT/Cursor/Gemini/Claude 组改为白名单过滤，锁定低延迟节点
 // Fix: 补全 Copilot/GitHub Copilot 官方封锁地区列表
+// Fix: Gemini 组健康检查 URL 由 chatgpt.com/cdn-cgi/trace 改为 ipinfo.io/json
+//      原因：Cloudflare trace 的 loc 反映 CDN PoP 位置而非节点 IP 归属地，导致大量 CN IP
+//      经东京 PoP 转发时误判为 JP 通过检测，但 Google/Gemini 仍用真实 GeoIP 识别并拒绝访问
 // Chore: 补充 LumexCore 内核依赖声明及 secret 安全警告
 // Compat: 为所有 url-test 组补充标准 url 字段，兼容非 LumexCore 内核（urls 数组为 LumexCore 专属扩展）
 // Fix: 拆分 GEOSITE,github 规则 — 仅 Copilot 专属 API 走 GitHub Copilot 组，其余 GitHub 流量走自动选择
@@ -28,7 +31,7 @@
 
   function main(config) {
   // 打印版本号，用于确认是否下载到了最新版
-  console.log("✅ 加载脚本 V4.0-AntiCN (新增 Expected-Body 底层防送中排雷机制)...");
+  console.log("✅ 加载脚本 V4.1-AntiCN (修复 Gemini 健康检查：改用 ipinfo.io 替代 Cloudflare trace)...");
 
   // 关键修复：如果 config 为空，必须返回空对象 {} 而不是 null
 
@@ -283,17 +286,20 @@
       "exclude-filter": "^(一分|三毛)", // 剔除前缀为“一分”、“三毛”的节点
       "url": "https://gemini.google.com", // 标准 Lumex 兼容字段
       // 🚀 多 URL 健康检查配置 (启用加权评分 + 自适应容差 + 底层正文防送中检测)
-      // 使用 Cloudflare trace 判定真实出口是否被送中 (CN/HK)
+      // ⚠️  不使用 chatgpt.com/cdn-cgi/trace：该端点 loc 字段反映 Cloudflare CDN PoP 位置，
+      //     而非节点 IP 的真实归属地。中国 IP 经东京 PoP 转发时 loc=JP，但 Google GeoIP 仍识别为 CN，
+      //     导致大量误通节点通过检测却无法访问 Gemini。
+      // ✅  改用 ipinfo.io/json：直接查询节点 IP 归属，与 Google GeoIP 数据库高度一致，无 CDN 路由干扰。
       "urls": [
         {
-          "url": "https://chatgpt.com/cdn-cgi/trace",
-          "weight": 0.6, // 主检测 URL
+          "url": "https://ipinfo.io/json",
+          "weight": 0.5, // 主检测：真实 IP 归属地核查，排除 CN/HK
           "expected-status": "200",
-          "expected-body": "loc=(?!CN|HK)[A-Z]{2}" // 【核心排雷】：只要是 loc=CN 或 loc=HK，立刻斩断并判为离线
+          "expected-body": "\"country\":\"(?!CN|HK)[A-Z]{2}\"" // 【核心排雷】：IP 归属为 CN/HK 立即判为离线
         },
         {
           "url": "https://gemini.google.com/app",
-          "weight": 0.4, // 次检测 URL，保障真实业务可达性
+          "weight": 0.5, // 次检测：直接验证 Gemini 实际可达性
           "expected-status": "200/301/302/307/308"
         }
       ],
