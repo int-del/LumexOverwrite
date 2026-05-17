@@ -1,7 +1,7 @@
 ﻿// Lumex Party 专用配置文件覆写脚本
 // 引用链接: https://raw.githubusercontent.com/int-del/LumexOverwrite/main/Lumex_active.js
 // 加速链接: https://cdn.jsdelivr.net/gh/int-del/LumexOverwrite@main/Lumex_active.js
-// 版本: V4.1-AntiCN  | 更新日期: 2026-05-17
+// 版本: V4.2-AntiCN  | 更新日期: 2026-05-17
 // Temp: 强制所有 VS Code (Code.exe/Code - Insiders.exe) 相关流量走 Gemini 组
 // Sec: 移除硬编码 secret，改为注释说明（防止密码通过公开 CDN 泄露）
 // Fix: 修正 skip-auth-prefixes 为 127.0.0.1/32（原 /8 过宽，存在局域网绕过风险）
@@ -15,9 +15,10 @@
 // Opt: AI 组 adaptive-cooldown-sec 独立缩短至 60s，加快坏节点恢复
 // Opt: ChatGPT/Cursor/Gemini/Claude 组改为白名单过滤，锁定低延迟节点
 // Fix: 补全 Copilot/GitHub Copilot 官方封锁地区列表
-// Fix: Gemini 组健康检查 URL 由 chatgpt.com/cdn-cgi/trace 改为 ipinfo.io/json
-//      原因：Cloudflare trace 的 loc 反映 CDN PoP 位置而非节点 IP 归属地，导致大量 CN IP
-//      经东京 PoP 转发时误判为 JP 通过检测，但 Google/Gemini 仍用真实 GeoIP 识别并拒绝访问
+// Fix: Gemini 组双重排雷 — ipinfo.io IP 归属检测 + Gemini 响应体直接验证（V4.2）
+//      V4.1 改用 ipinfo.io 替代 Cloudflare trace，解决 CDN PoP 位置误判问题
+//      V4.2 新增 gemini.google.com/app 响应体检测（负向前瞻排除封锁提示），
+//      覆盖 ipinfo.io 显示 TW 但 Gemini 仍拦截（数据中心 IP 黑名单）的边缘场景
 // Chore: 补充 LumexCore 内核依赖声明及 secret 安全警告
 // Compat: 为所有 url-test 组补充标准 url 字段，兼容非 LumexCore 内核（urls 数组为 LumexCore 专属扩展）
 // Fix: 拆分 GEOSITE,github 规则 — 仅 Copilot 专属 API 走 GitHub Copilot 组，其余 GitHub 流量走自动选择
@@ -31,7 +32,7 @@
 
   function main(config) {
   // 打印版本号，用于确认是否下载到了最新版
-  console.log("✅ 加载脚本 V4.1-AntiCN (修复 Gemini 健康检查：改用 ipinfo.io 替代 Cloudflare trace)...");
+  console.log("✅ 加载脚本 V4.2-AntiCN (双重排雷：ipinfo.io IP 归属 + Gemini 响应体直接验证)...");
 
   // 关键修复：如果 config 为空，必须返回空对象 {} 而不是 null
 
@@ -286,21 +287,23 @@
       "exclude-filter": "^(一分|三毛)", // 剔除前缀为“一分”、“三毛”的节点
       "url": "https://gemini.google.com", // 标准 Lumex 兼容字段
       // 🚀 多 URL 健康检查配置 (启用加权评分 + 自适应容差 + 底层正文防送中检测)
-      // ⚠️  不使用 chatgpt.com/cdn-cgi/trace：该端点 loc 字段反映 Cloudflare CDN PoP 位置，
-      //     而非节点 IP 的真实归属地。中国 IP 经东京 PoP 转发时 loc=JP，但 Google GeoIP 仍识别为 CN，
-      //     导致大量误通节点通过检测却无法访问 Gemini。
-      // ✅  改用 ipinfo.io/json：直接查询节点 IP 归属，与 Google GeoIP 数据库高度一致，无 CDN 路由干扰。
+      // ⚠️  不使用 chatgpt.com/cdn-cgi/trace：loc 字段反映 Cloudflare CDN PoP 位置而非节点 IP 真实归属。
+      // 检测策略（双重排雷）：
+      //   1. ipinfo.io/json     — 排除 IP 归属为 CN/HK 的节点（覆盖大多数假通场景）
+      //   2. gemini.google.com  — 直接验证 Gemini 是否真实可达，排除被 Gemini 单独拉黑的数据中心 IP
+      //      Gemini 封锁时页面包含固定字符串 "isn't currently supported"，用负向前瞻检测其缺失
       "urls": [
         {
           "url": "https://ipinfo.io/json",
-          "weight": 0.5, // 主检测：真实 IP 归属地核查，排除 CN/HK
+          "weight": 0.4, // 第一关：IP 归属地核查，排除 CN/HK
           "expected-status": "200",
-          "expected-body": "\"country\":\"(?!CN|HK)[A-Z]{2}\"" // 【核心排雷】：IP 归属为 CN/HK 立即判为离线
+          "expected-body": "\"country\":\"(?!CN|HK)[A-Z]{2}\"" // IP 归属 CN/HK → 离线
         },
         {
           "url": "https://gemini.google.com/app",
-          "weight": 0.5, // 次检测：直接验证 Gemini 实际可达性
-          "expected-status": "200/301/302/307/308"
+          "weight": 0.6, // 第二关（更高权重）：直接验证 Gemini 可达性，通过则最终确认可用
+          "expected-status": "200",
+          "expected-body": "^(?![\\s\\S]*isn't currently supported)" // 出现封锁提示 → 离线
         }
       ],
       "interval": 300, // 🎯 AI 核心业务：5 分钟周期保证即时性
