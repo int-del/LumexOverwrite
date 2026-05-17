@@ -283,18 +283,16 @@
       "exclude-filter": "^(一分|三毛)", // 剔除前缀为“一分”、“三毛”的节点
       "url": "https://gemini.google.com", // 标准 Lumex 兼容字段
       // 🚀 多 URL 健康检查配置 (启用加权评分 + 自适应容差)
-      // 增加 Expected-Body 深度检测：通过 Cloudflare trace 判定真实出口是否被送中 (CN/HK)
       "urls": [
         {
-          "url": "https://chatgpt.com/cdn-cgi/trace",
-          "weight": 0.6, // 主检测 URL
-          "expected-status": "200",
-          "expected-body": "loc=(?!CN|HK)[A-Z]{2}" // 【关键排雷】：如果是 loc=CN 或 loc=HK，直接判定为死亡节点
+          "url": "https://gemini.google.com",
+          "weight": 0.7, // 主 URL 权重 70%
+          "expected-status": "200/301/302/307/308"
         },
         {
-          "url": "https://gemini.google.com/app",
-          "weight": 0.4, // 次检测 URL
-          "expected-status": "200/301/302/307/308"
+          "url": "https://www.google.com",
+          "weight": 0.3, // 次 URL 权重 30%
+          "expected-status": "200"
         }
       ],
       "interval": 300, // 🎯 AI 核心业务：5 分钟周期保证即时性
