@@ -1,4 +1,4 @@
-﻿// Lumex Party 专用配置文件覆写脚本
+// Lumex Party 专用配置文件覆写脚本
 // 引用链接: https://raw.githubusercontent.com/int-del/LumexOverwrite/main/Lumex_active.js
 // 加速链接: https://cdn.jsdelivr.net/gh/int-del/LumexOverwrite@main/Lumex_active.js
 // 版本: V4.2-AntiCN  | 更新日期: 2026-05-17
@@ -30,8 +30,10 @@
 // ⚠️  安全警告：config["secret"] 字段为示例占位值，请在本地替换为强密码，
 //     切勿将真实密码提交到公开仓库，否则任何人均可访问你的代理控制 API。
 
+  // eslint-disable-next-line @typescript-eslint/explicit-function-return-type, @typescript-eslint/no-unused-vars
   function main(config) {
   // 打印版本号，用于确认是否下载到了最新版
+  // eslint-disable-next-line no-console
   console.log("✅ 加载脚本 V4.2-AntiCN (双重排雷：ipinfo.io IP 归属 + Gemini 响应体直接验证)...");
 
   // 关键修复：如果 config 为空，必须返回空对象 {} 而不是 null
@@ -318,6 +320,7 @@
       "icon": "https://www.google.com/s2/favicons?domain=claude.ai&sz=128",
       "use": ["组合机场"],
       // 🚀 白名单锁定亚洲低延迟 + 美国兜底，JP/KR/TW 均对 Anthropic 可用
+      "exclude-filter": "(三毛|一毛|一分)",
       "filter": "(?i)(台湾|\\bTW\\b|Taiwan|日本|\\bJP\\b|Japan|韩国|\\bKR\\b|Korea|新加坡|\\bSG\\b|Singapore|美国|\\bUS\\b)",
       "url": "https://api.anthropic.com", // 标准 Lumex 兼容字段
       "urls": [
