@@ -397,6 +397,7 @@
       "icon": "https://www.google.com/s2/favicons?domain=cursor.com&sz=128",
       "use": ["组合机场"], // 引入代理集
       "filter": "(?i)(美国|\\bUS\\b|日本|\\bJP\\b|Japan|新加坡|\\bSG\\b|Singapore|台湾|\\bTW\\b|Taiwan|英国|\\bUK\\b|\\bGB\\b|加拿大|\\bCA\\b|澳大利亚|\\bAU\\b|Australia)",
+      "exclude-filter": "(三毛|一毛|一分)",
       "url": "https://api2.cursor.sh", // 标准 Lumex 兼容字段
       "urls": [
         {
@@ -422,6 +423,7 @@
       "icon": "https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/OpenAI.png",
       "use": ["组合机场"], // 引入代理集
       "filter": "(?i)(美国|\\bUS\\b|日本|\\bJP\\b|Japan|新加坡|\\bSG\\b|Singapore|台湾|\\bTW\\b|Taiwan|英国|\\bUK\\b|\\bGB\\b|加拿大|\\bCA\\b|澳大利亚|\\bAU\\b|Australia)",
+      "exclude-filter": "(三毛|一毛|一分)",
       "url": "https://chatgpt.com", // 标准 Lumex 兼容字段
       "urls": [
         {
@@ -506,7 +508,7 @@
     // ==========================================
     // 🎬 Emby 影音服务器分流 (要求剔除日本节点，故分走专有 EMBY 组)
     "DOMAIN,tv.ash.yt,EMBY", // AshEmby
-    "DOMAIN,ask.ash.yt,EMBY", // Ask Ash
+    "DOMAIN,ask.ash.yt,EMBY", // Ask AshS
     "DOMAIN,emby.bangumi.ca,EMBY", // Nyamedia:公益
     "DOMAIN,1.eoos.lol,EMBY", // eoos
     "DOMAIN,v1.uhdnow.com,EMBY", // UHD
