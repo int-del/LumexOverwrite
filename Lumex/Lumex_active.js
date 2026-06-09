@@ -286,7 +286,7 @@
       "use": ["组合机场"], // 引入代理集
       // 🚀 白名单锁定亚洲低延迟 + 美国兜底，JP/KR 已确认 Gemini 可用
       "filter": "(?i)(台湾|\\bTW\\b|Taiwan|日本|\\bJP\\b|Japan|韩国|\\bKR\\b|Korea|新加坡|\\bSG\\b|Singapore|美国|\\bUS\\b)",
-      "exclude-filter": "^(一分|三毛)", // 剔除前缀为“一分”、“三毛”的节点
+      "exclude-filter": "(一分|一毛|三毛)", // 剔除前缀为“一分”、“三毛”的节点
       "url": "https://gemini.google.com", // 标准 Lumex 兼容字段
       // 🚀 多 URL 健康检查配置 (启用加权评分 + 自适应容差 + 底层正文防送中检测)
       // ⚠️  不使用 chatgpt.com/cdn-cgi/trace：loc 字段反映 Cloudflare CDN PoP 位置而非节点 IP 真实归属。
