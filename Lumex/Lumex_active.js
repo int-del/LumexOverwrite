@@ -320,8 +320,8 @@
       "icon": "https://www.google.com/s2/favicons?domain=claude.ai&sz=128",
       "use": ["组合机场"],
       // 🚀 白名单锁定亚洲低延迟 + 美国兜底，JP/KR/TW 均对 Anthropic 可用
-      "exclude-filter": "(三毛|一毛|一分)",
       "filter": "(?i)(台湾|\\bTW\\b|Taiwan|日本|\\bJP\\b|Japan|韩国|\\bKR\\b|Korea|新加坡|\\bSG\\b|Singapore|美国|\\bUS\\b)",
+      "exclude-filter": "(三毛|一毛|一分)",
       "url": "https://api.anthropic.com", // 标准 Lumex 兼容字段
       "urls": [
         {
