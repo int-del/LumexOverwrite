@@ -1,4 +1,9 @@
 {
+  "private": true,
+  "scripts": {
+    "test": "node tests/validate-profiles.mjs",
+    "build:manifest": "node tools/build-manifest.mjs"
+  },
   "dependencies": {
     "js-yaml": "^4.1.1"
   }

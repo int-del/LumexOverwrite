@@ -2,3 +2,7 @@
 temp_proxy.txt
 tools/extracted.txt
 tools/releases.json
+Lumex/cache.db
+IosStash/temp_*.txt
+tools/*.html
+dist/
