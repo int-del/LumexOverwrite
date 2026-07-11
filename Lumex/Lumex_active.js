@@ -258,9 +258,10 @@
     },
     {
       "name": "EMBY",
-      // 🎬 SAGE-Media Phase 1 shadow（RFC-011）：
-      //   基线 = 按目标域一致性哈希——每个 Emby 站点固定一个存活出口（对 IP/token 风控更稳）；
-      //   shadow 只记录门禁+HRW 推荐与计数器，不接管选路。回滚 = type 改回 url-test。
+      // 🎬 SAGE-Media active（RFC-011）：QoE 门禁 + rendezvous 择优接管选路,
+      //   会话粘滞保留(单会话单 IP,公益源风控友好),拨号失败秒切 standby。
+      //   shadow 验证结论(2026-07-12):103/103 决策与哈希基线分歧,基线把主力服
+      //   钉在越南1(首帧 26s/卡顿 154s 实测),遂授权接管。回滚 = 改回 "shadow"。
       "type": "media-balance",
       "icon": "https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/Emby.png",
       "use": ["组合机场"], // 引入代理集
@@ -268,7 +269,7 @@
       "url": "https://www.gstatic.com/generate_204", // 组内节点存活检查（media-balance 不支持多 URL 加权）
       "interval": 600, // 🎯 非关键业务：降低检测频率，减少不必要的连接
       "lazy": true, // 🎯 非关键业务：延迟测速，进一步节省开销
-      "media-mode": "shadow", // off / shadow / canary / active；进 canary 前先看 shadow 计数器
+      "media-mode": "active", // off / shadow / canary / active；2026-07-12 起 active 接管
       "media-session-ttl-sec": 1800, // 空闲超时；播放活动自动续期，长片不会中途换出口
       "media-min-success-lower-bound": 0.90, // 门禁：成功率 Wilson 下界
       "media-max-retrans-sample-rate": 0.05, // 门禁：重传采样率上限
