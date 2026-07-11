@@ -525,6 +525,11 @@
     "DOMAIN-SUFFIX,xmsl.org,DIRECT", // 1111:公费
     "DOMAIN-SUFFIX,1huanlesap02.top,DIRECT", // 起点:Pro
 
+    // 🎬 LumexEmby 播放器进程兜底:公益源常把播放 302 到未知媒体 CDN 域(如 media.asubaka.de),
+    // 逐域维护规则跟不上;按进程把播放器的其余流量(拉流/图片/字幕)全部收进 EMBY 组,
+    // media-balance 才能看到真实视频吞吐。直连服域名规则在上方,优先级不受影响。
+    "PROCESS-NAME,LumexEmby.exe,EMBY",
+
     // ==========================================
     // 🟡 层级 3：系统底层修正与协议拦截
     // 作用: 修复 Windows 系统连通性状态，并强制拦截 UDP(QUIC) 以挽救测速和流媒体稳定性
