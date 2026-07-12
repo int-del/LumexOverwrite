@@ -159,7 +159,7 @@ proxy-groups:
     tolerance: 100
     lazy: false
   - name: EMBY
-    type: url-test
+    type: media-balance
     icon: https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/Emby.png
     include-all: true
     use:
@@ -170,6 +170,8 @@ proxy-groups:
     interval: 360
     tolerance: 100
     lazy: true
+    media-mode: active # 新会话采用媒体主备调度；buffer 可受控迁移到 standby
+    media-racing-ms: 250 # 主节点慢建连时竞速备用节点；0 禁用
   - name: Gemini
     type: url-test
     icon: https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/Google.png
