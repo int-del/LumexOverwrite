@@ -274,7 +274,8 @@
       "media-min-success-lower-bound": 0.90, // 门禁：成功率 Wilson 下界
       "media-max-retrans-sample-rate": 0.05, // 门禁：重传采样率上限
       "media-load-bias": 1.0, // 活跃流降权指数（0-4，越大越均衡）
-      "media-active-stream-min-age-sec": 10 // 连接存活≥10s 才计为活跃媒体流
+      "media-active-stream-min-age-sec": 10, // 连接存活≥10s 才计为活跃媒体流
+      "media-racing-ms": 250 // 主节点 250ms 未建连时竞速 standby；0 禁用
     },
     {
       "name": "Gemini",
