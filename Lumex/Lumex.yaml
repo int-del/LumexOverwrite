@@ -170,8 +170,9 @@ proxy-groups:
     interval: 360
     tolerance: 100
     lazy: true
-    media-mode: active # 新会话采用媒体主备调度；buffer 可受控迁移到 standby
+    media-mode: active # 新会话采用媒体主备调度；当前播放连接保持不动
     media-racing-ms: 250 # 主节点慢建连时竞速备用节点；0 禁用
+    media-qoe-future-primary: true # 五元组精确绑定且缓存告急时，仅让后续自然媒体连接预热到 standby
   - name: Gemini
     type: url-test
     icon: https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/Google.png

@@ -1181,6 +1181,7 @@ proxy-groups:
     interval: 300
     media-mode: shadow # off / shadow / canary / active
     media-racing-ms: 250 # 主节点未及时建连则拨备用节点；0 禁用
+    media-qoe-future-primary: false # 仅精确绑定的缓存告急会话让后续新连接预热 standby；不会中断当前播放
 
   # select 用户自行选择节点
   - name: Proxy
