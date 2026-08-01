@@ -22,6 +22,8 @@
 // Chore: 补充 LumexCore 内核依赖声明及 secret 安全警告
 // Compat: 为所有 url-test 组补充标准 url 字段，兼容非 LumexCore 内核（urls 数组为 LumexCore 专属扩展）
 // Fix: 拆分 GEOSITE,github 规则 — 仅 Copilot 专属 API 走 GitHub Copilot 组，其余 GitHub 流量走自动选择
+// Fix: GitHub Copilot 组健康检查改测 copilot.github.com — 原 api.github.com 命中 GEOSITE,github
+//      被路由到自动选择组，从不经过本组，252 个成员的存活与延迟一直测错了目的地
 //
 // ⚠️  内核依赖声明：本脚本中 adaptive-heavy / adaptive-mode / switch-cost-* /
 //     hierarchical-* / bandit-mode 等参数为 LumexCore 定制内核专属扩展，
@@ -371,17 +373,19 @@
       "icon": "https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/github.png",
       "use": ["组合机场"], // 引入代理集
       "filter": "^(?!.*(俄罗斯|Russia|RU|朝鲜|Korea|KP|古巴|Cuba|CU|伊朗|Iran|IR|叙利亚|Syria|SY|白俄罗斯|Belarus|BY|CN|China|中国)).*", // 补全：官方封锁全列表
-      "url": "https://api.github.com", // 标准 Lumex 兼容字段
+      "url": "https://copilot.github.com", // 标准 Lumex 兼容字段
       "urls": [
         {
-          "url": "https://api.github.com",
+          "url": "https://copilot.github.com",
           "weight": 0.7,
           "expected-status": "200/301/302/307/308"
         },
         {
-          "url": "https://copilot-proxy.githubusercontent.com",
+          "url": "https://api.githubcopilot.com",
           "weight": 0.3,
-          "expected-status": "200/301/302/307/308"
+          // 实测 404:该端点无鉴权时必然 404,但 404 证明 TLS+HTTP 已抵达真实服务器,
+          // 正是健康检查要测的东西。不列入则这条检查恒失败(原 copilot-proxy 即如此)。
+          "expected-status": "200/301/302/307/308/404"
         }
       ],
       "interval": 360, // 🎯 开发工具业务：6 分钟周期
