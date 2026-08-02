@@ -1,7 +1,7 @@
 // Lumex Party 专用配置文件覆写脚本
 // 引用链接: https://raw.githubusercontent.com/int-del/LumexOverwrite/main/Lumex_active.js
 // 加速链接: https://cdn.jsdelivr.net/gh/int-del/LumexOverwrite@main/Lumex_active.js
-// 版本: V4.2-AntiCN  | 更新日期: 2026-05-17
+// 版本: V4.3-AntiCN  | 更新日期: 2026-08-03
 // Temp: 强制所有 VS Code (Code.exe/Code - Insiders.exe) 相关流量走 Gemini 组
 // Sec: 移除硬编码 secret，改为注释说明（防止密码通过公开 CDN 泄露）
 // Fix: 修正 skip-auth-prefixes 为 127.0.0.1/32（原 /8 过宽，存在局域网绕过风险）
@@ -519,6 +519,7 @@
     "DOMAIN,us01.doudou.pet,EMBY", // Ryan:公益
     "DOMAIN-SUFFIX,startspoint.com,EMBY", // 起点公费A
     "DOMAIN-SUFFIX,mobaiemby.site,EMBY", // 墨云阁:公益30天保号
+    "DOMAIN-SUFFIX,yue.to,EMBY", // 悦:stream.yue.to
     "DOMAIN-SUFFIX,28.al,EMBY", // 起点:公益2-30天保号 
 
     // 🏠 内网域名直连兜底保障

@@ -1,7 +1,7 @@
 ﻿// Lumex Party 专用配置文件覆写脚本
 // 引用链接: https://raw.githubusercontent.com/int-del/LumexOverwrite/main/Lumex.js
 // 加速链接: https://cdn.jsdelivr.net/gh/int-del/LumexOverwrite@main/Lumex.js
-// 版本: v2.27  | 更新日期: 2026-03-10
+// 版本: v2.28  | 更新日期: 2026-08-03
 // Phase 1.1: 加权评分 + 自适应容差版 (Gemini/Copilot/GitHub Copilot 多 URL 健康检查)
 // BugFix: 全组启用多 URL 模式，并修复 ChatGPT 健康检查循环问题
 
@@ -372,6 +372,7 @@ function main(config) {
     "DOMAIN,us01.doudou.pet,EMBY", // Ryan:公益
     "DOMAIN-SUFFIX,startspoint.com,EMBY", // 起点公费A
     "DOMAIN-SUFFIX,mobaiemby.site,EMBY", // 墨云阁:公益30天保号
+    "DOMAIN-SUFFIX,yue.to,EMBY", // 悦:stream.yue.to
     "DOMAIN-SUFFIX,28.al,EMBY", // 起点:公益2-30天保号 
     "DOMAIN-SUFFIX,startspoint.com,EMBY", //起点:公益
 
