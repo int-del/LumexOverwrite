@@ -277,7 +277,8 @@
       "media-max-retrans-sample-rate": 0.05, // 门禁：重传采样率上限
       "media-load-bias": 1.0, // 活跃流降权指数（0-4，越大越均衡）
       "media-active-stream-min-age-sec": 10, // 连接存活≥10s 才计为活跃媒体流
-      "media-racing-ms": 250 // 主节点 250ms 未建连时竞速 standby；0 禁用
+      "media-racing-ms": 250, // 主节点 250ms 未建连时竞速 standby；0 禁用
+      "media-qoe-future-primary": true // 缓存告急时把该会话"下一条"媒体连接预热到 standby；绝不关闭当前连接
     },
     {
       "name": "Gemini",
