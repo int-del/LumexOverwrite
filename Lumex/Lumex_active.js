@@ -273,7 +273,6 @@
       "lazy": true, // 🎯 非关键业务：延迟测速，进一步节省开销
       "media-mode": "active", // off / shadow / canary / active；2026-07-12 起 active 接管
       "media-session-ttl-sec": 1800, // 空闲超时；播放活动自动续期，长片不会中途换出口
-      "media-min-success-lower-bound": 0.90, // 门禁：成功率 Wilson 下界
       "media-max-retrans-sample-rate": 0.05, // 门禁：重传采样率上限
       "media-load-bias": 1.0, // 活跃流降权指数（0-4，越大越均衡）
       "media-active-stream-min-age-sec": 10, // 连接存活≥10s 才计为活跃媒体流
