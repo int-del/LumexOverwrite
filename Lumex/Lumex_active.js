@@ -339,7 +339,14 @@
       "tolerance": 60,
       "adaptive-cooldown-sec": 60,
       "adaptive-stage-cooldown-sec": 300,
-      "lazy": false
+      "lazy": false,
+      // 🔬 RFC-022 canary（仅本组）：按 interval 周期跑组级 scoped 健康检查。
+      //   此前 checkScopedURLs 只在拨号失败后触发，组级靶子（api.anthropic.com）的探测
+      //   证据随 probeMaxAge=2×interval 过期，协调器把候选判为 probe-not-fresh——
+      //   2026-08-09 实机本组 94 个候选仅 13 个合格（14%）。
+      //   代价：该组健康检查流量上升；先只在这一组验证合格率与实测带宽，再决定是否推广。
+      //   回退：删掉本行即可，行为回到"仅拨号失败时刷新"。
+      "scoped-health-check": true
     },
     {
       "name": "Copilot",
