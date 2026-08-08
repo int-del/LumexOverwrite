@@ -339,14 +339,13 @@
       "tolerance": 60,
       "adaptive-cooldown-sec": 60,
       "adaptive-stage-cooldown-sec": 300,
-      "lazy": false,
-      // 🔬 RFC-022 canary（仅本组）：按 interval 周期跑组级 scoped 健康检查。
-      //   此前 checkScopedURLs 只在拨号失败后触发，组级靶子（api.anthropic.com）的探测
-      //   证据随 probeMaxAge=2×interval 过期，协调器把候选判为 probe-not-fresh——
-      //   2026-08-09 实机本组 94 个候选仅 13 个合格（14%）。
-      //   代价：该组健康检查流量上升；先只在这一组验证合格率与实测带宽，再决定是否推广。
-      //   回退：删掉本行即可，行为回到"仅拨号失败时刷新"。
-      "scoped-health-check": true
+      "lazy": false
+      // 🔬 RFC-022 canary 已回退（2026-08-09）：开启周期 scoped 健康检查后本组合格候选
+      //   从 25 掉到 2/94，实际可用性有风险。not-fresh 确实降为 0（调度器工作正常），
+      //   但暴露出更底层的问题：同一节点在三个 scoped 层级
+      //   （plain / #scope=group / #scope=group&provider）上的 alive 互相矛盾，
+      //   而 candidateProbeState 按时间取最新，判定随刷新顺序漂移；周期化只是加剧了漂移。
+      //   查清该问题前不要重开 "scoped-health-check": true。
     },
     {
       "name": "Copilot",
