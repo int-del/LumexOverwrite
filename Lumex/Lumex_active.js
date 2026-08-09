@@ -1,7 +1,7 @@
 // Lumex Party 专用配置文件覆写脚本
 // 引用链接: https://raw.githubusercontent.com/int-del/LumexOverwrite/main/Lumex_active.js
 // 加速链接: https://cdn.jsdelivr.net/gh/int-del/LumexOverwrite@main/Lumex_active.js
-// 版本: V4.3-AntiCN  | 更新日期: 2026-08-03
+// 版本: V4.3-AntiCN  | 更新日期: 2026-08-09
 // Temp: 强制所有 VS Code (Code.exe/Code - Insiders.exe) 相关流量走 Gemini 组
 // Sec: 移除硬编码 secret，改为注释说明（防止密码通过公开 CDN 泄露）
 // Fix: 修正 skip-auth-prefixes 为 127.0.0.1/32（原 /8 过宽，存在局域网绕过风险）
@@ -21,7 +21,7 @@
 //      覆盖 ipinfo.io 显示 TW 但 Gemini 仍拦截（数据中心 IP 黑名单）的边缘场景
 // Chore: 补充 LumexCore 内核依赖声明及 secret 安全警告
 // Compat: 为所有 url-test 组补充标准 url 字段，兼容非 LumexCore 内核（urls 数组为 LumexCore 专属扩展）
-// Fix: 拆分 GEOSITE,github 规则 — 仅 Copilot 专属 API 走 GitHub Copilot 组，其余 GitHub 流量走自动选择
+// Fix: GEOSITE,github 指回 GitHub Copilot 组（2026-08-09 撤销此前的拆分）— 拆分理由已不成立：两组同为 286 成员、封锁地区 filter 一个节点都没滤掉，而自动选择测 gstatic 对 GitHub 连通性无判别力；且本组健康检查已改测 copilot.github.com（有专属 DOMAIN-SUFFIX 规则、排在 GEOSITE 之前），指回去不会让下面那个循环 bug 复发
 // Fix: GitHub Copilot 组健康检查改测 copilot.github.com — 原 api.github.com 命中 GEOSITE,github
 //      被路由到自动选择组，从不经过本组，252 个成员的存活与延迟一直测错了目的地
 //
@@ -639,8 +639,8 @@
     "DOMAIN-SUFFIX,copilot-proxy.githubusercontent.com,GitHub Copilot",
     "DOMAIN-SUFFIX,githubcopilot.com,GitHub Copilot",
     "DOMAIN,api.githubcopilot.com,GitHub Copilot",
-    // GitHub 通用（浏览/clone/Actions 等不需要走严格封锁过滤的 Copilot 组）
-    "GEOSITE,github,自动选择",
+    // GitHub 通用（clone/pull/push 与 Copilot 共用本组：本组测 copilot.github.com，比自动选择的 gstatic 更贴近 github.com）
+    "GEOSITE,github,GitHub Copilot",
     
     // AI 服务 - 兜底 (Gemini 通常包含在 Google Geosite 中，防止误伤优先放前面)
     "GEOSITE,google,Google",
