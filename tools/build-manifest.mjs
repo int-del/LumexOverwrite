@@ -6,9 +6,12 @@ const root = path.resolve(import.meta.dirname, '..')
 const dist = path.join(root, 'dist')
 fs.mkdirSync(dist, { recursive: true })
 
+// 这份清单决定哪些产物受 sha256 完整性校验。漏登记不会报错,只会静默失去保护——
+// Lumex/Lumex_active.js 就这样在清单外待了很久,而它恰恰是 GUI 实际拉取执行的那份。
 const files = [
   'FlLumex_Override.js',
   'Lumex/Lumex.js',
+  'Lumex/Lumex_active.js',
   'Stash_Override.js',
   'Stash.stoverride',
   'IosStash/Stash_Override.stoverride'
