@@ -1,7 +1,11 @@
 // Lumex Party 专用配置文件覆写脚本
 // 引用链接: https://raw.githubusercontent.com/int-del/LumexOverwrite/main/Lumex_active.js
 // 加速链接: https://cdn.jsdelivr.net/gh/int-del/LumexOverwrite@main/Lumex_active.js
-// 版本: V4.3-AntiCN  | 更新日期: 2026-08-09
+// 版本: V4.3-AntiCN  | 更新日期: 2026-08-12
+// Fix: Gemini/Claude/Cursor/ChatGPT 四个白名单组补 (🇭🇰|香港|🇲🇾|马来) 兜底排除 —— 白名单里的
+//      \bSG\b 会匹到节点名末尾的中转标识（"微斯·🇭🇰HK-01 · AWS-SG" 的 AWS-SG），
+//      6 个香港 + 2 个马来落地节点因此混进 AI 组；Anthropic/Gemini 对港落地不可用。
+//      按落地段的旗帜/中文地区名排除，实测覆盖全部 40 个港马节点、零误伤（中转段无港马标识）。
 // Temp: 强制所有 VS Code (Code.exe/Code - Insiders.exe) 相关流量走 Gemini 组
 // Sec: 移除硬编码 secret，改为注释说明（防止密码通过公开 CDN 泄露）
 // Fix: 修正 skip-auth-prefixes 为 127.0.0.1/32（原 /8 过宽，存在局域网绕过风险）
@@ -286,7 +290,7 @@
       "use": ["组合机场"], // 引入代理集
       // 🚀 白名单锁定亚洲低延迟 + 美国兜底，JP/KR 已确认 Gemini 可用
       "filter": "(?i)(台湾|\\bTW\\b|Taiwan|日本|\\bJP\\b|Japan|韩国|\\bKR\\b|Korea|新加坡|\\bSG\\b|Singapore|美国|\\bUS\\b)",
-      "exclude-filter": "(一分|一毛|三毛)", // 剔除前缀为“一分”、“三毛”的节点
+      "exclude-filter": "(一分|一毛|三毛|🇭🇰|香港|🇲🇾|马来)", // 剔除“一分”“三毛”，并兜底排除港/马来落地（见文件头 Fix 说明）
       "url": "https://gemini.google.com", // 标准 Lumex 兼容字段
       // 🚀 多 URL 健康检查配置 (启用加权评分 + 自适应容差 + 底层正文防送中检测)
       // ⚠️  不使用 chatgpt.com/cdn-cgi/trace：loc 字段反映 Cloudflare CDN PoP 位置而非节点 IP 真实归属。
@@ -321,7 +325,7 @@
       "use": ["组合机场"],
       // 🚀 白名单锁定亚洲低延迟 + 美国兜底，JP/KR/TW 均对 Anthropic 可用
       "filter": "(?i)(台湾|\\bTW\\b|Taiwan|日本|\\bJP\\b|Japan|韩国|\\bKR\\b|Korea|新加坡|\\bSG\\b|Singapore|美国|\\bUS\\b)",
-      "exclude-filter": "(三毛|一毛|一分)",
+      "exclude-filter": "(三毛|一毛|一分|🇭🇰|香港|🇲🇾|马来)", // 兜底排除港/马来落地（见文件头 Fix 说明）
       "url": "https://api.anthropic.com", // 标准 Lumex 兼容字段
       "urls": [
         {
@@ -405,7 +409,7 @@
       "icon": "https://www.google.com/s2/favicons?domain=cursor.com&sz=128",
       "use": ["组合机场"], // 引入代理集
       "filter": "(?i)(美国|\\bUS\\b|日本|\\bJP\\b|Japan|新加坡|\\bSG\\b|Singapore|台湾|\\bTW\\b|Taiwan|英国|\\bUK\\b|\\bGB\\b|加拿大|\\bCA\\b|澳大利亚|\\bAU\\b|Australia)",
-      "exclude-filter": "(三毛|一毛|一分)",
+      "exclude-filter": "(三毛|一毛|一分|🇭🇰|香港|🇲🇾|马来)", // 兜底排除港/马来落地（见文件头 Fix 说明）
       "url": "https://api2.cursor.sh", // 标准 Lumex 兼容字段
       "urls": [
         {
@@ -431,7 +435,7 @@
       "icon": "https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/OpenAI.png",
       "use": ["组合机场"], // 引入代理集
       "filter": "(?i)(美国|\\bUS\\b|日本|\\bJP\\b|Japan|新加坡|\\bSG\\b|Singapore|台湾|\\bTW\\b|Taiwan|英国|\\bUK\\b|\\bGB\\b|加拿大|\\bCA\\b|澳大利亚|\\bAU\\b|Australia)",
-      "exclude-filter": "(三毛|一毛|一分)",
+      "exclude-filter": "(三毛|一毛|一分|🇭🇰|香港|🇲🇾|马来)", // 兜底排除港/马来落地（见文件头 Fix 说明）
       "url": "https://chatgpt.com", // 标准 Lumex 兼容字段
       "urls": [
         {
