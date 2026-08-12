@@ -2,6 +2,12 @@
 // 引用链接: https://raw.githubusercontent.com/int-del/LumexOverwrite/main/Lumex_active.js
 // 加速链接: https://cdn.jsdelivr.net/gh/int-del/LumexOverwrite@main/Lumex_active.js
 // 版本: V4.3-AntiCN  | 更新日期: 2026-08-12
+// Fix: 自动选择/EMBY/Copilot/GitHub Copilot 的封锁地区黑名单改用 (?<![A-Za-z])XX(?![A-Za-z])
+//      收紧 —— 原来是裸子串：'Korea' 会连南韩一起挡，'CN' 会挡掉 CN2 GIA 线路名，
+//      'RU'/'CU'/'SY' 会命中任意含该子串的名字。内核用 regexp2（非 Go RE2，见
+//      groupbase.go 的 regexp2.MustCompile），其 \b 为 Unicode 语义、中文算 word 字符，
+//      故不能用 \bXX\b —— 码位紧邻中文时 \b 不成立。实测 290 节点池行为零变化。
+//      ⚠️ 黑名单不可加 🇨🇳：微斯用 🇨🇳 给台湾节点打旗（微斯·🇨🇳TW-01），加了会误伤 8 个台湾节点。
 // Fix: Gemini/Claude/Cursor/ChatGPT 四个白名单组补 (🇭🇰|香港|🇲🇾|马来) 兜底排除 —— 白名单里的
 //      \bSG\b 会匹到节点名末尾的中转标识（"微斯·🇭🇰HK-01 · AWS-SG" 的 AWS-SG），
 //      6 个香港 + 2 个马来落地节点因此混进 AI 组；Anthropic/Gemini 对港落地不可用。
@@ -244,7 +250,7 @@
       "type": "url-test",
       "icon": "https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/Urltest.png",
       "use": ["组合机场"], // 引入代理集
-      "filter": "^(?!.*(俄罗斯|Russia|RU|朝鲜|Korea|KP|古巴|Cuba|CU)).*", // 排除过期/流量/IEPL/RU/KP/CU
+      "filter": "^(?!.*(俄罗斯|Russia|🇷🇺|(?<![A-Za-z])RU(?![A-Za-z])|朝鲜|北韩|North ?Korea|🇰🇵|(?<![A-Za-z])KP(?![A-Za-z])|古巴|Cuba|🇨🇺|(?<![A-Za-z])CU(?![A-Za-z]))).*", // 排除 RU/KP/CU；码位两侧禁字母，见文件头 Fix
       "url": "https://www.gstatic.com/generate_204", // 标准 Lumex 兼容字段（非 LumexCore 内核使用此值）
       "urls": [
         {
@@ -271,7 +277,7 @@
       "type": "media-balance",
       "icon": "https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/Emby.png",
       "use": ["组合机场"], // 引入代理集
-      "filter": "^(?!.*(俄罗斯|Russia|RU|朝鲜|Korea|KP|古巴|Cuba|CU|日本|Japan|JP)).*", // 额外排除日本节点
+      "filter": "^(?!.*(俄罗斯|Russia|🇷🇺|(?<![A-Za-z])RU(?![A-Za-z])|朝鲜|北韩|North ?Korea|🇰🇵|(?<![A-Za-z])KP(?![A-Za-z])|古巴|Cuba|🇨🇺|(?<![A-Za-z])CU(?![A-Za-z])|日本|Japan|🇯🇵|(?<![A-Za-z])JP(?![A-Za-z]))).*", // 额外排除日本节点
       "url": "https://www.gstatic.com/generate_204", // 组内节点存活检查（media-balance 不支持多 URL 加权）
       "interval": 600, // 🎯 非关键业务：降低检测频率，减少不必要的连接
       "lazy": true, // 🎯 非关键业务：延迟测速，进一步节省开销
@@ -356,7 +362,7 @@
       "type": "url-test",
       "icon": "https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/Microsoft.png",
       "use": ["组合机场"], // 引入代理集
-      "filter": "^(?!.*(俄罗斯|Russia|RU|朝鲜|Korea|KP|古巴|Cuba|CU|CN|China|中国)).*", // 补全：排除 RU/KP/CU/CN
+      "filter": "^(?!.*(俄罗斯|Russia|🇷🇺|(?<![A-Za-z])RU(?![A-Za-z])|朝鲜|北韩|North ?Korea|🇰🇵|(?<![A-Za-z])KP(?![A-Za-z])|古巴|Cuba|🇨🇺|(?<![A-Za-z])CU(?![A-Za-z])|中国|China|(?<![A-Za-z])CN(?![A-Za-z0-9]))).*", // 补全：排除 RU/KP/CU/CN
       "url": "https://www.bing.com", // 标准 Lumex 兼容字段
       "urls": [
         {
@@ -382,7 +388,7 @@
       "type": "url-test",
       "icon": "https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/github.png",
       "use": ["组合机场"], // 引入代理集
-      "filter": "^(?!.*(俄罗斯|Russia|RU|朝鲜|Korea|KP|古巴|Cuba|CU|伊朗|Iran|IR|叙利亚|Syria|SY|白俄罗斯|Belarus|BY|CN|China|中国)).*", // 补全：官方封锁全列表
+      "filter": "^(?!.*(俄罗斯|Russia|🇷🇺|(?<![A-Za-z])RU(?![A-Za-z])|朝鲜|北韩|North ?Korea|🇰🇵|(?<![A-Za-z])KP(?![A-Za-z])|古巴|Cuba|🇨🇺|(?<![A-Za-z])CU(?![A-Za-z])|伊朗|Iran|🇮🇷|(?<![A-Za-z])IR(?![A-Za-z])|叙利亚|Syria|🇸🇾|(?<![A-Za-z])SY(?![A-Za-z])|白俄罗斯|Belarus|🇧🇾|(?<![A-Za-z])BY(?![A-Za-z])|中国|China|(?<![A-Za-z])CN(?![A-Za-z0-9]))).*", // 补全：官方封锁全列表
       "url": "https://copilot.github.com", // 标准 Lumex 兼容字段
       "urls": [
         {
