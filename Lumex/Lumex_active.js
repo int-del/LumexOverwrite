@@ -1,7 +1,10 @@
 // Lumex Party 专用配置文件覆写脚本
 // 引用链接: https://raw.githubusercontent.com/int-del/LumexOverwrite/main/Lumex_active.js
 // 加速链接: https://cdn.jsdelivr.net/gh/int-del/LumexOverwrite@main/Lumex_active.js
-// 版本: V4.3-AntiCN  | 更新日期: 2026-08-12
+// 版本: V4.4-AntiCN  | 更新日期: 2026-08-12
+// ⚠️  改版本号时必须同步下面 main() 里的 console.log —— 那行是确认客户端有没有拉到
+//     新版的唯一手段，V4.3 那次只改了本行、漏了它，导致 2026-08-03~08-12 控制台一直显示 V4.2。
+//     update_ver.js 不覆盖本文件（清单里没有，且匹小写 v、日期硬编码），别指望它。
 // Fix: 四个 AI 组的地区白名单同样改用 (?<![A-Za-z])XX(?![A-Za-z]) —— \bUS\b 在 regexp2 下
 //      匹不上"星链·US专线-原生IP-圣何塞1"（US 紧邻中文"专"，中文算 word 字符故无词边界），
 //      21 个美国节点一直被四组静默排除。实测四组各 +21、0 移出。
@@ -49,7 +52,7 @@
   function main(config) {
   // 打印版本号，用于确认是否下载到了最新版
   // eslint-disable-next-line no-console
-  console.log("✅ 加载脚本 V4.2-AntiCN (双重排雷：ipinfo.io IP 归属 + Gemini 响应体直接验证)...");
+  console.log("✅ 加载脚本 V4.4-AntiCN (地区判据改码位边界：港/马来兜底排除 + 找回 21 个美国节点)...");
 
   // 关键修复：如果 config 为空，必须返回空对象 {} 而不是 null
 
