@@ -1,7 +1,13 @@
 // Lumex Party 专用配置文件覆写脚本
 // 引用链接: https://raw.githubusercontent.com/int-del/LumexOverwrite/main/Lumex_active.js
 // 加速链接: https://cdn.jsdelivr.net/gh/int-del/LumexOverwrite@main/Lumex_active.js
-// 版本: V4.5-AntiCN  | 更新日期: 2026-08-12
+// 版本: V4.6-AntiCN  | 更新日期: 2026-08-14
+// Fix: 四个 AI 组加 empty-fallback: REJECT —— 组内节点被 filter 滤空时，内核旧行为是
+//      硬编码回落 COMPATIBLE，而 COMPATIBLE 的实现是 outbound.NewCompatible() 返回的
+//      *Direct，即**静默直连**：机场一次大改名就能让白名单匹配为 0，Claude/Gemini 的
+//      流量带着真实 IP 直连出去且无任何告警。改为 REJECT 后是显式失败，立刻可见。
+//      ⚠️ 依赖 LumexCore 570d019b+（移植自上游 1e62d55）。老内核会静默忽略该字段并
+//      维持旧行为，故先推不会导致配置加载失败。
 // ⚠️  改版本号时必须同步下面 main() 里的 console.log —— 那行是确认客户端有没有拉到
 //     新版的唯一手段，V4.3 那次只改了本行、漏了它，导致 2026-08-03~08-12 控制台一直显示 V4.2。
 //     update_ver.js 不覆盖本文件（清单里没有，且匹小写 v、日期硬编码），别指望它。
@@ -56,7 +62,7 @@
   function main(config) {
   // 打印版本号，用于确认是否下载到了最新版
   // eslint-disable-next-line no-console
-  console.log("✅ 加载脚本 V4.5-AntiCN (地区判据改码位边界：港/马来兜底排除 + 找回 25 个美国节点)...");
+  console.log("✅ 加载脚本 V4.6-AntiCN (AI 组白名单滤空时 REJECT，不再静默直连)...");
 
   // 关键修复：如果 config 为空，必须返回空对象 {} 而不是 null
 
@@ -307,6 +313,7 @@
       // 🚀 白名单锁定亚洲低延迟 + 美国兜底，JP/KR 已确认 Gemini 可用
       "filter": "(?i)(台湾|Taiwan|(?<![A-Za-z])TW(?![A-Za-z])|日本|Japan|(?<![A-Za-z])JP(?![A-Za-z])|韩国|Korea|(?<![A-Za-z])KR(?![A-Za-z])|新加坡|Singapore|(?<![A-Za-z])SG(?![A-Za-z])|美国|(?<![A-Za-z])US)",
       "exclude-filter": "(一分|一毛|三毛|🇭🇰|香港|🇲🇾|马来)", // 剔除“一分”“三毛”，并兜底排除港/马来落地（见文件头 Fix 说明）
+      "empty-fallback": "REJECT", // 白名单滤空时显式失败，不回落直连（见文件头 Fix 说明）
       "url": "https://gemini.google.com", // 标准 Lumex 兼容字段
       // 🚀 多 URL 健康检查配置 (启用加权评分 + 自适应容差 + 底层正文防送中检测)
       // ⚠️  不使用 chatgpt.com/cdn-cgi/trace：loc 字段反映 Cloudflare CDN PoP 位置而非节点 IP 真实归属。
@@ -342,6 +349,7 @@
       // 🚀 白名单锁定亚洲低延迟 + 美国兜底，JP/KR/TW 均对 Anthropic 可用
       "filter": "(?i)(台湾|Taiwan|(?<![A-Za-z])TW(?![A-Za-z])|日本|Japan|(?<![A-Za-z])JP(?![A-Za-z])|韩国|Korea|(?<![A-Za-z])KR(?![A-Za-z])|新加坡|Singapore|(?<![A-Za-z])SG(?![A-Za-z])|美国|(?<![A-Za-z])US)",
       "exclude-filter": "(三毛|一毛|一分|🇭🇰|香港|🇲🇾|马来)", // 兜底排除港/马来落地（见文件头 Fix 说明）
+      "empty-fallback": "REJECT", // 白名单滤空时显式失败，不回落直连（见文件头 Fix 说明）
       "url": "https://api.anthropic.com", // 标准 Lumex 兼容字段
       "urls": [
         {
@@ -426,6 +434,7 @@
       "use": ["组合机场"], // 引入代理集
       "filter": "(?i)(美国|(?<![A-Za-z])US|日本|Japan|(?<![A-Za-z])JP(?![A-Za-z])|新加坡|Singapore|(?<![A-Za-z])SG(?![A-Za-z])|台湾|Taiwan|(?<![A-Za-z])TW(?![A-Za-z])|英国|(?<![A-Za-z])UK(?![A-Za-z])|(?<![A-Za-z])GB(?![A-Za-z])|加拿大|(?<![A-Za-z])CA(?![A-Za-z])|澳大利亚|Australia|(?<![A-Za-z])AU(?![A-Za-z]))",
       "exclude-filter": "(三毛|一毛|一分|🇭🇰|香港|🇲🇾|马来)", // 兜底排除港/马来落地（见文件头 Fix 说明）
+      "empty-fallback": "REJECT", // 白名单滤空时显式失败，不回落直连（见文件头 Fix 说明）
       "url": "https://api2.cursor.sh", // 标准 Lumex 兼容字段
       "urls": [
         {
@@ -452,6 +461,7 @@
       "use": ["组合机场"], // 引入代理集
       "filter": "(?i)(美国|(?<![A-Za-z])US|日本|Japan|(?<![A-Za-z])JP(?![A-Za-z])|新加坡|Singapore|(?<![A-Za-z])SG(?![A-Za-z])|台湾|Taiwan|(?<![A-Za-z])TW(?![A-Za-z])|英国|(?<![A-Za-z])UK(?![A-Za-z])|(?<![A-Za-z])GB(?![A-Za-z])|加拿大|(?<![A-Za-z])CA(?![A-Za-z])|澳大利亚|Australia|(?<![A-Za-z])AU(?![A-Za-z]))",
       "exclude-filter": "(三毛|一毛|一分|🇭🇰|香港|🇲🇾|马来)", // 兜底排除港/马来落地（见文件头 Fix 说明）
+      "empty-fallback": "REJECT", // 白名单滤空时显式失败，不回落直连（见文件头 Fix 说明）
       "url": "https://chatgpt.com", // 标准 Lumex 兼容字段
       "urls": [
         {
