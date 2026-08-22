@@ -1,7 +1,12 @@
 // Lumex Party 专用配置文件覆写脚本
 // 引用链接: https://raw.githubusercontent.com/int-del/LumexOverwrite/main/Lumex_active.js
 // 加速链接: https://cdn.jsdelivr.net/gh/int-del/LumexOverwrite@main/Lumex_active.js
-// 版本: V4.6-AntiCN  | 更新日期: 2026-08-14
+// 版本: V4.7-AntiCN  | 更新日期: 2026-08-22
+// Fix: Autodesk Fusion 360 的"服务器验证警告"弹窗 —— autodesk.com/autodesk.io 改走 DIRECT。
+//      根因不是证书:Fusion 把一切 TLS 层失败都渲染成"无法验证安全证书",而它每分钟几十次
+//      云端心跳全落在 GEOSITE,geolocation-!cn → 自动选择(164 节点)上。实测 8s 门限各 20 次,
+//      api.aps.usa.autodesk.com 走代理 16/20 通过、直连 19/20 通过,失败率差 4 倍。
+//      www.autodesk.com 直连反而慢(~950ms 且超时),单独前置一条留在代理侧。
 // Fix: 四个 AI 组加 empty-fallback: REJECT —— 组内节点被 filter 滤空时，内核旧行为是
 //      硬编码回落 COMPATIBLE，而 COMPATIBLE 的实现是 outbound.NewCompatible() 返回的
 //      *Direct，即**静默直连**：机场一次大改名就能让白名单匹配为 0，Claude/Gemini 的
@@ -62,7 +67,7 @@
   function main(config) {
   // 打印版本号，用于确认是否下载到了最新版
   // eslint-disable-next-line no-console
-  console.log("✅ 加载脚本 V4.6-AntiCN (AI 组白名单滤空时 REJECT，不再静默直连)...");
+  console.log("✅ 加载脚本 V4.7-AntiCN (Autodesk 走 DIRECT，止住 Fusion 360 证书告警弹窗)...");
 
   // 关键修复：如果 config 为空，必须返回空对象 {} 而不是 null
 
@@ -567,6 +572,18 @@
     // EMBY 直连服 (专门摘出，不走上面代理的)
     "DOMAIN-SUFFIX,xmsl.org,DIRECT", // 1111:公费
     "DOMAIN-SUFFIX,1huanlesap02.top,DIRECT", // 起点:Pro
+
+    // 🛠️ Autodesk Fusion 360 云端心跳直连
+    // Fusion 是云原生软件,许可核销/云文档同步/实时推送每分钟几十次 HTTPS 心跳,
+    // 而它把所有 TLS 层失败(握手无响应、超时、连接中断)统一渲染成"服务器验证警告:
+    // 无法验证安全证书",且"仍然信任"不落盘 —— 失败一次弹一次,所以体感极其频繁。
+    // 2026-08-22 实测 api.aps.usa.autodesk.com,8s 门限各 20 次:
+    //   自动选择(悦·🇭🇰香港2) 16/20 通过 avg 242ms;DIRECT 19/20 通过 avg 336ms
+    // 代理路径慢的少但失败率高 4 倍。api.aps / accounts / *.prd.fusionapi / ase 直连均 200-420ms 稳定。
+    // 例外:www.autodesk.com(纯官网)直连 ~950ms 且会超时,单独留在代理侧。
+    "DOMAIN,www.autodesk.com,自动选择",
+    "DOMAIN-SUFFIX,autodesk.com,DIRECT",
+    "DOMAIN-SUFFIX,autodesk.io,DIRECT",
 
     // 🎬 LumexEmby 播放器进程兜底:公益源常把播放 302 到未知媒体 CDN 域(如 media.asubaka.de),
     // 逐域维护规则跟不上;按进程把播放器的其余流量(拉流/图片/字幕)全部收进 EMBY 组,
