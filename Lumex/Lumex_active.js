@@ -584,7 +584,7 @@
     "DOMAIN,www.autodesk.com,自动选择",
     "DOMAIN-SUFFIX,autodesk.com,DIRECT",
     "DOMAIN-SUFFIX,autodesk.io,DIRECT",
-    "DOMAIN-SUFFIX,autodesk360.com",
+    "DOMAIN-SUFFIX,autodesk360.com,DIRECT",
 
     // 🎬 LumexEmby 播放器进程兜底:公益源常把播放 302 到未知媒体 CDN 域(如 media.asubaka.de),
     // 逐域维护规则跟不上;按进程把播放器的其余流量(拉流/图片/字幕)全部收进 EMBY 组,
