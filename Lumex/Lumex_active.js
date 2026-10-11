@@ -353,7 +353,7 @@
       "use": ["组合机场"],
       // 🚀 白名单锁定亚洲低延迟 + 美国兜底，JP/KR/TW 均对 Anthropic 可用
       "filter": "(?i)(台湾|Taiwan|(?<![A-Za-z])TW(?![A-Za-z])|日本|Japan|(?<![A-Za-z])JP(?![A-Za-z])|韩国|Korea|(?<![A-Za-z])KR(?![A-Za-z])|新加坡|Singapore|(?<![A-Za-z])SG(?![A-Za-z])|美国|(?<![A-Za-z])US)",
-      "exclude-filter": "(三毛|一毛|一分|🇭🇰|香港|🇲🇾|马来)", // 兜底排除港/马来落地（见文件头 Fix 说明）
+      "exclude-filter": "(三毛|一毛|一分|🇭🇰|香港|🇲🇾|马来|星链)", // 兜底排除港/马来落地（见文件头 Fix 说明）
       "empty-fallback": "REJECT", // 白名单滤空时显式失败，不回落直连（见文件头 Fix 说明）
       "url": "https://api.anthropic.com", // 标准 Lumex 兼容字段
       "urls": [
