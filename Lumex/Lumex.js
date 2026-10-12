@@ -144,7 +144,7 @@ function main(config) {
   config["proxy-providers"] = {
     "组合机场": {
       "type": "http",
-      "url": "https://sub.tymin.cn:8443/xiejian2026/download/collection/%E7%BB%84%E5%90%88%E6%9C%BA%E5%9C%BA",
+      "url": "http://127.0.0.1:38324/download/collection/%E7%BB%84%E5%90%88%E6%9C%BA%E5%9C%BA",
       "path": "./proxy_providers/组合机场.yaml",
       "interval": 86400, // 优化：将自动刷新降低到24小时一次，防止反复清空历史测速记录导致待测速
       "filter": "(?i)^(?!.*(流量|到期|重置|官网|剩余|套餐|expire|traffic|reset|群组|频道|@|联系|网站|入群|关注|反馈|更新)).*",
