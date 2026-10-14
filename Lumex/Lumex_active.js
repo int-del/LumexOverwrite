@@ -295,7 +295,12 @@
       //   会话粘滞保留(单会话单 IP,公益源风控友好),拨号失败秒切 standby。
       //   shadow 验证结论(2026-07-12):103/103 决策与哈希基线分歧,基线把主力服
       //   钉在越南1(首帧 26s/卡顿 154s 实测),遂授权接管。回滚 = 改回 "shadow"。
-      "type": "media-balance",
+      // 🔀 type 写 url-test + lumex-type: media-balance,让本文件同时可给标准 mihomo(Mihomo Party)用:
+      //   标准内核不认识 lumex-type、按 url-test 运行;LumexCore 按 media-balance 构造,media-* 照常生效。
+      //   ⚠️ 依赖 LumexCore 支持 lumex-type 的版本;旧内核会静默退化成 url-test。回滚 = type 改回 "media-balance"。
+      "type": "url-test",
+      "lumex-type": "media-balance",
+      "tolerance": 100, // 仅标准 mihomo 走 url-test 时生效;media-balance 不读该字段
       "icon": "https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/Emby.png",
       "use": ["组合机场"], // 引入代理集
       "filter": "^(?!.*(俄罗斯|Russia|🇷🇺|(?<![A-Za-z])RU(?![A-Za-z])|朝鲜|北韩|North ?Korea|🇰🇵|(?<![A-Za-z])KP(?![A-Za-z])|古巴|Cuba|🇨🇺|(?<![A-Za-z])CU(?![A-Za-z])|日本|Japan|🇯🇵|(?<![A-Za-z])JP(?![A-Za-z]))).*", // 额外排除日本节点

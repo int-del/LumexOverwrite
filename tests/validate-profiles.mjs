@@ -6,6 +6,9 @@ import vm from 'node:vm'
 const root = path.resolve(import.meta.dirname, '..')
 const fixture = JSON.parse(fs.readFileSync(path.join(root, 'fixtures/minimal-profile.json'), 'utf8'))
 const scripts = ['FlLumex_Override.js', 'Lumex/Lumex.js', 'Lumex/Lumex_active.js', 'Stash_Override.js']
+// Lumex_active.js 也给标准 mihomo(Mihomo Party)用:标准内核遇到不认识的组类型会让整份配置加载失败,
+// LumexCore 专属类型只能经 lumex-type 声明(见 LumexCore adapter/outboundgroup/parser.go)。
+const STANDARD_GROUP_TYPES = new Set(['select', 'url-test', 'fallback', 'load-balance'])
 
 for (const relative of scripts) {
   const source = fs.readFileSync(path.join(root, relative), 'utf8')
@@ -26,7 +29,14 @@ for (const relative of scripts) {
   if (relative === 'Lumex/Lumex_active.js') {
     const emby = output['proxy-groups'].find((group) => group.name === 'EMBY')
     assert(emby, 'Lumex_active.js: EMBY group required')
-    assert.equal(emby.type, 'media-balance', 'Lumex_active.js: EMBY must use media-balance')
+    assert.equal(emby.type, 'url-test', 'Lumex_active.js: EMBY must stay url-test for stock mihomo')
+    assert.equal(emby['lumex-type'], 'media-balance', 'Lumex_active.js: EMBY must request media-balance via lumex-type')
+    for (const group of output['proxy-groups']) {
+      assert(
+        STANDARD_GROUP_TYPES.has(group.type),
+        `Lumex_active.js: group ${group.name} uses non-mihomo type ${group.type}; declare it via lumex-type`
+      )
+    }
     assert.equal(emby['media-mode'], 'active', 'Lumex_active.js: EMBY must explicitly select active mode')
     assert.equal(emby['media-racing-ms'], 250, 'Lumex_active.js: EMBY racing delay must be 250ms')
   }

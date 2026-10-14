@@ -159,7 +159,9 @@ proxy-groups:
     tolerance: 100
     lazy: false
   - name: EMBY
-    type: media-balance
+    # url-test + lumex-type: 标准 mihomo 按 url-test 运行,LumexCore 按 media-balance 构造(与 Lumex_active.js 一致)
+    type: url-test
+    lumex-type: media-balance
     icon: https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/Emby.png
     include-all: true
     use:
