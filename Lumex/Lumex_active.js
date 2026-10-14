@@ -667,6 +667,10 @@
     // Fix: Anthropic 使用 Statsig 做 A/B 测试和功能开关，Claude 客户端频繁请求
     "DOMAIN-SUFFIX,statsig.com,Claude",
     "DOMAIN-SUFFIX,statsigapi.net,Claude",
+    // VS Code 扩展市场里 Anthropic 发布者的元数据与 .vsix 下载（Claude Code 扩展更新），
+    // 必须排在 PROCESS-NAME,Code.exe,Gemini 之前，否则被 Code.exe 进程规则截走
+    "DOMAIN,anthropic.gallery.vsassets.io,Claude",
+    "DOMAIN,anthropic.gallerycdn.vsassets.io,Claude",
 
     // AI 服务 - Rule Sets (已废弃，清理残留)
     "GEOSITE,openai,ChatGPT",
