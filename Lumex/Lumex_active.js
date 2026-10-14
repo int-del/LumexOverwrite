@@ -351,11 +351,11 @@
       "type": "url-test",
       "icon": "https://www.google.com/s2/favicons?domain=claude.ai&sz=128",
       "use": ["组合机场"],
-      // 🚀 只用台湾家宽出口：悦·台湾家宽1/2 A/B + 微斯 TW-02[Residential]（含 AWS2 中转）共 6 个。
+      // 🚀 只用悦的台湾家宽出口：悦·台湾家宽1/2 A/B 共 4 个。
       //   2026-10-14：原白名单横跨台/日/韩/新/美五地 170 个成员，只能手动锁定防跨国跳 IP，
       //   锁定的台湾家宽2 A 建连超时时救援被 manual-pin 挡住，claude.exe 连续断流；
       //   收窄到同一地区后可解除锁定，坏了在台湾家宽之间自动换。
-      "filter": "(?i)(台湾家宽|(?<![A-Za-z])TW-\\d+\\[Residential\\])",
+      "filter": "^悦·.*台湾家宽",
       "exclude-filter": "(三毛|一毛|一分|🇭🇰|香港|🇲🇾|马来|星链)", // 兜底排除港/马来落地（见文件头 Fix 说明）
       "empty-fallback": "REJECT", // 白名单滤空时显式失败，不回落直连（见文件头 Fix 说明）
       "url": "https://api.anthropic.com", // 标准 Lumex 兼容字段
