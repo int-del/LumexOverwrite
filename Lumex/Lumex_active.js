@@ -363,12 +363,14 @@
         {
           "url": "https://api.anthropic.com",
           "weight": 0.7,
-          "expected-status": "200/301/302/307/308"
+          // 2026-10-15 实测:根路径恒返回 404(API 只在 /v1/* 下),原清单让正常节点全判失败
+          "expected-status": "200/301/302/307/308/404"
         },
         {
           "url": "https://claude.ai",
           "weight": 0.3,
-          "expected-status": "200/301/302/307/308"
+          // 2026-10-15 实测:非浏览器请求被 Cloudflare 挑战页拦为 403,原清单让正常节点全判失败
+          "expected-status": "200/301/302/307/308/403"
         }
       ],
       "interval": 300,
