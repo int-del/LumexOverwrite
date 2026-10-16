@@ -219,7 +219,9 @@
       "url": "http://127.0.0.1:38324/download/collection/%E7%BB%84%E5%90%88%E6%9C%BA%E5%9C%BA",
       "path": "./proxy_providers/组合机场.yaml",
       "interval": 86400, // 优化：将自动刷新降低到24小时一次，防止反复清空历史测速记录导致待测速
-      "filter": "(?i)^(?!.*(流量|到期|重置|官网|剩余|套餐|expire|traffic|reset|群组|频道|@|联系|网站|入群|关注|反馈|更新)).*",
+      // 排除 IPv6 节点:本配置 ipv6 为 false(见上方),IPv6-only 服务器连不上;2026-10-16 实测 13 个此类节点 10 轮全败,
+      // 却每轮被所有组测满(RFC-027 C2)。改回 ipv6: true 时一并删除 ipv6 这一项。
+      "filter": "(?i)^(?!.*(流量|到期|重置|官网|剩余|套餐|expire|traffic|reset|群组|频道|@|联系|网站|入群|关注|反馈|更新|ipv6)).*",
       "health-check": {
         "enable": true,
         "hierarchical": true,
@@ -282,7 +284,8 @@
         {
           "url": "https://cdn.jsdelivr.net/",
           "weight": 0.4,
-          "expected-status": "200"
+          // 2026-10-16 内核 delay API 实测(HEAD):根路径返回 301,原清单 200 让正常节点全判失败(RFC-027 C1)
+          "expected-status": "200/301/302"
         }
       ],
       "interval": 240, // 🎯 关键组基准周期
@@ -325,24 +328,29 @@
       "exclude-filter": "(一分|一毛|三毛|🇭🇰|香港|🇲🇾|马来)", // 剔除“一分”“三毛”，并兜底排除港/马来落地（见文件头 Fix 说明）
       "empty-fallback": "REJECT", // 白名单滤空时显式失败，不回落直连（见文件头 Fix 说明）
       "url": "https://gemini.google.com", // 标准 Lumex 兼容字段
-      // 🚀 多 URL 健康检查配置 (启用加权评分 + 自适应容差 + 底层正文防送中检测)
-      // ⚠️  不使用 chatgpt.com/cdn-cgi/trace：loc 字段反映 Cloudflare CDN PoP 位置而非节点 IP 真实归属。
-      // 检测策略（双重排雷）：
-      //   1. ipinfo.io/json     — 排除 IP 归属为 CN/HK 的节点（覆盖大多数假通场景）
-      //   2. gemini.google.com  — 直接验证 Gemini 是否真实可达，排除被 Gemini 单独拉黑的数据中心 IP
-      //      Gemini 封锁时页面包含固定字符串 "isn't currently supported"，用负向前瞻检测其缺失
+      // 🚀 多 URL 健康检查配置(RFC-027 C1,2026-10-16 改)
+      //   1. gemini.google.com(主判据,HEAD)— 每轮健康检查都测,只看可达。与 url 保持一致。
+      //   2. Cloudflare trace 国别(解锁判据,带 expected-body)— 只在换节点前与在位者复查时测,排除 IP 归属 CN/HK 的出口。
+      //      trace 的 loc 是 Cloudflare 按访问者 IP 判定的国家(数据中心位置是 colo 字段),内核 Gemini 探针用的也是它。
+      //      不再用 ipinfo.io:机场出口 IP 多人共享,实测返回 429 限频,会把正常节点判成「不符」。
+      //   3. gemini.google.com/app(只保留地址,url-test 回退模式加权用)— 原负向前瞻在只读前缀时恒「通过」,
+      //      内核 Gemini 探针所认的可用性标记在新版页面里也已找不到,不再作为判据。
       "urls": [
         {
-          "url": "https://ipinfo.io/json",
-          "weight": 0.4, // 第一关：IP 归属地核查，排除 CN/HK
+          "url": "https://gemini.google.com",
+          "weight": 0.5,
+          "expected-status": "200/301/302"
+        },
+        {
+          "url": "https://www.cloudflare.com/cdn-cgi/trace",
+          "weight": 0.2,
           "expected-status": "200",
-          "expected-body": "\"country\":\"(?!CN|HK)[A-Z]{2}\"" // IP 归属 CN/HK → 离线
+          "expected-body": "(?m)^loc=(?!CN|HK)[A-Z]{2}$" // IP 归属 CN/HK → 不符
         },
         {
           "url": "https://gemini.google.com/app",
-          "weight": 0.6, // 第二关（更高权重）：直接验证 Gemini 可达性，通过则最终确认可用
-          "expected-status": "200",
-          "expected-body": "^(?![\\s\\S]*isn't currently supported)" // 出现封锁提示 → 离线
+          "weight": 0.3,
+          "expected-status": "200/301/302"
         }
       ],
       "interval": 300, // 🎯 AI 核心业务：5 分钟周期保证即时性
@@ -482,12 +490,15 @@
         {
           "url": "https://chatgpt.com",
           "weight": 0.7,
-          "expected-status": "200/301/302/307/308"
+          // 2026-10-16 实测:健康检查发 HEAD,Cloudflare 对 HEAD 一律回 403(浏览器 GET 才是 200),原清单让正常节点
+          // 全判失败。加 403 后该判据只表示「可达」,地区判据目前没有可靠的 HEAD 信号(RFC-027 C1)
+          "expected-status": "200/301/302/307/308/403"
         },
         {
           "url": "https://api.openai.com",
           "weight": 0.3,
-          "expected-status": "200/301/302/307/308"
+          // 2026-10-16 实测:根路径 HEAD 返回 421,无鉴权的 API 路径返回 401(RFC-027 C1)
+          "expected-status": "200/301/302/307/308/401/421"
         }
       ],
       "interval": 300, // 🎯 AI 核心业务

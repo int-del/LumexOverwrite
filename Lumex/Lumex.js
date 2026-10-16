@@ -147,7 +147,8 @@ function main(config) {
       "url": "http://127.0.0.1:38324/download/collection/%E7%BB%84%E5%90%88%E6%9C%BA%E5%9C%BA",
       "path": "./proxy_providers/组合机场.yaml",
       "interval": 86400, // 优化：将自动刷新降低到24小时一次，防止反复清空历史测速记录导致待测速
-      "filter": "(?i)^(?!.*(流量|到期|重置|官网|剩余|套餐|expire|traffic|reset|群组|频道|@|联系|网站|入群|关注|反馈|更新)).*",
+      // 排除 IPv6 节点:本配置 ipv6 为 false,IPv6-only 服务器连不上(RFC-027 C2);改回 ipv6: true 时一并删除 ipv6 这一项。
+      "filter": "(?i)^(?!.*(流量|到期|重置|官网|剩余|套餐|expire|traffic|reset|群组|频道|@|联系|网站|入群|关注|反馈|更新|ipv6)).*",
       "health-check": {
         "enable": true,
         "url": "https://www.gstatic.com/generate_204",
@@ -178,7 +179,8 @@ function main(config) {
         {
           "url": "https://cdn.jsdelivr.net/",
           "weight": 0.4,
-          "expected-status": "200"
+          // 2026-10-16 内核 delay API 实测(HEAD):根路径返回 301(RFC-027 C1)
+          "expected-status": "200/301/302"
         }
       ],
       "interval": 240, // 🎯 关键组基准周期
@@ -200,7 +202,8 @@ function main(config) {
         {
           "url": "https://cdn.jsdelivr.net/",
           "weight": 0.3,
-          "expected-status": "200"
+          // 2026-10-16 内核 delay API 实测(HEAD):根路径返回 301(RFC-027 C1)
+          "expected-status": "200/301/302"
         }
       ],
       "interval": 600, // 🎯 非关键业务：降低检测频率，减少不必要的连接
@@ -287,12 +290,14 @@ function main(config) {
         {
           "url": "https://chatgpt.com",
           "weight": 0.7,
-          "expected-status": "200/301/302/307/308"
+          // 2026-10-16 实测:Cloudflare 对 HEAD 一律回 403;加 403 后只表示「可达」(RFC-027 C1)
+          "expected-status": "200/301/302/307/308/403"
         },
         {
           "url": "https://api.openai.com",
           "weight": 0.3,
-          "expected-status": "200/301/302/307/308"
+          // 2026-10-16 实测:根路径 HEAD 返回 421,无鉴权的 API 路径返回 401(RFC-027 C1)
+          "expected-status": "200/301/302/307/308/401/421"
         }
       ],
       "interval": 300, // 🎯 AI 核心业务
