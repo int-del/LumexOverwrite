@@ -1,7 +1,9 @@
 // Lumex Party 专用配置文件覆写脚本
 // 引用链接: https://raw.githubusercontent.com/int-del/LumexOverwrite/main/Lumex_active.js
 // 加速链接: https://cdn.jsdelivr.net/gh/int-del/LumexOverwrite@main/Lumex_active.js
-// 版本: V4.8-AntiCN  | 更新日期: 2026-10-18
+// 版本: V4.9-AntiCN  | 更新日期: 2026-10-18
+// Add: BoundaryAI 内网直连 —— hosts 把 pola.boundaryai.com / skillhub.boundaryai.cn 解析到局域网地址，
+//      规则最前面加 boundaryai.com / boundaryai.cn 走 DIRECT；DNS 显式 use-hosts: true。
 // Fix: Claude 组的台湾家宽改经香港中转 —— 天威直连台湾家宽新建连接成功率只有 45~66%,
 //      经香港中转后 93~100%(2026-10-18 凌晨三轮实测,每条约 100 次全新 HTTPS 请求)。
 //      瓶颈在家到台湾这一段(天威的普通国际线路),香港 / 日本到台湾几乎不丢;多加一跳日本只会更慢。
@@ -71,7 +73,7 @@
   function main(config) {
   // 打印版本号，用于确认是否下载到了最新版
   // eslint-disable-next-line no-console
-  console.log("✅ 加载脚本 V4.8-AntiCN (Claude 台湾家宽经香港中转)...");
+  console.log("✅ 加载脚本 V4.9-AntiCN (BoundaryAI 内网直连 + hosts)...");
 
   // 关键修复：如果 config 为空，必须返回空对象 {} 而不是 null
 
@@ -120,6 +122,7 @@
     "enhanced-mode": "fake-ip",
     "fake-ip-range": "198.18.0.1/16",
     "respect-rules": true,
+    "use-hosts": true, // 下方 hosts 靠它生效(mihomo 默认也是 true，显式写出)；GUI 接管 DNS 时其模板为 false，会盖掉本项
     "default-nameserver": ["223.5.5.5", "119.29.29.29"], // 优化：仅支持纯 IP，用于解析 DoH/DoT 域名
     "proxy-server-nameserver": ["223.5.5.5", "119.29.29.29"], // 优化：节点域名解析专用 DNS，使用高可用 IP
     "proxy-server-nameserver-policy": { // 🚀 P2 优化：为不同 CDN 机场指定专用 DNS，优化节点解析路由
@@ -170,6 +173,13 @@
       "+.aliyun.com": "https://dns.alidns.com/dns-query"
     }
   };
+
+  // 2.1 hosts 直连解析：BoundaryAI 内网服务固定解析到局域网地址(并入已有 hosts，不覆盖)
+  if (!config["hosts"] || typeof config["hosts"] !== "object") {
+    config["hosts"] = {};
+  }
+  config["hosts"]["pola.boundaryai.com"] = "192.168.1.200";
+  config["hosts"]["skillhub.boundaryai.cn"] = "192.168.1.67";
 
   // 3. Tun 模式
   config["tun"] = {
@@ -607,6 +617,10 @@
   ];
 
   config["rules"] = [
+    // 🔴 层级 0：BoundaryAI 内网域名直连(放在最前，优先于一切规则；hosts 见上方 2.1)
+    "DOMAIN-SUFFIX,boundaryai.com,DIRECT",
+    "DOMAIN-SUFFIX,boundaryai.cn,DIRECT",
+
     // ==========================================
     // 🔴 层级 1：最高优先级 - 本地与局域网 IP 直连
     // 作用: 防止局域网设备(NAS/打印机)和网关流量被代理劫持，避免内网死循环
