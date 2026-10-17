@@ -397,18 +397,29 @@
       "exclude-filter": "(三毛|一毛|一分|🇭🇰|香港|🇲🇾|马来|星链)", // 兜底排除港/马来落地（见文件头 Fix 说明）
       "empty-fallback": "REJECT", // 白名单滤空时显式失败，不回落直连（见文件头 Fix 说明）
       "url": "https://api.anthropic.com", // 标准 Lumex 兼容字段
+      // 第 1 条是主判据(每轮健康检查都测，只看可达)；第 3 条带 expected-body，是解锁判据(RFC-027 R1)，
+      //   只在换节点前与在位者复查时测。GUI「解锁判据生效」关闭时只记账，打开后不符的节点不会被换上、在位者明显不符时救援。
       "urls": [
         {
           "url": "https://api.anthropic.com",
-          "weight": 0.7,
+          "weight": 0.6,
           // 2026-10-15 实测:根路径恒返回 404(API 只在 /v1/* 下),原清单让正常节点全判失败
           "expected-status": "200/301/302/307/308/404"
         },
         {
           "url": "https://claude.ai",
-          "weight": 0.3,
+          "weight": 0.2,
           // 2026-10-15 实测:非浏览器请求被 Cloudflare 挑战页拦为 403,原清单让正常节点全判失败
           "expected-status": "200/301/302/307/308/403"
+        },
+        {
+          // 出口地区必须与节点名一致(本组只收台湾家宽)。claude.ai 就在 Cloudflare 后面，trace 的 loc 是 Cloudflare
+          //   按访问者 IP 判定的国家——也就是 Claude 那一侧看到的地区(数据中心位置是 colo 字段，不看)。
+          //   防订阅换了后端、名字仍叫台湾、出口却落到香港等 Anthropic 不支持的地区。改本组地区时同步改这里。
+          "url": "https://claude.ai/cdn-cgi/trace",
+          "weight": 0.2,
+          "expected-status": "200",
+          "expected-body": "(?m)^loc=TW$" // 出口不在台湾 → 不符
         }
       ],
       "interval": 300,
