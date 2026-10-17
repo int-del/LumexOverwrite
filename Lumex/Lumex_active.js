@@ -429,7 +429,10 @@
           "url": "https://claude.ai/cdn-cgi/trace",
           "weight": 0.2,
           "expected-status": "200",
-          "expected-body": "(?m)^loc=TW$" // 出口不在台湾 → 不符
+          "expected-body": "(?m)^loc=TW$", // 出口不在台湾 → 不符
+          // RFC-028 严格判据:不符的节点不得承载流量,换到已证明符合的节点,没有就拒绝连接(手动固定的节点放行)。
+          //   GUI「解锁判据生效」关闭时只记账。需要支持 on-mismatch 的 LumexCore;老内核与标准 mihomo 忽略本字段。
+          "on-mismatch": "reject"
         }
       ],
       "interval": 300,
