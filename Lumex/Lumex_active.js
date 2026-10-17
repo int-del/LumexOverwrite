@@ -1,7 +1,11 @@
 // Lumex Party 专用配置文件覆写脚本
 // 引用链接: https://raw.githubusercontent.com/int-del/LumexOverwrite/main/Lumex_active.js
 // 加速链接: https://cdn.jsdelivr.net/gh/int-del/LumexOverwrite@main/Lumex_active.js
-// 版本: V4.7-AntiCN  | 更新日期: 2026-08-22
+// 版本: V4.8-AntiCN  | 更新日期: 2026-10-18
+// Fix: Claude 组的台湾家宽改经香港中转 —— 天威直连台湾家宽新建连接成功率只有 45~66%,
+//      经香港中转后 93~100%(2026-10-18 凌晨三轮实测,每条约 100 次全新 HTTPS 请求)。
+//      瓶颈在家到台湾这一段(天威的普通国际线路),香港 / 日本到台湾几乎不丢;多加一跳日本只会更慢。
+//      出口仍是台湾家宽自己的 IP,Claude 看到的地址不变。见下方「台湾家宽中转」代理集与「香港中转」组。
 // Fix: Autodesk Fusion 360 的"服务器验证警告"弹窗 —— autodesk.com/autodesk.io 改走 DIRECT。
 //      根因不是证书:Fusion 把一切 TLS 层失败都渲染成"无法验证安全证书",而它每分钟几十次
 //      云端心跳全落在 GEOSITE,geolocation-!cn → 自动选择(164 节点)上。实测 8s 门限各 20 次,
@@ -67,7 +71,7 @@
   function main(config) {
   // 打印版本号，用于确认是否下载到了最新版
   // eslint-disable-next-line no-console
-  console.log("✅ 加载脚本 V4.7-AntiCN (Autodesk 走 DIRECT，止住 Fusion 360 证书告警弹窗)...");
+  console.log("✅ 加载脚本 V4.8-AntiCN (Claude 台湾家宽经香港中转)...");
 
   // 关键修复：如果 config 为空，必须返回空对象 {} 而不是 null
 
@@ -229,6 +233,25 @@
         "interval": 240, // 🎯 平衡点：240s 保持高频但避免过度采样，网络稳定时间充足
         "expected-status": "204" // 🚀 依赖 Lumex 1.18+ 内核功能：预期的 HTTP 状态码，防流量耗尽/被墙等假连通情况 (自动踢出跳转节点的防挂神器)
       }
+    },
+    // 同一份订阅，只取「台湾家宽2」(VLESS)，每个节点都经「香港中转」组拨号，名字前加「中转·」，专供 Claude 组。
+    //   只收 VLESS:「台湾家宽1」是 Hysteria2(UDP)，叠不到 VLESS 中转后面，实测全部失败。
+    "台湾家宽中转": {
+      "type": "http",
+      "url": "http://127.0.0.1:38324/download/collection/%E7%BB%84%E5%90%88%E6%9C%BA%E5%9C%BA", // 与「组合机场」相同
+      "path": "./proxy_providers/台湾家宽中转.yaml",
+      "interval": 86400,
+      "filter": "^悦·.*台湾家宽2",
+      "override": {
+        "dialer-proxy": "香港中转",
+        "additional-prefix": "中转·"
+      },
+      "health-check": {
+        "enable": true,
+        "url": "https://www.gstatic.com/generate_204",
+        "interval": 240,
+        "expected-status": "204"
+      }
     }
   };
 
@@ -363,12 +386,14 @@
       "name": "Claude",
       "type": "url-test",
       "icon": "https://www.google.com/s2/favicons?domain=claude.ai&sz=128",
-      "use": ["组合机场"],
-      // 🚀 只用悦的台湾家宽出口：悦·台湾家宽1/2 A/B 共 4 个。
+      "use": ["台湾家宽中转"],
+      // 🚀 只用悦的台湾家宽出口，且经香港中转：中转·悦·台湾家宽2 A/B 共 2 个(2026-10-18 起)。
       //   2026-10-14：原白名单横跨台/日/韩/新/美五地 170 个成员，只能手动锁定防跨国跳 IP，
       //   锁定的台湾家宽2 A 建连超时时救援被 manual-pin 挡住，claude.exe 连续断流；
       //   收窄到同一地区后可解除锁定，坏了在台湾家宽之间自动换。
-      "filter": "^悦·.*台湾家宽",
+      //   2026-10-18：直连台湾家宽新建连接只有 45~66% 成功，改用「台湾家宽中转」代理集(经香港中转，93~100%)；
+      //   Hysteria2 的「台湾家宽1」叠不上中转，不再收。
+      "filter": "^中转·悦·.*台湾家宽2",
       "exclude-filter": "(三毛|一毛|一分|🇭🇰|香港|🇲🇾|马来|星链)", // 兜底排除港/马来落地（见文件头 Fix 说明）
       "empty-fallback": "REJECT", // 白名单滤空时显式失败，不回落直连（见文件头 Fix 说明）
       "url": "https://api.anthropic.com", // 标准 Lumex 兼容字段
@@ -397,6 +422,22 @@
       //   （plain / #scope=group / #scope=group&provider）上的 alive 互相矛盾，
       //   而 candidateProbeState 按时间取最新，判定随刷新顺序漂移；周期化只是加剧了漂移。
       //   查清该问题前不要重开 "scoped-health-check": true。
+    },
+    {
+      // 只给「台湾家宽中转」代理集当前置跳板，不承载业务流量。中转只换「家 → 台湾」这一段路，
+      //   来回切换也不改变 Claude 看到的出口 IP。反引号分隔的两段 filter 决定先后(按序优先)：
+      //   1. 悦·🇭🇰香港2 · A —— 三轮 98~99%，最稳；新建连接约 1.7~2.2 秒(入口在日本，绕一圈)
+      //   2. 悦·🇭🇰香港家宽2💎 · A —— 三轮 87~100%，约 0.6 秒
+      //   两个都被订阅改名滤掉时组为空，按内核旧行为回落直连 = 退回中转前的走法，不会整组断掉。
+      "name": "香港中转",
+      "type": "fallback",
+      "use": ["组合机场"],
+      "filter": "^悦·🇭🇰香港2 · A$`^悦·🇭🇰香港家宽2💎 · A$",
+      "score-based": false, // 按上面的顺序优先；score-based 会改成选延迟最低的，即总选第 2 个
+      "url": "https://www.gstatic.com/generate_204",
+      "expected-status": "204",
+      "interval": 120,
+      "lazy": false
     },
     {
       "name": "Copilot",
@@ -897,7 +938,7 @@
         }
       }
 
-      if (group.type === "fallback") {
+      if (group.type === "fallback" && group["score-based"] === undefined) {
         group["score-based"] = true;
       }
     });
