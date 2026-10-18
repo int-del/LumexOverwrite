@@ -1,12 +1,13 @@
 // Lumex Party 专用配置文件覆写脚本
 // 引用链接: https://raw.githubusercontent.com/int-del/LumexOverwrite/main/Lumex_active.js
 // 加速链接: https://cdn.jsdelivr.net/gh/int-del/LumexOverwrite@main/Lumex_active.js
-// 版本: V4.10-AntiCN  | 更新日期: 2026-10-18
+// 版本: V4.11-AntiCN  | 更新日期: 2026-10-18
 // Add: 自建台湾 4 条(wap.ac TW VPS,出口固定 85.237.206.158)—— 经港2A / 经港家宽2A 走 SS2022
 //      经香港跳板,Reality(TCP 443)/ HY2(UDP 8443)直连;四条同一出口 IP,内核在它们之间切换不改变
 //      对端看到的地址。节点密钥只在本机 Sub-Store 的本地订阅「自建：台湾」里(并入组合机场合集),本仓库公开,不写密钥。
-//      按用户决定放给所有组试效果(Gemini / ChatGPT / Cursor 白名单加「台北」);Claude 组从组合机场只挑「自建·台北·」。
-//      ⚠️ VPS 每月 1TB、超出整机限速 2Mbps——EMBY / 自动选择走多了会连带 Claude,用量看 Sub-Store 的流量条。
+//      按用户决定放给除 EMBY 外的所有组试效果(Gemini / ChatGPT / Cursor 白名单加「台北」);Claude 组从组合机场只挑「自建·台北·」。
+//      ⚠️ VPS 每月 1TB、超出整机限速 2Mbps——自动选择(含 YouTube)走多了会连带 Claude,用量看 Sub-Store 的流量条。
+// V4.11: EMBY 组排除自建台湾(按站点哈希分配出口，分到自建的站点会长期走 VPS)。
 //      「Claude中转」改名「跳板·香港」(台湾家宽继续用它),新增「跳板·香港2 A」「跳板·香港家宽2 A」两个
 //      单成员跳板组给自建节点按跳板分开测;跳板组为空时 REJECT,防止 SS2022 从家里直接过墙。
 //      2026-10-18 19:50 实测(每路 20 次全新连接):经港家宽2A 0.17s、HY2 0.26s、Reality 1.06s、经港2A 1.96s,全部 20/20。
@@ -81,7 +82,7 @@
   function main(config) {
   // 打印版本号，用于确认是否下载到了最新版
   // eslint-disable-next-line no-console
-  console.log("✅ 加载脚本 V4.10-AntiCN (Claude 组加自建台湾 + 跳板组)...");
+  console.log("✅ 加载脚本 V4.11-AntiCN (自建台湾 + 跳板组,EMBY 不用自建)...");
 
   // 关键修复：如果 config 为空，必须返回空对象 {} 而不是 null
 
@@ -245,8 +246,8 @@
       // 却每轮被所有组测满(RFC-027 C2)。改回 ipv6: true 时一并删除 ipv6 这一项。
       "filter": "(?i)^(?!.*(流量|到期|重置|官网|剩余|套餐|expire|traffic|reset|群组|频道|@|联系|网站|入群|关注|反馈|更新|ipv6)).*",
       // 合集里含自建台湾 4 条(wap.ac TW VPS,Sub-Store 本地订阅「自建：台湾」并入本合集，随 Group.yaml 同步到 Gist;
-      //   密钥只在本机 Sub-Store,本仓库公开不写)。2026-10-18 起按用户决定放给所有组试效果——自动选择 / EMBY / Telegram /
-      //   Copilot 等直接可见,Gemini / ChatGPT / Cursor 的地区白名单为此加了「台北」。
+      //   密钥只在本机 Sub-Store,本仓库公开不写)。2026-10-18 起按用户决定放给除 EMBY 外的所有组试效果——自动选择 /
+      //   Telegram / Copilot 等直接可见,Gemini / ChatGPT / Cursor 的地区白名单为此加了「台北」,EMBY 组用 exclude-filter 排除。
       //   ⚠️ VPS 每月 1TB、超出整机限速 2Mbps(Claude 一起变慢到重置日);用量看 Sub-Store 订阅「自建：台湾」的流量条。
       //   要收回只给 Claude:在本代理集加 "exclude-filter": "^自建·",再给 Claude 组单独建一个 filter "^自建·" 的代理集。
       //   节点名必须保持「自建·台北·…」(Sub-Store 订阅里不要加改名操作),Claude 组 filter 按这个前缀认。
@@ -361,6 +362,8 @@
       "icon": "https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/Emby.png",
       "use": ["组合机场"], // 引入代理集
       "filter": "^(?!.*(俄罗斯|Russia|🇷🇺|(?<![A-Za-z])RU(?![A-Za-z])|朝鲜|北韩|North ?Korea|🇰🇵|(?<![A-Za-z])KP(?![A-Za-z])|古巴|Cuba|🇨🇺|(?<![A-Za-z])CU(?![A-Za-z])|日本|Japan|🇯🇵|(?<![A-Za-z])JP(?![A-Za-z]))).*", // 额外排除日本节点
+      // 不用自建台湾(VPS 每月 1TB):本组按站点哈希分配出口，分到自建的站点会长期走 VPS,视频几天就能吃光流量。
+      "exclude-filter": "^自建·",
       "url": "https://www.gstatic.com/generate_204", // 组内节点存活检查（media-balance 不支持多 URL 加权）
       "interval": 600, // 🎯 非关键业务：降低检测频率，减少不必要的连接
       "lazy": true, // 🎯 非关键业务：延迟测速，进一步节省开销
