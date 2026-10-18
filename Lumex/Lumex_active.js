@@ -1,7 +1,15 @@
 // Lumex Party 专用配置文件覆写脚本
 // 引用链接: https://raw.githubusercontent.com/int-del/LumexOverwrite/main/Lumex_active.js
 // 加速链接: https://cdn.jsdelivr.net/gh/int-del/LumexOverwrite@main/Lumex_active.js
-// 版本: V4.11-AntiCN  | 更新日期: 2026-10-18
+// 版本: V4.12-AntiCN  | 更新日期: 2026-10-18
+// V4.12: DNS 防泄漏(RFC-031,2026-10-18 实测三处泄漏后重排为「国内域名国内解析，其余全部经代理解析」)——
+//      ① 默认上游改为 1.1.1.1 / 8.8.8.8 DoH(respect-rules 下走代理);国内 DoH 只管 geosite:cn、厂商条目和直连出站
+//        (direct-nameserver),删掉 fallback / fallback-filter。原先默认上游是国内 DoH,没归类的域名先被腾讯/阿里看到;
+//        geolocation-!cn 那条里的国内 DoH 也不是「后备」:同一列表里的上游是并发查询(LumexCore dns/util.go batchExchange)。
+//      ② GEOIP,telegram 补 no-resolve:它是唯一不带 no-resolve 的 IP 规则，落到它的域名都要先在本地解析一次。
+//      ③ 节点域名解析从明文 UDP 改为 IP 直连 DoH,运营商不再看到机场域名。
+//      ④ 局域网名(geosite:private,含 .lan / home.arpa / 路由器管理域名)交给网卡 DNS(system,即路由器)。
+//      ⚠️ 系统 DNS 明文泄漏只能靠「严格路由」堵，本脚本的 strict-route 会被 Lumex GUI 的 TUN 设置盖掉，见下方 tun 段。
 // Add: 自建台湾 4 条(wap.ac TW VPS,出口固定 85.237.206.158)—— 经港2A / 经港家宽2A 走 SS2022
 //      经香港跳板,Reality(TCP 443)/ HY2(UDP 8443)直连;四条同一出口 IP,内核在它们之间切换不改变
 //      对端看到的地址。节点密钥只在本机 Sub-Store 的本地订阅「自建：台湾」里(并入组合机场合集),本仓库公开,不写密钥。
@@ -82,7 +90,7 @@
   function main(config) {
   // 打印版本号，用于确认是否下载到了最新版
   // eslint-disable-next-line no-console
-  console.log("✅ 加载脚本 V4.11-AntiCN (自建台湾 + 跳板组,EMBY 不用自建)...");
+  console.log("✅ 加载脚本 V4.12-AntiCN (DNS 防泄漏重排)...");
 
   // 关键修复：如果 config 为空，必须返回空对象 {} 而不是 null
 
@@ -121,7 +129,7 @@
     "mmdb": "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geoip.metadb"
   };
 
-  // 2. DNS 设置 (保持不变_optimized)
+  // 2. DNS 设置(V4.12 防泄漏：国内域名国内解析，其余全部经代理解析)
   config["dns"] = {
     "enable": true,
     "ipv6": false,
@@ -132,16 +140,11 @@
     "fake-ip-range": "198.18.0.1/16",
     "respect-rules": true,
     "use-hosts": true, // 下方 hosts 靠它生效(mihomo 默认也是 true，显式写出)；GUI 接管 DNS 时其模板为 false，会盖掉本项
-    "default-nameserver": ["223.5.5.5", "119.29.29.29"], // 优化：仅支持纯 IP，用于解析 DoH/DoT 域名
-    "proxy-server-nameserver": ["223.5.5.5", "119.29.29.29"], // 优化：节点域名解析专用 DNS，使用高可用 IP
-    "proxy-server-nameserver-policy": { // 🚀 P2 优化：为不同 CDN 机场指定专用 DNS，优化节点解析路由
-      "+.cloudflare.com": "1.1.1.1",
-      "+.cfcdn.net": "1.1.1.1",
-      "+.tencent.com": "119.29.29.29",
-      "+.myqcloud.com": "119.29.29.29",
-      "+.aliyun.com": "223.5.5.5",
-      "+.alicdn.com": "223.5.5.5"
-    },
+    "default-nameserver": ["223.5.5.5", "119.29.29.29"], // 只用来解析 doh.pub / dns.alidns.com 这两个 DoH 主机名
+    // 节点域名解析：代理还没连上，只能直连国内。用 IP 直连的 DoH——原先是明文 UDP,运营商能看到每个机场域名。
+    // 原 proxy-server-nameserver-policy(cloudflare/tencent/aliyun 后缀各指定 DNS)已删:960 个节点 0 个命中这些后缀，
+    // 且 1.1.1.1 的 DoH 从家宽直连超时(2026-10-18 实测),改成加密反而会让命中的节点解析失败。
+    "proxy-server-nameserver": ["https://223.5.5.5/dns-query", "https://1.12.12.12/dns-query"],
     "fake-ip-filter": [
       "*.lan", "*.local", // 优化：防止局域网域名被 Fake-IP 劫持，保障本地设备发现
       "+.msftconnecttest.com", "+.msftncsi.com",
@@ -151,24 +154,26 @@
       "time.*.com", "time.*.gov", "time.*.edu.cn", "time.*.apple.com", "time1.cloud.tencent.com",
       "*.bambulab.com", "*.bambulab.cn"
     ],
+    // 默认上游：国外 DoH,respect-rules 下按规则走代理。没被下方 policy 认领的域名只有它们看得到。
+    // fake-ip 下内核很少需要自己解析：只有直连出站(走 direct-nameserver)、fake-ip-filter 里的域名、
+    // 以及不带 no-resolve 的 IP 规则(已全部补上，测试里有校验)才会触发。
     "nameserver": [
-      "https://doh.pub/dns-query", // 腾讯 DoH
-      "https://dns.alidns.com/dns-query" // 阿里 DoH
-    ],
-    // 🚀 极限优化 Fallback: 必须使用海外 DNS 解析海外域名，配合 respect-rules 走代理防污染
-    "fallback": [
       "https://1.1.1.1/dns-query", // Cloudflare DoH
       "https://8.8.8.8/dns-query"  // Google DoH
     ],
-    "fallback-filter": { 
-      "geoip": true, 
-      "geoip-code": "CN", 
-      "ipcidr": ["240.0.0.0/4"] 
-    },
+    // 直连出站的解析走国内，保证国内 CDN 就近;follow-policy 让直连域名先按下方 policy(如 B 站走腾讯)。
+    "direct-nameserver": ["https://dns.alidns.com/dns-query", "https://doh.pub/dns-query"],
+    "direct-nameserver-follow-policy": true,
+    // ⚠️ 同一条里列多个上游是并发查询、取最先返回的(LumexCore dns/util.go batchExchange),不是主备:
+    // 国外域名的条目里混进国内 DoH,每次都会被国内看到(V4.11 及以前的 geolocation-!cn 就是这样)。
     "nameserver-policy": {
       "geosite:category-ads-all": "rcode://success", // 🚀 极限优化：DNS 级别直接屏蔽广告，节省 CPU 和内存
-      "geosite:geolocation-!cn": ["https://1.1.1.1/dns-query", "https://8.8.8.8/dns-query", "https://dns.alidns.com/dns-query", "https://doh.pub/dns-query"], // 修复：海外域名优先海外 DoH，国内 DoH 作为后备，兼顾纯净度与可达性
+      // 局域网名(.lan / home.arpa / 局域网反向解析 / 路由器管理域名)交给网卡 DNS,即路由器。内核会排除 TUN 自己的 DNS 地址。
+      "geosite:private": "system",
       "geosite:cn": "https://dns.alidns.com/dns-query",
+      // fake-ip-filter 里走直连的域名按直连口径国内解析：联网检测(规则 DOMAIN-SUFFIX → DIRECT)与 NTP 校时(DST-PORT,123 → DIRECT)。
+      "+.msftconnecttest.com,+.msftncsi.com": "https://dns.alidns.com/dns-query",
+      "+.ntp.org,time.*.com,time.*.gov,time.*.edu.cn,time1.cloud.tencent.com": "https://dns.alidns.com/dns-query",
       "geosite:apple": "https://dns.alidns.com/dns-query",
       "+.icloud.com": "https://dns.alidns.com/dns-query",
       "+.icloud-content.com": "https://dns.alidns.com/dns-query",
@@ -197,6 +202,9 @@
     "mtu": 1500, // 🔴 P0 修复：改为标准 MTU，避免公网环境巨型帧分片导致性能下降
     "auto-route": true,
     "auto-detect-interface": true,
+    // 严格路由(Windows):拦截 TUN 以外的 53 端口——系统多网卡并发查询，会把明文 DNS 直接发给路由器 / 运营商;
+    // TUN 没有 IPv6 地址时还拦掉内核以外的全部 IPv6。⚠️ Lumex GUI 的 TUN 设置会盖掉本段同名键，本项只对不接管 TUN
+    // 的客户端生效;Lumex 里要在「TUN」页打开(GUI 2026-10-18 起 Windows 新装默认开，被盖掉时日志会报)。
     "strict-route": true,
     "endpoint-independent-nat": true,
     "dns-hijack": ["any:53"],
@@ -920,7 +928,7 @@
     "GEOSITE,tiktok,Gemini",
     // 🔴 Fix: Telegram 必须在 category-communication 之前，否则 GEOSITE,category-communication 包含 telegram 导致先命中自动选择
     "GEOSITE,telegram,Telegram",
-    "GEOIP,telegram,Telegram",
+    "GEOIP,telegram,Telegram,no-resolve", // 域名侧已由上面 PROCESS-NAME / GEOSITE,telegram 认领;这里只接 IP 直连的 MTProto
     "GEOSITE,category-communication,自动选择",
     "GEOSITE,youtube,YouTube",
 

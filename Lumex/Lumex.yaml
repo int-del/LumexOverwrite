@@ -1,7 +1,9 @@
 ﻿# Lumex Party 专用配置文件 (由 Lumex.js 转换而来)
 # 引用链接: https://raw.githubusercontent.com/int-del/LumexOverwrite/main/Lumex.yaml
 # 加速链接: https://cdn.jsdelivr.net/gh/int-del/LumexOverwrite@main/Lumex.yaml
-# 版本: v2.13 | 更新日期: 2026-08-03
+# 版本: v2.14 | 更新日期: 2026-10-18
+# v2.14: DNS 防泄漏重排，与 Lumex_active.js V4.12 同步(RFC-031):默认上游改国外 DoH、国内 DoH 只管国内域名与直连、
+#        删 fallback、节点域名解析改 IP 直连 DoH、GEOIP,telegram 补 no-resolve、局域网名交给路由器。
 # 说明: 
 # 1. 本文件为完整的 YAML 配置，可直接作为 Lumex Party 的【配置(Profile)】导入使用。
 # 2. 相比 JS 覆写脚本，YAML 格式解析更快，且原生支持。
@@ -40,9 +42,10 @@ dns:
   default-nameserver:
     - 223.5.5.5
     - 119.29.29.29
+  # 节点域名解析：直连国内，用 IP 直连 DoH(明文 UDP 会让运营商看到机场域名)
   proxy-server-nameserver:
-    - 223.5.5.5
-    - 119.29.29.29
+    - https://223.5.5.5/dns-query
+    - https://1.12.12.12/dns-query
   fake-ip-filter:
     - '*.lan'
     - '*.local'
@@ -64,23 +67,22 @@ dns:
     - time1.cloud.tencent.com
     - '*.bambulab.com'
     - '*.bambulab.cn'
+  # 默认上游：国外 DoH,respect-rules 下按规则走代理;没被下方 policy 认领的域名只有它们看得到
   nameserver:
-    - https://doh.pub/dns-query
-    - https://dns.alidns.com/dns-query
-  fallback:
     - https://1.1.1.1/dns-query
     - https://8.8.8.8/dns-query
-  fallback-filter:
-    geoip: true
-    geoip-code: CN
-    ipcidr:
-      - 240.0.0.0/4
+  # 直连出站的解析走国内(国内 CDN 就近);follow-policy 让直连域名先按下方 policy
+  direct-nameserver:
+    - https://dns.alidns.com/dns-query
+    - https://doh.pub/dns-query
+  direct-nameserver-follow-policy: true
+  # 同一条里的多个上游是并发查询，不是主备，国外条目里不能混国内 DoH
   nameserver-policy:
     geosite:category-ads-all: rcode://success
-    geosite:geolocation-!cn:
-      - https://1.1.1.1/dns-query
-      - https://8.8.8.8/dns-query
+    geosite:private: system
     geosite:cn: https://dns.alidns.com/dns-query
+    +.msftconnecttest.com,+.msftncsi.com: https://dns.alidns.com/dns-query
+    +.ntp.org,time.*.com,time.*.gov,time.*.edu.cn,time1.cloud.tencent.com: https://dns.alidns.com/dns-query
     geosite:apple: https://dns.alidns.com/dns-query
     +.icloud.com: https://dns.alidns.com/dns-query
     +.icloud-content.com: https://dns.alidns.com/dns-query
@@ -394,7 +396,7 @@ rules:
   - GEOSITE,tiktok,Gemini
   - GEOSITE,category-communication,自动选择
   - GEOSITE,telegram,Telegram
-  - GEOIP,telegram,Telegram
+  - GEOIP,telegram,Telegram,no-resolve
   - GEOSITE,youtube,YouTube
   - DOMAIN-SUFFIX,speedtest.net,DIRECT
   - DOMAIN-SUFFIX,ookla.com,DIRECT

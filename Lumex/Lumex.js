@@ -1,13 +1,15 @@
 ﻿// Lumex Party 专用配置文件覆写脚本
 // 引用链接: https://raw.githubusercontent.com/int-del/LumexOverwrite/main/Lumex.js
 // 加速链接: https://cdn.jsdelivr.net/gh/int-del/LumexOverwrite@main/Lumex.js
-// 版本: v2.28  | 更新日期: 2026-08-03
+// 版本: v2.29  | 更新日期: 2026-10-18
+// v2.29: DNS 防泄漏重排，与 Lumex_active.js V4.12 同步(RFC-031,说明见该文件头):默认上游改国外 DoH、国内 DoH 只管
+//        国内域名与直连、删 fallback、节点域名解析改 IP 直连 DoH、GEOIP,telegram 补 no-resolve、局域网名交给路由器。
 // Phase 1.1: 加权评分 + 自适应容差版 (Gemini/Copilot/GitHub Copilot 多 URL 健康检查)
 // BugFix: 全组启用多 URL 模式，并修复 ChatGPT 健康检查循环问题
 
 function main(config) {
   // 打印版本号，用于确认是否下载到了最新版
-  console.log("✅ 加载脚本 v2.27 (Phase 1.1: 加权评分 + 自适应容差 - 业务探测对齐 + DNS优先级修复)...");
+  console.log("✅ 加载脚本 v2.29 (DNS 防泄漏重排)...");
 
   // 关键修复：如果 config 为空，必须返回空对象 {} 而不是 null
 
@@ -42,7 +44,7 @@ function main(config) {
     "mmdb": "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geoip.metadb"
   };
 
-  // 2. DNS 设置 (保持不变_optimized)
+  // 2. DNS 设置(v2.29 防泄漏：国内域名国内解析，其余全部经代理解析)
   config["dns"] = {
     "enable": true,
     "ipv6": false,
@@ -52,16 +54,10 @@ function main(config) {
     "enhanced-mode": "fake-ip",
     "fake-ip-range": "198.18.0.1/16",
     "respect-rules": true,
-    "default-nameserver": ["223.5.5.5", "119.29.29.29"], // 优化：仅支持纯 IP，用于解析 DoH/DoT 域名
-    "proxy-server-nameserver": ["223.5.5.5", "119.29.29.29"], // 优化：节点域名解析专用 DNS，使用高可用 IP
-    "proxy-server-nameserver-policy": { // 🚀 P2 优化：为不同 CDN 机场指定专用 DNS，优化节点解析路由
-      "+.cloudflare.com": "1.1.1.1",
-      "+.cfcdn.net": "1.1.1.1",
-      "+.tencent.com": "119.29.29.29",
-      "+.myqcloud.com": "119.29.29.29",
-      "+.aliyun.com": "223.5.5.5",
-      "+.alicdn.com": "223.5.5.5"
-    },
+    "default-nameserver": ["223.5.5.5", "119.29.29.29"], // 只用来解析 doh.pub / dns.alidns.com 这两个 DoH 主机名
+    // 节点域名解析：直连国内、IP 直连 DoH(原明文 UDP 会让运营商看到机场域名);原 proxy-server-nameserver-policy 已删，
+    // 理由见 Lumex_active.js 同处。
+    "proxy-server-nameserver": ["https://223.5.5.5/dns-query", "https://1.12.12.12/dns-query"],
     "fake-ip-filter": [
       "*.lan", "*.local", // 优化：防止局域网域名被 Fake-IP 劫持，保障本地设备发现
       "+.msftconnecttest.com", "+.msftncsi.com",
@@ -71,24 +67,22 @@ function main(config) {
       "time.*.com", "time.*.gov", "time.*.edu.cn", "time.*.apple.com", "time1.cloud.tencent.com",
       "*.bambulab.com", "*.bambulab.cn"
     ],
+    // 默认上游：国外 DoH,respect-rules 下按规则走代理;没被下方 policy 认领的域名只有它们看得到。
     "nameserver": [
-      "https://doh.pub/dns-query", // 腾讯 DoH
-      "https://dns.alidns.com/dns-query" // 阿里 DoH
-    ],
-    // 🚀 极限优化 Fallback: 必须使用海外 DNS 解析海外域名，配合 respect-rules 走代理防污染
-    "fallback": [
       "https://1.1.1.1/dns-query", // Cloudflare DoH
       "https://8.8.8.8/dns-query"  // Google DoH
     ],
-    "fallback-filter": { 
-      "geoip": true, 
-      "geoip-code": "CN", 
-      "ipcidr": ["240.0.0.0/4"] 
-    },
+    // 直连出站的解析走国内(国内 CDN 就近);follow-policy 让直连域名先按下方 policy。
+    "direct-nameserver": ["https://dns.alidns.com/dns-query", "https://doh.pub/dns-query"],
+    "direct-nameserver-follow-policy": true,
+    // ⚠️ 同一条里的多个上游是并发查询(LumexCore dns/util.go batchExchange),不是主备，国外条目里不能混国内 DoH。
     "nameserver-policy": {
       "geosite:category-ads-all": "rcode://success", // 🚀 极限优化：DNS 级别直接屏蔽广告，节省 CPU 和内存
-      "geosite:geolocation-!cn": ["https://1.1.1.1/dns-query", "https://8.8.8.8/dns-query", "https://dns.alidns.com/dns-query", "https://doh.pub/dns-query"], // 修复：海外域名优先海外 DoH，国内 DoH 作为后备，兼顾纯净度与可达性
+      "geosite:private": "system", // 局域网名交给网卡 DNS(路由器)
       "geosite:cn": "https://dns.alidns.com/dns-query",
+      // fake-ip-filter 里走直连的域名(联网检测、NTP 校时)按直连口径国内解析
+      "+.msftconnecttest.com,+.msftncsi.com": "https://dns.alidns.com/dns-query",
+      "+.ntp.org,time.*.com,time.*.gov,time.*.edu.cn,time1.cloud.tencent.com": "https://dns.alidns.com/dns-query",
       "geosite:apple": "https://dns.alidns.com/dns-query",
       "+.icloud.com": "https://dns.alidns.com/dns-query",
       "+.icloud-content.com": "https://dns.alidns.com/dns-query",
@@ -531,7 +525,7 @@ function main(config) {
     "GEOSITE,tiktok,Gemini",
     "GEOSITE,category-communication,自动选择",
     "GEOSITE,telegram,Telegram",
-    "GEOIP,telegram,Telegram",
+    "GEOIP,telegram,Telegram,no-resolve",
     "GEOSITE,youtube,YouTube",
 
     // 测速与其他兜底
