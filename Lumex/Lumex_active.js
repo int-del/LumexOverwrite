@@ -1,13 +1,21 @@
 // Lumex Party 专用配置文件覆写脚本
 // 引用链接: https://raw.githubusercontent.com/int-del/LumexOverwrite/main/Lumex_active.js
 // 加速链接: https://cdn.jsdelivr.net/gh/int-del/LumexOverwrite@main/Lumex_active.js
-// 版本: V4.9-AntiCN  | 更新日期: 2026-10-18
+// 版本: V4.10-AntiCN  | 更新日期: 2026-10-18
+// Add: 自建台湾 4 条(wap.ac TW VPS,出口固定 85.237.206.158)—— 经港2A / 经港家宽2A 走 SS2022
+//      经香港跳板,Reality(TCP 443)/ HY2(UDP 8443)直连;四条同一出口 IP,内核在它们之间切换不改变
+//      对端看到的地址。节点密钥只在本机 Sub-Store 的本地订阅「自建：台湾」里(并入组合机场合集),本仓库公开,不写密钥。
+//      按用户决定放给所有组试效果(Gemini / ChatGPT / Cursor 白名单加「台北」);Claude 组从组合机场只挑「自建·台北·」。
+//      ⚠️ VPS 每月 1TB、超出整机限速 2Mbps——EMBY / 自动选择走多了会连带 Claude,用量看 Sub-Store 的流量条。
+//      「Claude中转」改名「跳板·香港」(台湾家宽继续用它),新增「跳板·香港2 A」「跳板·香港家宽2 A」两个
+//      单成员跳板组给自建节点按跳板分开测;跳板组为空时 REJECT,防止 SS2022 从家里直接过墙。
+//      2026-10-18 19:50 实测(每路 20 次全新连接):经港家宽2A 0.17s、HY2 0.26s、Reality 1.06s、经港2A 1.96s,全部 20/20。
 // Add: BoundaryAI 内网直连 —— hosts 把 pola.boundaryai.com / skillhub.boundaryai.cn 解析到局域网地址，
 //      规则最前面加 boundaryai.com / boundaryai.cn 走 DIRECT；DNS 显式 use-hosts: true。
 // Fix: Claude 组的台湾家宽改经香港中转 —— 天威直连台湾家宽新建连接成功率只有 45~66%,
 //      经香港中转后 93~100%(2026-10-18 凌晨三轮实测,每条约 100 次全新 HTTPS 请求)。
 //      瓶颈在家到台湾这一段(天威的普通国际线路),香港 / 日本到台湾几乎不丢;多加一跳日本只会更慢。
-//      出口仍是台湾家宽自己的 IP,Claude 看到的地址不变。见下方「台湾家宽中转」代理集与「Claude中转」组。
+//      出口仍是台湾家宽自己的 IP,Claude 看到的地址不变。见下方「台湾家宽中转」代理集与「跳板·香港」组(原名 Claude中转)。
 // Fix: Autodesk Fusion 360 的"服务器验证警告"弹窗 —— autodesk.com/autodesk.io 改走 DIRECT。
 //      根因不是证书:Fusion 把一切 TLS 层失败都渲染成"无法验证安全证书",而它每分钟几十次
 //      云端心跳全落在 GEOSITE,geolocation-!cn → 自动选择(164 节点)上。实测 8s 门限各 20 次,
@@ -73,7 +81,7 @@
   function main(config) {
   // 打印版本号，用于确认是否下载到了最新版
   // eslint-disable-next-line no-console
-  console.log("✅ 加载脚本 V4.9-AntiCN (BoundaryAI 内网直连 + hosts)...");
+  console.log("✅ 加载脚本 V4.10-AntiCN (Claude 组加自建台湾 + 跳板组)...");
 
   // 关键修复：如果 config 为空，必须返回空对象 {} 而不是 null
 
@@ -236,6 +244,14 @@
       // 排除 IPv6 节点:本配置 ipv6 为 false(见上方),IPv6-only 服务器连不上;2026-10-16 实测 13 个此类节点 10 轮全败,
       // 却每轮被所有组测满(RFC-027 C2)。改回 ipv6: true 时一并删除 ipv6 这一项。
       "filter": "(?i)^(?!.*(流量|到期|重置|官网|剩余|套餐|expire|traffic|reset|群组|频道|@|联系|网站|入群|关注|反馈|更新|ipv6)).*",
+      // 合集里含自建台湾 4 条(wap.ac TW VPS,Sub-Store 本地订阅「自建：台湾」并入本合集，随 Group.yaml 同步到 Gist;
+      //   密钥只在本机 Sub-Store,本仓库公开不写)。2026-10-18 起按用户决定放给所有组试效果——自动选择 / EMBY / Telegram /
+      //   Copilot 等直接可见,Gemini / ChatGPT / Cursor 的地区白名单为此加了「台北」。
+      //   ⚠️ VPS 每月 1TB、超出整机限速 2Mbps(Claude 一起变慢到重置日);用量看 Sub-Store 订阅「自建：台湾」的流量条。
+      //   要收回只给 Claude:在本代理集加 "exclude-filter": "^自建·",再给 Claude 组单独建一个 filter "^自建·" 的代理集。
+      //   节点名必须保持「自建·台北·…」(Sub-Store 订阅里不要加改名操作),Claude 组 filter 按这个前缀认。
+      //   经港两条的 dialer-proxy 写在节点里、指向下方「跳板·…」组，经 Sub-Store 输出后仍须保留(2026-10-18 核对过;
+      //   改动订阅后用 /download/collection/组合机场 再核对),它丢了 SS2022 会从家里直接过墙。
       "health-check": {
         "enable": true,
         "hierarchical": true,
@@ -244,7 +260,7 @@
         "expected-status": "204" // 🚀 依赖 Lumex 1.18+ 内核功能：预期的 HTTP 状态码，防流量耗尽/被墙等假连通情况 (自动踢出跳转节点的防挂神器)
       }
     },
-    // 同一份订阅，只取「台湾家宽2」(VLESS)，每个节点都经「Claude中转」组(香港节点)拨号，名字前加「中转·」，专供 Claude 组。
+    // 同一份订阅，只取「台湾家宽2」(VLESS)，每个节点都经「跳板·香港」组(香港节点)拨号，名字前加「中转·」，专供 Claude 组。
     //   只收 VLESS:「台湾家宽1」是 Hysteria2(UDP)，叠不到 VLESS 中转后面，实测全部失败。
     "台湾家宽中转": {
       "type": "http",
@@ -253,7 +269,7 @@
       "interval": 86400,
       "filter": "^悦·.*台湾家宽2",
       "override": {
-        "dialer-proxy": "Claude中转", // 必须与下方中转组的 name 逐字一致
+        "dialer-proxy": "跳板·香港", // 必须与下方跳板组的 name 逐字一致
         "additional-prefix": "中转·"
       },
       "health-check": {
@@ -298,6 +314,11 @@
   // ============================================================
   // proxy-groups 扁平化重构区
   // ============================================================
+
+  // 跳板组图标：Material Design Icons「transit-connection-variant」(Apache-2.0)——起点经中间一站到终点。
+  //   内联 SVG,GUI 原生支持(以 <svg 开头的 icon 直接渲染)，不依赖外部图床。颜色写 rgb() 而不是 #hex:
+  //   GUI 把它拼成 data:image/svg+xml;utf8,… 的 URI,# 会被当成 URI 片段把后半截丢掉。
+  const RELAY_ICON = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='rgb(30,136,229)' d='M18 11h-3.18C14.4 9.84 13.3 9 12 9s-2.4.84-2.82 2H6c-.33 0-2-.1-2-2V8c0-1.83 1.54-2 2-2h10.18C16.6 7.16 17.7 8 19 8a3 3 0 0 0 3-3a3 3 0 0 0-3-3c-1.3 0-2.4.84-2.82 2H6C4.39 4 2 5.06 2 8v1c0 2.94 2.39 4 4 4h3.18c.42 1.16 1.52 2 2.82 2s2.4-.84 2.82-2H18c.33 0 2 .1 2 2v1c0 1.83-1.54 2-2 2H7.82C7.4 16.84 6.3 16 5 16a3 3 0 0 0-3 3a3 3 0 0 0 3 3c1.3 0 2.4-.84 2.82-2H18c1.61 0 4-1.07 4-4v-1c0-2.93-2.39-4-4-4m1-7a1 1 0 0 1 1 1a1 1 0 0 1-1 1a1 1 0 0 1-1-1a1 1 0 0 1 1-1M5 20a1 1 0 0 1-1-1a1 1 0 0 1 1-1a1 1 0 0 1 1 1a1 1 0 0 1-1 1'/></svg>";
 
   // 1. 定义扁平化的 Proxy Groups
   config["proxy-groups"] = [
@@ -357,7 +378,7 @@
       "icon": "https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/Google.png",
       "use": ["组合机场"], // 引入代理集
       // 🚀 白名单锁定亚洲低延迟 + 美国兜底，JP/KR 已确认 Gemini 可用
-      "filter": "(?i)(台湾|Taiwan|(?<![A-Za-z])TW(?![A-Za-z])|日本|Japan|(?<![A-Za-z])JP(?![A-Za-z])|韩国|Korea|(?<![A-Za-z])KR(?![A-Za-z])|新加坡|Singapore|(?<![A-Za-z])SG(?![A-Za-z])|美国|(?<![A-Za-z])US)",
+      "filter": "(?i)(台湾|台北|Taiwan|(?<![A-Za-z])TW(?![A-Za-z])|日本|Japan|(?<![A-Za-z])JP(?![A-Za-z])|韩国|Korea|(?<![A-Za-z])KR(?![A-Za-z])|新加坡|Singapore|(?<![A-Za-z])SG(?![A-Za-z])|美国|(?<![A-Za-z])US)",
       "exclude-filter": "(一分|一毛|三毛|🇭🇰|香港|🇲🇾|马来)", // 剔除“一分”“三毛”，并兜底排除港/马来落地（见文件头 Fix 说明）
       "empty-fallback": "REJECT", // 白名单滤空时显式失败，不回落直连（见文件头 Fix 说明）
       "url": "https://gemini.google.com", // 标准 Lumex 兼容字段
@@ -396,14 +417,18 @@
       "name": "Claude",
       "type": "url-test",
       "icon": "https://www.google.com/s2/favicons?domain=claude.ai&sz=128",
-      "use": ["台湾家宽中转"],
-      // 🚀 只用悦的台湾家宽出口，且经香港中转：中转·悦·台湾家宽2 A/B 共 2 个(2026-10-18 起)。
+      "use": ["组合机场", "台湾家宽中转"], // 自建 4 条在组合机场里，由下面的 filter 只挑「自建·台北·」开头的
+      // 🚀 2026-10-18 晚起 6 个：自建台湾 4 条(出口固定 85.237.206.158)+ 中转·悦·台湾家宽2 A/B。
+      //   自建 4 条之间切换不改变出口 IP;切到台湾家宽会换成 HiNet 家宽 IP(同在台湾)。台湾家宽2 B 入口
+      //   111.243.120.8 自 10-17 23:46 起不通，暂留观察。自建稳定后可去掉「台湾家宽中转」只留自建。
+      // 以下为此前只用台湾家宽中转(2 个)时的记录：
       //   2026-10-14：原白名单横跨台/日/韩/新/美五地 170 个成员，只能手动锁定防跨国跳 IP，
       //   锁定的台湾家宽2 A 建连超时时救援被 manual-pin 挡住，claude.exe 连续断流；
       //   收窄到同一地区后可解除锁定，坏了在台湾家宽之间自动换。
       //   2026-10-18：直连台湾家宽新建连接只有 45~66% 成功，改用「台湾家宽中转」代理集(经香港中转，93~100%)；
       //   Hysteria2 的「台湾家宽1」叠不上中转，不再收。
-      "filter": "^中转·悦·.*台湾家宽2",
+      "filter": "^(自建·台北·|中转·悦·.*台湾家宽2)",
+      // 自建节点名里不能出现「香港」/🇭🇰(会被下面这条滤掉)，所以写「经港2A」而不是「经香港2A」。
       "exclude-filter": "(三毛|一毛|一分|🇭🇰|香港|🇲🇾|马来|星链)", // 兜底排除港/马来落地（见文件头 Fix 说明）
       "empty-fallback": "REJECT", // 白名单滤空时显式失败，不回落直连（见文件头 Fix 说明）
       "url": "https://api.anthropic.com", // 标准 Lumex 兼容字段
@@ -447,15 +472,16 @@
       //   而 candidateProbeState 按时间取最新，判定随刷新顺序漂移；周期化只是加剧了漂移。
       //   查清该问题前不要重开 "scoped-health-check": true。
     },
+    // —— 跳板组：只当前置跳板，不承载业务流量(规则不指向它们)，图标统一 RELAY_ICON ——
     {
-      // 只给「台湾家宽中转」代理集当前置跳板，不承载业务流量。中转只换「家 → 台湾」这一段路，
+      // 「台湾家宽中转」代理集的跳板(2026-10-18 晚由「Claude中转」改名)。中转只换「家 → 台湾」这一段路，
       //   来回切换也不改变 Claude 看到的出口 IP。反引号分隔的两段 filter 决定先后(按序优先)：
-      //   1. 悦·🇭🇰香港2 · A —— 三轮 98~99%，最稳；新建连接约 1.7~2.2 秒(入口在日本，绕一圈)
+      //   1. 悦·🇭🇰香港2 · A —— 三轮 98~99%，最稳；新建连接约 1.7~2.2 秒(入口其实在日本 So-net，绕一圈)
       //   2. 悦·🇭🇰香港家宽2💎 · A —— 三轮 87~100%，约 0.6 秒
       //   两个都被订阅改名滤掉时组为空，按内核旧行为回落直连 = 退回中转前的走法，不会整组断掉。
-      "name": "Claude中转", // 改名时同步「台湾家宽中转」代理集的 dialer-proxy
+      "name": "跳板·香港", // 改名时同步「台湾家宽中转」代理集的 dialer-proxy
       "type": "fallback",
-      "icon": "https://www.google.com/s2/favicons?domain=claude.ai&sz=128", // 与 Claude 组同一图标
+      "icon": RELAY_ICON,
       "use": ["组合机场"],
       "filter": "^悦·🇭🇰香港2 · A$`^悦·🇭🇰香港家宽2💎 · A$",
       "score-based": false, // 按上面的顺序优先；score-based 会改成选延迟最低的，即总选第 2 个
@@ -463,6 +489,27 @@
       "expected-status": "204",
       "interval": 120,
       "lazy": false
+    },
+    {
+      // 自建台湾「经港2A」的跳板，只含这一个香港节点：让 Claude 组按跳板分开测整条链路(家→香港→台北→Claude),
+      //   而不是像 fallback 那样只测香港这一跳。单成员 select 不做健康检查，链路好坏交给 Claude 组。
+      //   为空(订阅改名)时必须 REJECT:回落直连会让 SS2022 从家里直接过墙，全加密流量会被识别，台北 IP 可能被封。
+      //   改名时同步 Sub-Store 文件「自建台湾.yaml」里对应节点的 dialer-proxy。
+      "name": "跳板·香港2 A",
+      "type": "select",
+      "icon": RELAY_ICON,
+      "use": ["组合机场"],
+      "filter": "^悦·🇭🇰香港2 · A$",
+      "empty-fallback": "REJECT"
+    },
+    {
+      // 自建台湾「经港家宽2A」的跳板，说明同上。2026-10-18 实测台北 VPS 到这个入口(PCCW)19ms,整条链路 0.17s。
+      "name": "跳板·香港家宽2 A",
+      "type": "select",
+      "icon": RELAY_ICON,
+      "use": ["组合机场"],
+      "filter": "^悦·🇭🇰香港家宽2💎 · A$",
+      "empty-fallback": "REJECT"
     },
     {
       "name": "Copilot",
@@ -521,7 +568,7 @@
       "type": "url-test",
       "icon": "https://www.google.com/s2/favicons?domain=cursor.com&sz=128",
       "use": ["组合机场"], // 引入代理集
-      "filter": "(?i)(美国|(?<![A-Za-z])US|日本|Japan|(?<![A-Za-z])JP(?![A-Za-z])|新加坡|Singapore|(?<![A-Za-z])SG(?![A-Za-z])|台湾|Taiwan|(?<![A-Za-z])TW(?![A-Za-z])|英国|(?<![A-Za-z])UK(?![A-Za-z])|(?<![A-Za-z])GB(?![A-Za-z])|加拿大|(?<![A-Za-z])CA(?![A-Za-z])|澳大利亚|Australia|(?<![A-Za-z])AU(?![A-Za-z]))",
+      "filter": "(?i)(美国|(?<![A-Za-z])US|日本|Japan|(?<![A-Za-z])JP(?![A-Za-z])|新加坡|Singapore|(?<![A-Za-z])SG(?![A-Za-z])|台湾|台北|Taiwan|(?<![A-Za-z])TW(?![A-Za-z])|英国|(?<![A-Za-z])UK(?![A-Za-z])|(?<![A-Za-z])GB(?![A-Za-z])|加拿大|(?<![A-Za-z])CA(?![A-Za-z])|澳大利亚|Australia|(?<![A-Za-z])AU(?![A-Za-z]))",
       "exclude-filter": "(三毛|一毛|一分|🇭🇰|香港|🇲🇾|马来)", // 兜底排除港/马来落地（见文件头 Fix 说明）
       "empty-fallback": "REJECT", // 白名单滤空时显式失败，不回落直连（见文件头 Fix 说明）
       "url": "https://api2.cursor.sh", // 标准 Lumex 兼容字段
@@ -548,7 +595,7 @@
       "type": "url-test",
       "icon": "https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/OpenAI.png",
       "use": ["组合机场"], // 引入代理集
-      "filter": "(?i)(美国|(?<![A-Za-z])US|日本|Japan|(?<![A-Za-z])JP(?![A-Za-z])|新加坡|Singapore|(?<![A-Za-z])SG(?![A-Za-z])|台湾|Taiwan|(?<![A-Za-z])TW(?![A-Za-z])|英国|(?<![A-Za-z])UK(?![A-Za-z])|(?<![A-Za-z])GB(?![A-Za-z])|加拿大|(?<![A-Za-z])CA(?![A-Za-z])|澳大利亚|Australia|(?<![A-Za-z])AU(?![A-Za-z]))",
+      "filter": "(?i)(美国|(?<![A-Za-z])US|日本|Japan|(?<![A-Za-z])JP(?![A-Za-z])|新加坡|Singapore|(?<![A-Za-z])SG(?![A-Za-z])|台湾|台北|Taiwan|(?<![A-Za-z])TW(?![A-Za-z])|英国|(?<![A-Za-z])UK(?![A-Za-z])|(?<![A-Za-z])GB(?![A-Za-z])|加拿大|(?<![A-Za-z])CA(?![A-Za-z])|澳大利亚|Australia|(?<![A-Za-z])AU(?![A-Za-z]))",
       "exclude-filter": "(三毛|一毛|一分|🇭🇰|香港|🇲🇾|马来)", // 兜底排除港/马来落地（见文件头 Fix 说明）
       "empty-fallback": "REJECT", // 白名单滤空时显式失败，不回落直连（见文件头 Fix 说明）
       "url": "https://chatgpt.com", // 标准 Lumex 兼容字段
