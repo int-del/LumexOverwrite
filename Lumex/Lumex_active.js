@@ -1,7 +1,10 @@
 // Lumex Party 专用配置文件覆写脚本
 // 引用链接: https://raw.githubusercontent.com/int-del/LumexOverwrite/main/Lumex_active.js
 // 加速链接: https://cdn.jsdelivr.net/gh/int-del/LumexOverwrite@main/Lumex_active.js
-// 版本: V4.12-AntiCN  | 更新日期: 2026-10-18
+// 版本: V4.13-AntiCN  | 更新日期: 2026-10-18
+// V4.13: 自建台湾的经港跳板改为多成员组「跳板·自建」(fallback,score-based,测速打台北 VPS 自己的 /generate_204,
+//      测的正是「跳板 → 台北」这一段),删掉单成员的「跳板·香港2 A」「跳板·香港家宽2 A」;两个经港节点在 Sub-Store
+//      里合并为一个「自建·台北·经港」。成员是晚高峰从 197 个亚洲候选实测筛出的 9 个(见该组注释)。
 // V4.12: DNS 防泄漏(RFC-031,2026-10-18 实测三处泄漏后重排为「国内域名国内解析，其余全部经代理解析」)——
 //      ① 默认上游改为 1.1.1.1 / 8.8.8.8 DoH(respect-rules 下走代理);国内 DoH 只管 geosite:cn、厂商条目和直连出站
 //        (direct-nameserver),删掉 fallback / fallback-filter。原先默认上游是国内 DoH,没归类的域名先被腾讯/阿里看到;
@@ -10,14 +13,13 @@
 //      ③ 节点域名解析从明文 UDP 改为 IP 直连 DoH,运营商不再看到机场域名。
 //      ④ 局域网名(geosite:private,含 .lan / home.arpa / 路由器管理域名)交给网卡 DNS(system,即路由器)。
 //      ⚠️ 系统 DNS 明文泄漏只能靠「严格路由」堵，本脚本的 strict-route 会被 Lumex GUI 的 TUN 设置盖掉，见下方 tun 段。
-// Add: 自建台湾 4 条(wap.ac TW VPS,出口固定 85.237.206.158)—— 经港2A / 经港家宽2A 走 SS2022
-//      经香港跳板,Reality(TCP 443)/ HY2(UDP 8443)直连;四条同一出口 IP,内核在它们之间切换不改变
+// Add: 自建台湾(wap.ac TW VPS,出口固定 85.237.206.158)—— 经港走 SS2022 经「跳板·自建」,
+//      Reality(TCP 443)/ HY2(UDP 8443)直连;各条同一出口 IP,内核在它们之间切换不改变
 //      对端看到的地址。节点密钥只在本机 Sub-Store 的本地订阅「自建：台湾」里(并入组合机场合集),本仓库公开,不写密钥。
 //      按用户决定放给除 EMBY 外的所有组试效果(Gemini / ChatGPT / Cursor 白名单加「台北」);Claude 组从组合机场只挑「自建·台北·」。
 //      ⚠️ VPS 每月 1TB、超出整机限速 2Mbps——自动选择(含 YouTube)走多了会连带 Claude,用量看 Sub-Store 的流量条。
 // V4.11: EMBY 组排除自建台湾(按站点哈希分配出口，分到自建的站点会长期走 VPS)。
-//      「Claude中转」改名「跳板·香港」(台湾家宽继续用它),新增「跳板·香港2 A」「跳板·香港家宽2 A」两个
-//      单成员跳板组给自建节点按跳板分开测;跳板组为空时 REJECT,防止 SS2022 从家里直接过墙。
+//      「Claude中转」改名「跳板·香港」(台湾家宽继续用它);自建的跳板组为空时 REJECT,防止 SS2022 从家里直接过墙。
 //      2026-10-18 19:50 实测(每路 20 次全新连接):经港家宽2A 0.17s、HY2 0.26s、Reality 1.06s、经港2A 1.96s,全部 20/20。
 // Add: BoundaryAI 内网直连 —— hosts 把 pola.boundaryai.com / skillhub.boundaryai.cn 解析到局域网地址，
 //      规则最前面加 boundaryai.com / boundaryai.cn 走 DIRECT；DNS 显式 use-hosts: true。
@@ -90,7 +92,7 @@
   function main(config) {
   // 打印版本号，用于确认是否下载到了最新版
   // eslint-disable-next-line no-console
-  console.log("✅ 加载脚本 V4.12-AntiCN (DNS 防泄漏重排)...");
+  console.log("✅ 加载脚本 V4.13-AntiCN (自建经港改用多成员跳板组)...");
 
   // 关键修复：如果 config 为空，必须返回空对象 {} 而不是 null
 
@@ -253,13 +255,13 @@
       // 排除 IPv6 节点:本配置 ipv6 为 false(见上方),IPv6-only 服务器连不上;2026-10-16 实测 13 个此类节点 10 轮全败,
       // 却每轮被所有组测满(RFC-027 C2)。改回 ipv6: true 时一并删除 ipv6 这一项。
       "filter": "(?i)^(?!.*(流量|到期|重置|官网|剩余|套餐|expire|traffic|reset|群组|频道|@|联系|网站|入群|关注|反馈|更新|ipv6)).*",
-      // 合集里含自建台湾 4 条(wap.ac TW VPS,Sub-Store 本地订阅「自建：台湾」并入本合集，随 Group.yaml 同步到 Gist;
+      // 合集里含自建台湾 3 条(wap.ac TW VPS,Sub-Store 本地订阅「自建：台湾」并入本合集，随 Group.yaml 同步到 Gist;
       //   密钥只在本机 Sub-Store,本仓库公开不写)。2026-10-18 起按用户决定放给除 EMBY 外的所有组试效果——自动选择 /
       //   Telegram / Copilot 等直接可见,Gemini / ChatGPT / Cursor 的地区白名单为此加了「台北」,EMBY 组用 exclude-filter 排除。
       //   ⚠️ VPS 每月 1TB、超出整机限速 2Mbps(Claude 一起变慢到重置日);用量看 Sub-Store 订阅「自建：台湾」的流量条。
       //   要收回只给 Claude:在本代理集加 "exclude-filter": "^自建·",再给 Claude 组单独建一个 filter "^自建·" 的代理集。
       //   节点名必须保持「自建·台北·…」(Sub-Store 订阅里不要加改名操作),Claude 组 filter 按这个前缀认。
-      //   经港两条的 dialer-proxy 写在节点里、指向下方「跳板·…」组，经 Sub-Store 输出后仍须保留(2026-10-18 核对过;
+      //   经港那条的 dialer-proxy 写在节点里、指向下方「跳板·自建」组，经 Sub-Store 输出后仍须保留(2026-10-18 核对过;
       //   改动订阅后用 /download/collection/组合机场 再核对),它丢了 SS2022 会从家里直接过墙。
       "health-check": {
         "enable": true,
@@ -429,7 +431,7 @@
       "type": "url-test",
       "icon": "https://www.google.com/s2/favicons?domain=claude.ai&sz=128",
       "use": ["组合机场", "台湾家宽中转"], // 自建 4 条在组合机场里，由下面的 filter 只挑「自建·台北·」开头的
-      // 🚀 2026-10-18 晚起 6 个：自建台湾 4 条(出口固定 85.237.206.158)+ 中转·悦·台湾家宽2 A/B。
+      // 🚀 2026-10-18 晚起：自建台湾 3 条(经港 / Reality / HY2,出口固定 85.237.206.158)+ 中转·悦·台湾家宽2 A/B。
       //   自建 4 条之间切换不改变出口 IP;切到台湾家宽会换成 HiNet 家宽 IP(同在台湾)。台湾家宽2 B 入口
       //   111.243.120.8 自 10-17 23:46 起不通，暂留观察。自建稳定后可去掉「台湾家宽中转」只留自建。
       // 以下为此前只用台湾家宽中转(2 个)时的记录：
@@ -439,7 +441,7 @@
       //   2026-10-18：直连台湾家宽新建连接只有 45~66% 成功，改用「台湾家宽中转」代理集(经香港中转，93~100%)；
       //   Hysteria2 的「台湾家宽1」叠不上中转，不再收。
       "filter": "^(自建·台北·|中转·悦·.*台湾家宽2)",
-      // 自建节点名里不能出现「香港」/🇭🇰(会被下面这条滤掉)，所以写「经港2A」而不是「经香港2A」。
+      // 自建节点名里不能出现「香港」/🇭🇰(会被下面这条滤掉)，所以写「经港」而不是「经香港」。
       "exclude-filter": "(三毛|一毛|一分|🇭🇰|香港|🇲🇾|马来|星链)", // 兜底排除港/马来落地（见文件头 Fix 说明）
       "empty-fallback": "REJECT", // 白名单滤空时显式失败，不回落直连（见文件头 Fix 说明）
       "url": "https://api.anthropic.com", // 标准 Lumex 兼容字段
@@ -502,24 +504,26 @@
       "lazy": false
     },
     {
-      // 自建台湾「经港2A」的跳板，只含这一个香港节点：让 Claude 组按跳板分开测整条链路(家→香港→台北→Claude),
-      //   而不是像 fallback 那样只测香港这一跳。单成员 select 不做健康检查，链路好坏交给 Claude 组。
-      //   为空(订阅改名)时必须 REJECT:回落直连会让 SS2022 从家里直接过墙，全加密流量会被识别，台北 IP 可能被封。
-      //   改名时同步 Sub-Store 文件「自建台湾.yaml」里对应节点的 dialer-proxy。
-      "name": "跳板·香港2 A",
-      "type": "select",
+      // 自建台湾「自建·台北·经港」的跳板(节点在 Sub-Store 订阅「自建：台湾」里，dialer-proxy 指向本组，改名时同步)。
+      //   测速地址是台北 VPS 自己的 /generate_204(VPS 上 traffic-info 服务提供，公开、只回 204),测的正是
+      //   「家 → 跳板 → 台北」这一段;score-based 在存活成员里挑这段延迟最低的。不测 gstatic:到 gstatic 快≠到台北快。
+      //   成员来自 2026-10-18 晚高峰实测(家→跳板→台北 SS2022→api.anthropic.com 全新连接各 40 次全成功，
+      //   跳板→台北 UDP 丢包 1.4~2.4%;197 个亚洲候选筛出)。按用户决定不管倍率;名字带「勿跑大流量」的不收。
+      //   悦·香港2 A(入口在日本 So-net,中位 2.44s、入口丢包 23%)是候选里最差的，不收。
+      //   三毛 2x 专线 23:07 复测时整体不通(与跳板自身建会话失败),测速会自动跳过，恢复后再被选上。
+      //   为空(订阅改名把成员全滤掉)时必须 REJECT:回落直连会让 SS2022 从家里直接过墙，全加密流量会被识别，
+      //   台北 IP 可能被封。成员全挂时 score-based 仍拨第一个成员(失败),不会直连。
+      //   三毛节点名里的 | 是字面字符，filter 里必须写成 \\|,否则变成「或」会多匹配一串节点。
+      "name": "跳板·自建",
+      "type": "fallback",
       "icon": RELAY_ICON,
       "use": ["组合机场"],
-      "filter": "^悦·🇭🇰香港2 · A$",
-      "empty-fallback": "REJECT"
-    },
-    {
-      // 自建台湾「经港家宽2A」的跳板，说明同上。2026-10-18 实测台北 VPS 到这个入口(PCCW)19ms,整条链路 0.17s。
-      "name": "跳板·香港家宽2 A",
-      "type": "select",
-      "icon": RELAY_ICON,
-      "use": ["组合机场"],
-      "filter": "^悦·🇭🇰香港家宽2💎 · A$",
+      "filter": "^悦·🇭🇰香港家宽2💎 · A$`^悦·🇸🇬新加坡AI解锁2💎 · [AB]$`^悦·🇯🇵日本AI解锁2💎 · [AB]$`^三毛·新加坡1\\|高速下载\\|移动优化$`^三毛·2x专线-(日本-1|香港-[12])$",
+      "score-based": true,
+      "url": "http://85.237.206.158:39078/generate_204",
+      "expected-status": "204",
+      "interval": 120,
+      "lazy": false,
       "empty-fallback": "REJECT"
     },
     {
