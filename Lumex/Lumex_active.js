@@ -1,7 +1,12 @@
 // Lumex Party 专用配置文件覆写脚本
 // 引用链接: https://raw.githubusercontent.com/int-del/LumexOverwrite/main/Lumex_active.js
 // 加速链接: https://cdn.jsdelivr.net/gh/int-del/LumexOverwrite@main/Lumex_active.js
-// 版本: V4.21-AntiCN  | 更新日期: 2026-10-22
+// 版本: V4.22-AntiCN  | 更新日期: 2026-10-22
+// V4.22: 浏览器 UDP(QUIC 已拒，剩下的就是 WebRTC)不再按目的地直连:发往国内的拒绝，其余走自动选择。
+//      原因：网页脚本无需任何权限就能让 WebRTC 打国内 STUN(B 站 / 芒果 / 小米),GEOSITE / GEOIP cn 把它直连，
+//      对方就拿到家宽真实出口;浏览器策略 default_public_interface_only 只管网卡，管不了内核分流。
+//      第二条兜底 123 / 137~139 / 5353 等直连端口，防网页把 STUN 放在这些端口上绕过。
+//      代价：国内视频站网页版的 P2P 加速连不上(自动退回 CDN)、浏览器里的国内网页会议连不上;钉钉等客户端不受影响。
 // V4.21: 中转节点名的跳板与落地之间改用「-」(用户要求):中转·香港-自建·台北1·SS,原来全是「·」分不清哪段是跳板。
 //      按前缀认节点的 5 条正则(Claude 白名单、Claude / Gemini / ChatGPT / Cursor 兜底排除)同步改成「中转·<跳板>-」。
 // V4.20: 全部中转同步给除 EMBY 外的业务组(用户要求):各组 use = 组合机场 + 中转代理集表全部(RELAY_USE);
@@ -116,7 +121,7 @@
   function main(config) {
   // 打印版本号，用于确认是否下载到了最新版
   // eslint-disable-next-line no-console
-  console.log("✅ 加载脚本 V4.21-AntiCN (中转名 跳板-落地)...");
+  console.log("✅ 加载脚本 V4.22-AntiCN (浏览器 UDP 不直连)...");
 
   // 关键修复：如果 config 为空，必须返回空对象 {} 而不是 null
 
@@ -850,6 +855,11 @@
     // 🛡️ 强制阻断 QUIC (UDP 443) 以解决 Google/YouTube 流畅度问题和 1060 错误
     // 强制回退到 TCP，提高代理稳定性
     "AND,((NETWORK,UDP),(DST-PORT,443)),REJECT",
+
+    // 🛡️ 浏览器 WebRTC 不直连(V4.22):网页可用国内 STUN 探出家宽真实出口，见文件头 V4.22。
+    // 局域网规则在上方，投屏 / 局域网 P2P 不受影响;msedgewebview2.exe 等内嵌浏览器不在名单里。
+    "AND,((NETWORK,UDP),(OR,((PROCESS-NAME,chrome.exe),(PROCESS-NAME,msedge.exe),(PROCESS-NAME,brave.exe),(PROCESS-NAME,firefox.exe))),(OR,((GEOSITE,cn),(GEOIP,cn,no-resolve)))),REJECT",
+    "AND,((NETWORK,UDP),(OR,((PROCESS-NAME,chrome.exe),(PROCESS-NAME,msedge.exe),(PROCESS-NAME,brave.exe),(PROCESS-NAME,firefox.exe)))),自动选择",
 
     // ==========================================
     // 🟢 层级 4：非刚需请求拦截 (去广告)
