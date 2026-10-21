@@ -1,7 +1,11 @@
 // Lumex Party 专用配置文件覆写脚本
 // 引用链接: https://raw.githubusercontent.com/int-del/LumexOverwrite/main/Lumex_active.js
 // 加速链接: https://cdn.jsdelivr.net/gh/int-del/LumexOverwrite@main/Lumex_active.js
-// 版本: V4.16-AntiCN  | 更新日期: 2026-10-20
+// 版本: V4.17-AntiCN  | 更新日期: 2026-10-21
+// V4.17: 新增自建台北2(ByteVirt TW VPS,地址只写在本机 Sub-Store;与旧机同机房、共用密钥;家里到它 68ms,旧机直连 247ms)。
+//      它既直接当出口(Sub-Store「自建·台北2·Reality / HY2」,经组合机场进白名单含「台北」的组),也当新跳板组「跳板·台北2」:
+//      新代理集「自建经台北2」(旧机 SS 经它,前缀「经台北2·」)、「台湾家宽经台北2」(台湾家宽2 经它)。
+//      Claude 组加入台北2 直连、两个经台北2 的中转，并加回经港的「台湾家宽中转」作第二条路;按用户要求只增不删，原有成员都保留。
 // V4.16: Claude 组只留自建台北 3 条(经港 SS / Reality / HY2),去掉「台湾家宽中转」(用户 10-20 要求)。
 //      「台湾家宽中转」代理集与「跳板·香港」组暂时保留(已无组引用)，要恢复时在 Claude 组 use 与 filter 加回即可。
 // V4.15: 「跳板·香港」(台湾家宽中转的跳板)改为按延迟挑选(score-based),香港家宽2A 排第一。依据 10-18 12:20~23:30
@@ -100,7 +104,7 @@
   function main(config) {
   // 打印版本号，用于确认是否下载到了最新版
   // eslint-disable-next-line no-console
-  console.log("✅ 加载脚本 V4.16-AntiCN (Claude 组只留自建台北)...");
+  console.log("✅ 加载脚本 V4.17-AntiCN (新增自建台北2 与经台北2 中转)...");
 
   // 关键修复：如果 config 为空，必须返回空对象 {} 而不是 null
 
@@ -319,6 +323,44 @@
         "interval": 240,
         "expected-status": "204"
       }
+    },
+    // 2026-10-21 起：旧机的裸 SS2022 节点也经新台北机(跳板·台北2)拨号，名字前加「经台北2·」(与上面经港的「中转·」区分)。
+    //   新机到旧机 0.6ms,出口仍是旧机 85.237.206.158。目前只给 Claude 组用。
+    "自建经台北2": {
+      "type": "http",
+      "url": "http://127.0.0.1:38324/download/collection/%E7%BB%84%E5%90%88%E6%9C%BA%E5%9C%BA", // 与「组合机场」相同
+      "path": "./proxy_providers/自建经台北2.yaml",
+      "interval": 86400,
+      "filter": "^自建·台北·SS$",
+      "override": {
+        "dialer-proxy": "跳板·台北2", // 必须与下方跳板组的 name 逐字一致
+        "additional-prefix": "经台北2·"
+      },
+      "health-check": {
+        "enable": true,
+        "url": "https://www.gstatic.com/generate_204",
+        "interval": 240,
+        "expected-status": "204"
+      }
+    },
+    // 2026-10-21 起：台湾家宽2(VLESS)经新台北机拨号——与上面经港的「台湾家宽中转」并存，是同一批出口的第二条路。
+    //   新机到台湾家宽2 A 入口 39ms、0 丢包;B 入口从新机不通(从家里也长期不通)，测速失败不会被选上。目前只给 Claude 组用。
+    "台湾家宽经台北2": {
+      "type": "http",
+      "url": "http://127.0.0.1:38324/download/collection/%E7%BB%84%E5%90%88%E6%9C%BA%E5%9C%BA", // 与「组合机场」相同
+      "path": "./proxy_providers/台湾家宽经台北2.yaml",
+      "interval": 86400,
+      "filter": "^悦·.*台湾家宽2",
+      "override": {
+        "dialer-proxy": "跳板·台北2", // 必须与下方跳板组的 name 逐字一致
+        "additional-prefix": "经台北2·"
+      },
+      "health-check": {
+        "enable": true,
+        "url": "https://www.gstatic.com/generate_204",
+        "interval": 240,
+        "expected-status": "204"
+      }
     }
   };
 
@@ -460,8 +502,12 @@
       "name": "Claude",
       "type": "url-test",
       "icon": "https://www.google.com/s2/favicons?domain=claude.ai&sz=128",
-      "use": ["组合机场", "自建经港"], // 自建 Reality / HY2 在组合机场、经港那条在自建经港，由下面的 filter 挑出
-      // 🚀 2026-10-20 起只留自建台湾 3 条(经港 SS / Reality / HY2),出口固定 85.237.206.158,3 条之间切换不改变出口 IP。
+      // 自建 Reality / HY2(旧机与台北2)在组合机场，经港 / 经台北2 的中转各在自己的代理集，由下面的 filter 挑出
+      "use": ["组合机场", "自建经港", "自建经台北2", "台湾家宽经台北2", "台湾家宽中转"],
+      // 🚀 2026-10-21 起(用户选「几种出口都放、自动选」，只增不删):出口有三个 IP,全部在台湾——
+      //   台北2(直连 Reality / HY2)、旧机 85.237.206.158(直连、经港、经台北2)、台湾家宽2 的 HiNet 家宽 IP
+      //   (经台北2、经港)。按测速自动选，通常落在台北2 直连(家里 68ms);切换时 Claude 看到的 IP 会变。
+      // 2026-10-20 ~ 10-21 只留自建台湾 3 条(经港 SS / Reality / HY2),出口固定 85.237.206.158,3 条之间切换不改变出口 IP。
       //   之前(10-18 晚起)还有中转·悦·台湾家宽2 A/B(HiNet 家宽 IP),用户 10-20 要求去掉。
       //   3 条都挂时 Claude 连接会失败(组里没有别的节点)，不会落到其他地区;订阅改名把 3 条都滤掉时按 empty-fallback 拒绝。
       // 以下为此前只用台湾家宽中转(2 个)时的记录：
@@ -470,7 +516,7 @@
       //   收窄到同一地区后可解除锁定，坏了在台湾家宽之间自动换。
       //   2026-10-18：直连台湾家宽新建连接只有 45~66% 成功，改用「台湾家宽中转」代理集(经香港中转，93~100%)；
       //   Hysteria2 的「台湾家宽1」叠不上中转，不再收。
-      "filter": "^(自建·台北·|中转·自建·台北·)",
+      "filter": "^(自建·台北·|自建·台北2·|中转·自建·台北·|经台北2·|中转·悦·.*台湾家宽2)",
       // 自建节点名里不能出现「香港」/🇭🇰(会被下面这条滤掉)。
       "exclude-filter": "(三毛|一毛|一分|🇭🇰|香港|🇲🇾|马来|星链)", // 兜底排除港/马来落地（见文件头 Fix 说明）
       "empty-fallback": "REJECT", // 白名单滤空时显式失败，不回落直连（见文件头 Fix 说明）
@@ -556,6 +602,25 @@
       "filter": "^悦·🇭🇰香港家宽2💎 · A$`^悦·🇸🇬新加坡AI解锁2💎 · [AB]$`^悦·🇯🇵日本AI解锁2💎 · [AB]$`^三毛·新加坡1\\|高速下载\\|移动优化$`^三毛·2x专线-(日本-1|香港-[12])$",
       "score-based": true,
       "url": "http://85.237.206.158:39078/generate_204",
+      "expected-status": "204",
+      "interval": 120,
+      "lazy": false,
+      "empty-fallback": "REJECT"
+    },
+    {
+      // 新台北机(ByteVirt,2026-10-21)当跳板：上方「自建经台北2」「台湾家宽经台北2」两个代理集的
+      //   override.dialer-proxy 指向本组(改名时同步)。家里到它 68ms,它到旧机 0.6ms、到台湾家宽2 A 入口 39ms。
+      //   成员是它自己的 Reality / HY2(Sub-Store「自建：台湾」),score-based 挑延迟低的;晚高峰家里到台湾的 UDP 常整段不通
+      //   (10-21 23:00 两台的 HY2 和机场台湾家宽1 同时全失败)，这时 HY2 测不通，自动用 Reality。
+      //   测速打 gstatic:新机就在台北，到 gstatic 通基本等于它本身可用;不打旧机的 /generate_204,免得旧机挂了连带台湾家宽也不能用。
+      //   为空(订阅改名把成员全滤掉)时必须 REJECT:回落直连会让旧机的 SS2022 从家里直接过墙，全加密流量会被识别。
+      "name": "跳板·台北2",
+      "type": "fallback",
+      "icon": RELAY_ICON,
+      "use": ["组合机场"],
+      "filter": "^自建·台北2·(Reality|HY2)$",
+      "score-based": true,
+      "url": "https://www.gstatic.com/generate_204",
       "expected-status": "204",
       "interval": 120,
       "lazy": false,
