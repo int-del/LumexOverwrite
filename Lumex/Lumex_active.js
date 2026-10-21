@@ -1,7 +1,9 @@
 // Lumex Party 专用配置文件覆写脚本
 // 引用链接: https://raw.githubusercontent.com/int-del/LumexOverwrite/main/Lumex_active.js
 // 加速链接: https://cdn.jsdelivr.net/gh/int-del/LumexOverwrite@main/Lumex_active.js
-// 版本: V4.19-AntiCN  | 更新日期: 2026-10-22
+// 版本: V4.20-AntiCN  | 更新日期: 2026-10-22
+// V4.20: 全部中转同步给除 EMBY 外的业务组(用户要求):各组 use = 组合机场 + 中转代理集表全部(RELAY_USE);
+//      Gemini / ChatGPT / Cursor 的兜底排除改成只查落地部分，不误杀「中转·香港·…」。
 // V4.19: 中转统一命名「中转·<跳板>·<落地>」(用户要求):跳板·自建 改名 跳板·综合 并去掉香港家宽(归跳板·香港，两组不重叠);
 //      中转代理集改成一张表(代理集名「<落地>经<跳板>」、按机器拆行，用户要求代理集名写明机器):台湾家宽中转→台湾家宽经香港、
 //      自建经港→自建台北1SS经综合 / 自建台北2SS经综合、新增自建台北1SS经香港 / 自建台北2SS经香港、自建经台北2→自建台北1SS经台北2。
@@ -112,7 +114,7 @@
   function main(config) {
   // 打印版本号，用于确认是否下载到了最新版
   // eslint-disable-next-line no-console
-  console.log("✅ 加载脚本 V4.19-AntiCN (中转统一命名 中转·跳板·落地)...");
+  console.log("✅ 加载脚本 V4.20-AntiCN (全部中转同步给业务组)...");
 
   // 关键修复：如果 config 为空，必须返回空对象 {} 而不是 null
 
@@ -304,14 +306,15 @@
   //   组合机场按通配把所有裸 SS 排除了，它们只从下表的代理集出现)、台湾家宽2(VLESS)。
   //   加落地机器或跳板就在表里加行(V4.18 的通配写法会让一个代理集装多台机器，名字只能写跳板;用户要代理集名写明机器，故按机器拆行)。
   // 每行：[代理集名, 落地节点 filter, 跳板组(dialer-proxy), 节点名前缀]
+  //   除 EMBY 外的业务组和 Claude 组都用表里全部代理集(V4.20,用户要求，见下方 RELAY_USE)。
   const RELAY_SOURCE = "http://127.0.0.1:38324/download/collection/%E7%BB%84%E5%90%88%E6%9C%BA%E5%9C%BA"; // 与「组合机场」相同
-  [
-    // 台湾家宽2：只收 VLESS,「台湾家宽1」是 Hysteria2(UDP)，叠不到 VLESS 中转后面，实测全部失败。只给 Claude 组用。
+  const RELAYS = [
+    // 台湾家宽2：只收 VLESS,「台湾家宽1」是 Hysteria2(UDP)，叠不到 VLESS 中转后面，实测全部失败。
     //   V4.19 前叫「台湾家宽中转」(前缀「中转·」)与「台湾家宽经台北2」(前缀「经台北2·」)。
     //   经台北2：新机到台湾家宽2 A 入口 39ms、0 丢包;B 入口从新机不通(从家里也长期不通)，测速失败不会被选上。
     ["台湾家宽经香港", "^悦·.*台湾家宽2", "跳板·香港", "中转·香港·"],
     ["台湾家宽经台北2", "^悦·.*台湾家宽2", "跳板·台北2", "中转·台北2·"],
-    // 自建 SS：经综合的两个给除 EMBY 外的业务组和 Claude 组用(V4.19 前是「自建经港」,跳板叫「跳板·自建」)，其余只给 Claude 组。
+    // 自建 SS(V4.19 前是「自建经港」,跳板叫「跳板·自建」;V4.19 时业务组只用经综合的两个，V4.20 起全部)。
     //   台北1 经香港家宽(10-21 测速 244ms,各成员里最快)在跳板·综合去掉香港家宽后靠「自建台北1SS经香港」保留。
     //   台北2 不经台北2 自己转;台北1 经台北2:新机到旧机 0.6ms,出口仍是旧机。
     ["自建台北1SS经香港", "^自建·台北1·SS$", "跳板·香港", "中转·香港·"],
@@ -319,7 +322,11 @@
     ["自建台北1SS经综合", "^自建·台北1·SS$", "跳板·综合", "中转·综合·"],
     ["自建台北2SS经综合", "^自建·台北2·SS$", "跳板·综合", "中转·综合·"],
     ["自建台北1SS经台北2", "^自建·台北1·SS$", "跳板·台北2", "中转·台北2·"]
-  ].forEach(function(r) {
+  ];
+  // 业务组和 Claude 组的 use:组合机场 + 上表全部中转代理集。各组用 .slice() 拿一份拷贝——共用同一个数组，
+  //   导出 YAML 时可能变成锚点 / 别名(&ref / *ref)。
+  const RELAY_USE = ["组合机场"].concat(RELAYS.map(function(r) { return r[0]; }));
+  RELAYS.forEach(function(r) {
     config["proxy-providers"][r[0]] = {
       "type": "http",
       "url": RELAY_SOURCE,
@@ -384,7 +391,7 @@
       "name": "自动选择",
       "type": "url-test",
       "icon": "https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/Urltest.png",
-      "use": ["组合机场", "自建台北1SS经综合", "自建台北2SS经综合"], // 引入代理集(自建 SS 经「跳板·综合」)
+      "use": RELAY_USE.slice(), // 引入代理集：组合机场 + 全部中转(见上方中转代理集表)
       "filter": "^(?!.*(俄罗斯|Russia|🇷🇺|(?<![A-Za-z])RU(?![A-Za-z])|朝鲜|北韩|North ?Korea|🇰🇵|(?<![A-Za-z])KP(?![A-Za-z])|古巴|Cuba|🇨🇺|(?<![A-Za-z])CU(?![A-Za-z]))).*", // 排除 RU/KP/CU；码位两侧禁字母，见文件头 Fix
       "url": "https://www.gstatic.com/generate_204", // 标准 Lumex 兼容字段（非 LumexCore 内核使用此值）
       "urls": [
@@ -436,10 +443,12 @@
       "name": "Gemini",
       "type": "url-test",
       "icon": "https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/Google.png",
-      "use": ["组合机场", "自建台北1SS经综合", "自建台北2SS经综合"], // 引入代理集(自建 SS 经「跳板·综合」)
+      "use": RELAY_USE.slice(), // 引入代理集：组合机场 + 全部中转(见上方中转代理集表)
       // 🚀 白名单锁定亚洲低延迟 + 美国兜底，JP/KR 已确认 Gemini 可用
       "filter": "(?i)(台湾|台北|Taiwan|(?<![A-Za-z])TW(?![A-Za-z])|日本|Japan|(?<![A-Za-z])JP(?![A-Za-z])|韩国|Korea|(?<![A-Za-z])KR(?![A-Za-z])|新加坡|Singapore|(?<![A-Za-z])SG(?![A-Za-z])|美国|(?<![A-Za-z])US)",
-      "exclude-filter": "(一分|一毛|三毛|🇭🇰|香港|🇲🇾|马来)", // 剔除“一分”“三毛”，并兜底排除港/马来落地（见文件头 Fix 说明）
+      // 剔除“一分”“三毛”，并兜底排除港/马来落地（见文件头 Fix 说明）。只查落地部分：中转节点跳过「中转·<跳板>·」再查，
+      //   否则「中转·香港·…」会因跳板名被误杀(与 Claude 组同一写法，V4.20)
+      "exclude-filter": "^(?:中转·[^·]+·|(?!中转·))(?=.*(一分|一毛|三毛|🇭🇰|香港|🇲🇾|马来))",
       "empty-fallback": "REJECT", // 白名单滤空时显式失败，不回落直连（见文件头 Fix 说明）
       "url": "https://gemini.google.com", // 标准 Lumex 兼容字段
       // 🚀 多 URL 健康检查配置(RFC-027 C1,2026-10-16 改)
@@ -478,8 +487,7 @@
       "type": "url-test",
       "icon": "https://www.google.com/s2/favicons?domain=claude.ai&sz=128",
       // 自建直连 Reality 在组合机场;中转「中转·<跳板>·<落地>」各在自己的代理集(见 proxy-providers 的中转代理集说明)
-      "use": ["组合机场", "自建台北1SS经香港", "自建台北2SS经香港", "自建台北1SS经综合", "自建台北2SS经综合", "自建台北1SS经台北2",
-              "台湾家宽经香港", "台湾家宽经台北2"],
+      "use": RELAY_USE.slice(),
       // 🚀 2026-10-21 起(用户选「几种出口都放、自动选」):出口有三个 IP,全部在台湾——台北2(直连、经香港、经综合)、
       //   旧机 85.237.206.158(直连、经香港、经综合、经台北2)、台湾家宽2 的 HiNet 家宽 IP(经香港、经台北2)。
       //   按测速自动选;切换时 Claude 看到的 IP 会变。自建 HY2 10-22 起在 Sub-Store 注释掉(晚高峰 QUIC 被切)。
@@ -612,7 +620,7 @@
       "name": "Copilot",
       "type": "url-test",
       "icon": "https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/Microsoft.png",
-      "use": ["组合机场", "自建台北1SS经综合", "自建台北2SS经综合"], // 引入代理集(自建 SS 经「跳板·综合」)
+      "use": RELAY_USE.slice(), // 引入代理集：组合机场 + 全部中转(见上方中转代理集表)
       "filter": "^(?!.*(俄罗斯|Russia|🇷🇺|(?<![A-Za-z])RU(?![A-Za-z])|朝鲜|北韩|North ?Korea|🇰🇵|(?<![A-Za-z])KP(?![A-Za-z])|古巴|Cuba|🇨🇺|(?<![A-Za-z])CU(?![A-Za-z])|中国|China|(?<![A-Za-z])CN(?![A-Za-z0-9]))).*", // 补全：排除 RU/KP/CU/CN
       "url": "https://www.bing.com", // 标准 Lumex 兼容字段
       "urls": [
@@ -638,7 +646,7 @@
       "name": "GitHub Copilot",
       "type": "url-test",
       "icon": "https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/github.png",
-      "use": ["组合机场", "自建台北1SS经综合", "自建台北2SS经综合"], // 引入代理集(自建 SS 经「跳板·综合」)
+      "use": RELAY_USE.slice(), // 引入代理集：组合机场 + 全部中转(见上方中转代理集表)
       "filter": "^(?!.*(俄罗斯|Russia|🇷🇺|(?<![A-Za-z])RU(?![A-Za-z])|朝鲜|北韩|North ?Korea|🇰🇵|(?<![A-Za-z])KP(?![A-Za-z])|古巴|Cuba|🇨🇺|(?<![A-Za-z])CU(?![A-Za-z])|伊朗|Iran|🇮🇷|(?<![A-Za-z])IR(?![A-Za-z])|叙利亚|Syria|🇸🇾|(?<![A-Za-z])SY(?![A-Za-z])|白俄罗斯|Belarus|🇧🇾|(?<![A-Za-z])BY(?![A-Za-z])|中国|China|(?<![A-Za-z])CN(?![A-Za-z0-9]))).*", // 补全：官方封锁全列表
       "url": "https://copilot.github.com", // 标准 Lumex 兼容字段
       "urls": [
@@ -664,9 +672,10 @@
       "name": "Cursor",
       "type": "url-test",
       "icon": "https://www.google.com/s2/favicons?domain=cursor.com&sz=128",
-      "use": ["组合机场", "自建台北1SS经综合", "自建台北2SS经综合"], // 引入代理集(自建 SS 经「跳板·综合」)
+      "use": RELAY_USE.slice(), // 引入代理集：组合机场 + 全部中转(见上方中转代理集表)
       "filter": "(?i)(美国|(?<![A-Za-z])US|日本|Japan|(?<![A-Za-z])JP(?![A-Za-z])|新加坡|Singapore|(?<![A-Za-z])SG(?![A-Za-z])|台湾|台北|Taiwan|(?<![A-Za-z])TW(?![A-Za-z])|英国|(?<![A-Za-z])UK(?![A-Za-z])|(?<![A-Za-z])GB(?![A-Za-z])|加拿大|(?<![A-Za-z])CA(?![A-Za-z])|澳大利亚|Australia|(?<![A-Za-z])AU(?![A-Za-z]))",
-      "exclude-filter": "(三毛|一毛|一分|🇭🇰|香港|🇲🇾|马来)", // 兜底排除港/马来落地（见文件头 Fix 说明）
+      // 兜底排除港/马来落地（见文件头 Fix 说明）;只查落地部分，不误杀「中转·香港·…」(与 Claude 组同一写法，V4.20)
+      "exclude-filter": "^(?:中转·[^·]+·|(?!中转·))(?=.*(三毛|一毛|一分|🇭🇰|香港|🇲🇾|马来))",
       "empty-fallback": "REJECT", // 白名单滤空时显式失败，不回落直连（见文件头 Fix 说明）
       "url": "https://api2.cursor.sh", // 标准 Lumex 兼容字段
       "urls": [
@@ -691,9 +700,10 @@
       "name": "ChatGPT",
       "type": "url-test",
       "icon": "https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/OpenAI.png",
-      "use": ["组合机场", "自建台北1SS经综合", "自建台北2SS经综合"], // 引入代理集(自建 SS 经「跳板·综合」)
+      "use": RELAY_USE.slice(), // 引入代理集：组合机场 + 全部中转(见上方中转代理集表)
       "filter": "(?i)(美国|(?<![A-Za-z])US|日本|Japan|(?<![A-Za-z])JP(?![A-Za-z])|新加坡|Singapore|(?<![A-Za-z])SG(?![A-Za-z])|台湾|台北|Taiwan|(?<![A-Za-z])TW(?![A-Za-z])|英国|(?<![A-Za-z])UK(?![A-Za-z])|(?<![A-Za-z])GB(?![A-Za-z])|加拿大|(?<![A-Za-z])CA(?![A-Za-z])|澳大利亚|Australia|(?<![A-Za-z])AU(?![A-Za-z]))",
-      "exclude-filter": "(三毛|一毛|一分|🇭🇰|香港|🇲🇾|马来)", // 兜底排除港/马来落地（见文件头 Fix 说明）
+      // 兜底排除港/马来落地（见文件头 Fix 说明）;只查落地部分，不误杀「中转·香港·…」(与 Claude 组同一写法，V4.20)
+      "exclude-filter": "^(?:中转·[^·]+·|(?!中转·))(?=.*(三毛|一毛|一分|🇭🇰|香港|🇲🇾|马来))",
       "empty-fallback": "REJECT", // 白名单滤空时显式失败，不回落直连（见文件头 Fix 说明）
       "url": "https://chatgpt.com", // 标准 Lumex 兼容字段
       "urls": [
@@ -721,7 +731,7 @@
       "name": "Telegram",
       "type": "url-test",
       "icon": "https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/Telegram.png",
-      "use": ["组合机场", "自建台北1SS经综合", "自建台北2SS经综合"], // 引入代理集(自建 SS 经「跳板·综合」)
+      "use": RELAY_USE.slice(), // 引入代理集：组合机场 + 全部中转(见上方中转代理集表)
       "filter": "^(?!.*(俄罗斯|Russia|RU)).*",
       // 排除立陶宛防止假延迟？扁平化测速会自动剔除假延迟节点，故不再强制正则排除，靠测速说话
       "url": "https://api.telegram.org", // 标准 Lumex 兼容字段
