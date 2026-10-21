@@ -1,7 +1,11 @@
 // Lumex Party 专用配置文件覆写脚本
 // 引用链接: https://raw.githubusercontent.com/int-del/LumexOverwrite/main/Lumex_active.js
 // 加速链接: https://cdn.jsdelivr.net/gh/int-del/LumexOverwrite@main/Lumex_active.js
-// 版本: V4.18-AntiCN  | 更新日期: 2026-10-21
+// 版本: V4.19-AntiCN  | 更新日期: 2026-10-22
+// V4.19: 中转统一命名「中转·<跳板>·<落地>」(用户要求):跳板·自建 改名 跳板·综合 并去掉香港家宽(归跳板·香港，两组不重叠);
+//      代理集 台湾家宽中转→台湾家宽经香港(前缀 中转·香港·)、自建经港→自建经综合(中转·综合·)、经台北2 的两个前缀改 中转·台北2·;
+//      新增 自建经香港(自建 SS 经跳板·香港)。台北2 也开 SS(31625)当落地，于是有 中转·香港 / 中转·综合 → 台北2。
+//      跳板·香港 加 empty-fallback: REJECT(现在也承载 SS2022);Claude 组 exclude-filter 只查落地部分，不误杀「中转·香港·」。
 // V4.18: 旧机节点改名「自建·台北·…」→「自建·台北1·…」(用户要求，与台北2 对称)。按名字认裸 SS 的三处(组合机场排除、
 //      自建经港、自建经台北2)改成「自建·<机器>·SS」通配，Claude 组 filter 改成「自建·台北\d*·」,新旧名字都认——
 //      先推本版、本机与工作电脑都点覆写更新后，Sub-Store 才改名，避免改名后裸 SS 漏进自动选择从家里直接过墙。
@@ -107,7 +111,7 @@
   function main(config) {
   // 打印版本号，用于确认是否下载到了最新版
   // eslint-disable-next-line no-console
-  console.log("✅ 加载脚本 V4.18-AntiCN (自建 SS 通配，旧机改名台北1)...");
+  console.log("✅ 加载脚本 V4.19-AntiCN (中转统一命名 中转·跳板·落地)...");
 
   // 关键修复：如果 config 为空，必须返回空对象 {} 而不是 null
 
@@ -272,11 +276,11 @@
       "filter": "(?i)^(?!.*(流量|到期|重置|官网|剩余|套餐|expire|traffic|reset|群组|频道|@|联系|网站|入群|关注|反馈|更新|ipv6)).*",
       // 合集里含自建台湾(Sub-Store 本地订阅「自建：台湾」并入本合集，随 Group.yaml 同步到 Gist;密钥只在本机 Sub-Store,
       //   本仓库公开不写):旧机 wap.ac 的「自建·台北1·Reality / HY2」和裸 SS2022「自建·台北1·SS」(10-21 前叫「自建·台北·…」),
-      //   新机 ByteVirt 的「自建·台北2·Reality / HY2」(没有 SS)。
+      //   新机 ByteVirt 的「自建·台北2·Reality / HY2」和裸 SS2022「自建·台北2·SS」(10-22 起)。两台的 HY2 10-22 起注释掉。
       //   2026-10-18 起按用户决定放给除 EMBY 外的所有组试效果——Reality / HY2 经本代理集直接可见(Gemini / ChatGPT /
-      //   Cursor 的地区白名单为此加了「台北」,EMBY 组用 exclude-filter 排除);SS 只经下方「自建经港」代理集带跳板提供。
+      //   Cursor 的地区白名单为此加了「台北」,EMBY 组用 exclude-filter 排除);SS 只经下方中转代理集带跳板提供。
       //   ⚠️ 裸 SS 节点必须在这里排除：它不带跳板，进了自动选择等组会让 SS2022 从家里直接过墙，全加密流量会被识别，
-      //   台北 IP 可能被封。这里和「自建经港」「自建经台北2」都按「自建·<机器>·SS」认，不写死机器名(V4.18):
+      //   台北 IP 可能被封。这里和三个自建中转代理集都按「自建·<机器>·SS」认，不写死机器名(V4.18):
       //   给机器改名、加机器都不用改覆写，只要 Sub-Store 里的 SS 节点名保持这个格式(中间段不能含「·」)。
       //   ⚠️ 旧机每月 1TB、超出整机限速 2Mbps(Claude 一起变慢到重置日);用量看 Sub-Store 订阅「自建：台湾」的流量条。
       //   节点名必须保持「自建·台北N·…」(Sub-Store 订阅里不要加改名操作),Claude 组 filter 按这个前缀认。
@@ -289,17 +293,21 @@
         "expected-status": "204" // 🚀 依赖 Lumex 1.18+ 内核功能：预期的 HTTP 状态码，防流量耗尽/被墙等假连通情况 (自动踢出跳转节点的防挂神器)
       }
     },
-    // 同一份订阅，只取「台湾家宽2」(VLESS)，每个节点都经「跳板·香港」组(香港节点)拨号，名字前加「中转·」，专供 Claude 组。
-    //   只收 VLESS:「台湾家宽1」是 Hysteria2(UDP)，叠不到 VLESS 中转后面，实测全部失败。
-    "台湾家宽中转": {
+    // ── 中转代理集 = 跳板 × 落地(V4.19 起按用户要求统一命名「中转·<跳板>·<落地节点名>」,一眼看出走哪个跳板、在哪出口)──
+    //   跳板组:跳板·香港(香港家宽2A / 香港2A)、跳板·综合(新加坡 / 日本 / 三毛专线，不含香港家宽)、跳板·台北2(新台北机 Reality)。
+    //   落地:自建裸 SS2022(「自建·<机器>·SS」,只能经跳板用)、台湾家宽2(VLESS)。改跳板组名时同步各代理集的 dialer-proxy。
+    //   四个跳板组都必须 empty-fallback: REJECT——组为空时回落直连，会让 SS2022 从家里直接过墙。
+    // 台湾家宽2(VLESS)经「跳板·香港」。只收 VLESS:「台湾家宽1」是 Hysteria2(UDP)，叠不到 VLESS 中转后面，实测全部失败。
+    //   V4.19 前叫「台湾家宽中转」、前缀「中转·」。只给 Claude 组用。
+    "台湾家宽经香港": {
       "type": "http",
       "url": "http://127.0.0.1:38324/download/collection/%E7%BB%84%E5%90%88%E6%9C%BA%E5%9C%BA", // 与「组合机场」相同
-      "path": "./proxy_providers/台湾家宽中转.yaml",
+      "path": "./proxy_providers/台湾家宽经香港.yaml",
       "interval": 86400,
       "filter": "^悦·.*台湾家宽2",
       "override": {
         "dialer-proxy": "跳板·香港", // 必须与下方跳板组的 name 逐字一致
-        "additional-prefix": "中转·"
+        "additional-prefix": "中转·香港·"
       },
       "health-check": {
         "enable": true,
@@ -308,48 +316,8 @@
         "expected-status": "204"
       }
     },
-    // 自建台湾的裸 SS2022 节点(目前只有旧机的「自建·台北1·SS」)经「跳板·自建」拨号，名字前加「中转·」——与「台湾家宽中转」同法：
-    //   Sub-Store 里只描述服务器，走哪个跳板是本机的选路策略，写在这里。组合机场把裸 SS 节点排除了，SS 只从本代理集出现。
-    //   给除 EMBY 外的业务组用(各组 use 里都加了本代理集)。Sub-Store 改名之前本代理集为空，内核只记一条
-    //   "doesn't match any proxy" 照常运行;失败后要 24 小时才重拉，改完名手动更新一次本代理集。
-    "自建经港": {
-      "type": "http",
-      "url": "http://127.0.0.1:38324/download/collection/%E7%BB%84%E5%90%88%E6%9C%BA%E5%9C%BA", // 与「组合机场」相同
-      "path": "./proxy_providers/自建经港.yaml",
-      "interval": 86400,
-      "filter": "^自建·[^·]+·SS$", // 与组合机场的 exclude-filter 同一写法
-      "override": {
-        "dialer-proxy": "跳板·自建", // 必须与下方跳板组的 name 逐字一致
-        "additional-prefix": "中转·"
-      },
-      "health-check": {
-        "enable": true,
-        "url": "https://www.gstatic.com/generate_204",
-        "interval": 240,
-        "expected-status": "204"
-      }
-    },
-    // 2026-10-21 起：旧机的裸 SS2022 节点也经新台北机(跳板·台北2)拨号，名字前加「经台北2·」(与上面经港的「中转·」区分)。
-    //   新机到旧机 0.6ms,出口仍是旧机 85.237.206.158。目前只给 Claude 组用。
-    "自建经台北2": {
-      "type": "http",
-      "url": "http://127.0.0.1:38324/download/collection/%E7%BB%84%E5%90%88%E6%9C%BA%E5%9C%BA", // 与「组合机场」相同
-      "path": "./proxy_providers/自建经台北2.yaml",
-      "interval": 86400,
-      "filter": "^自建·[^·]+·SS$", // 与组合机场的 exclude-filter 同一写法
-      "override": {
-        "dialer-proxy": "跳板·台北2", // 必须与下方跳板组的 name 逐字一致
-        "additional-prefix": "经台北2·"
-      },
-      "health-check": {
-        "enable": true,
-        "url": "https://www.gstatic.com/generate_204",
-        "interval": 240,
-        "expected-status": "204"
-      }
-    },
-    // 2026-10-21 起：台湾家宽2(VLESS)经新台北机拨号——与上面经港的「台湾家宽中转」并存，是同一批出口的第二条路。
-    //   新机到台湾家宽2 A 入口 39ms、0 丢包;B 入口从新机不通(从家里也长期不通)，测速失败不会被选上。目前只给 Claude 组用。
+    // 台湾家宽2 经新台北机(跳板·台北2)——同一批出口的第二条路。新机到台湾家宽2 A 入口 39ms、0 丢包;
+    //   B 入口从新机不通(从家里也长期不通)，测速失败不会被选上。V4.19 前前缀「经台北2·」。只给 Claude 组用。
     "台湾家宽经台北2": {
       "type": "http",
       "url": "http://127.0.0.1:38324/download/collection/%E7%BB%84%E5%90%88%E6%9C%BA%E5%9C%BA", // 与「组合机场」相同
@@ -358,7 +326,65 @@
       "filter": "^悦·.*台湾家宽2",
       "override": {
         "dialer-proxy": "跳板·台北2", // 必须与下方跳板组的 name 逐字一致
-        "additional-prefix": "经台北2·"
+        "additional-prefix": "中转·台北2·"
+      },
+      "health-check": {
+        "enable": true,
+        "url": "https://www.gstatic.com/generate_204",
+        "interval": 240,
+        "expected-status": "204"
+      }
+    },
+    // 自建裸 SS2022 经「跳板·综合」——给除 EMBY 外的业务组和 Claude 组用(各组 use 里都有本代理集)。
+    //   Sub-Store 里只描述服务器，走哪个跳板是本机的选路策略，写在这里;组合机场把裸 SS 排除了，SS 只从中转代理集出现。
+    //   filter 与组合机场的 exclude-filter 同一写法，加机器、改名都不用改这里。V4.19 前叫「自建经港」、跳板叫「跳板·自建」。
+    "自建经综合": {
+      "type": "http",
+      "url": "http://127.0.0.1:38324/download/collection/%E7%BB%84%E5%90%88%E6%9C%BA%E5%9C%BA", // 与「组合机场」相同
+      "path": "./proxy_providers/自建经综合.yaml",
+      "interval": 86400,
+      "filter": "^自建·[^·]+·SS$", // 与组合机场的 exclude-filter 同一写法
+      "override": {
+        "dialer-proxy": "跳板·综合", // 必须与下方跳板组的 name 逐字一致
+        "additional-prefix": "中转·综合·"
+      },
+      "health-check": {
+        "enable": true,
+        "url": "https://www.gstatic.com/generate_204",
+        "interval": 240,
+        "expected-status": "204"
+      }
+    },
+    // 自建裸 SS2022 经「跳板·香港」(V4.19 新增，用户要「中转·香港·台北2」)。同一 filter 也带上台北1:跳板·综合不再含
+    //   香港家宽，台北1 经香港家宽这条路(10-21 测速 244ms,各成员里最快)靠本代理集保留。只给 Claude 组用。
+    "自建经香港": {
+      "type": "http",
+      "url": "http://127.0.0.1:38324/download/collection/%E7%BB%84%E5%90%88%E6%9C%BA%E5%9C%BA", // 与「组合机场」相同
+      "path": "./proxy_providers/自建经香港.yaml",
+      "interval": 86400,
+      "filter": "^自建·[^·]+·SS$", // 与组合机场的 exclude-filter 同一写法
+      "override": {
+        "dialer-proxy": "跳板·香港", // 必须与下方跳板组的 name 逐字一致
+        "additional-prefix": "中转·香港·"
+      },
+      "health-check": {
+        "enable": true,
+        "url": "https://www.gstatic.com/generate_204",
+        "interval": 240,
+        "expected-status": "204"
+      }
+    },
+    // 自建裸 SS2022 经新台北机(跳板·台北2):新机到旧机 0.6ms,出口仍是旧机。排除台北2 自己的 SS——经台北2 再转给
+    //   台北2 自己没有意义。V4.19 前前缀「经台北2·」。只给 Claude 组用。
+    "自建经台北2": {
+      "type": "http",
+      "url": "http://127.0.0.1:38324/download/collection/%E7%BB%84%E5%90%88%E6%9C%BA%E5%9C%BA", // 与「组合机场」相同
+      "path": "./proxy_providers/自建经台北2.yaml",
+      "interval": 86400,
+      "filter": "^自建·(?!台北2·)[^·]+·SS$", // 组合机场 exclude-filter 的写法再去掉台北2 自己
+      "override": {
+        "dialer-proxy": "跳板·台北2", // 必须与下方跳板组的 name 逐字一致
+        "additional-prefix": "中转·台北2·"
       },
       "health-check": {
         "enable": true,
@@ -414,7 +440,7 @@
       "name": "自动选择",
       "type": "url-test",
       "icon": "https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/Urltest.png",
-      "use": ["组合机场", "自建经港"], // 引入代理集(自建经港 = 自建台湾经跳板的 SS 节点)
+      "use": ["组合机场", "自建经综合"], // 引入代理集(自建经综合 = 自建 SS 经「跳板·综合」)
       "filter": "^(?!.*(俄罗斯|Russia|🇷🇺|(?<![A-Za-z])RU(?![A-Za-z])|朝鲜|北韩|North ?Korea|🇰🇵|(?<![A-Za-z])KP(?![A-Za-z])|古巴|Cuba|🇨🇺|(?<![A-Za-z])CU(?![A-Za-z]))).*", // 排除 RU/KP/CU；码位两侧禁字母，见文件头 Fix
       "url": "https://www.gstatic.com/generate_204", // 标准 Lumex 兼容字段（非 LumexCore 内核使用此值）
       "urls": [
@@ -466,7 +492,7 @@
       "name": "Gemini",
       "type": "url-test",
       "icon": "https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/Google.png",
-      "use": ["组合机场", "自建经港"], // 引入代理集(自建经港 = 自建台湾经跳板的 SS 节点)
+      "use": ["组合机场", "自建经综合"], // 引入代理集(自建经综合 = 自建 SS 经「跳板·综合」)
       // 🚀 白名单锁定亚洲低延迟 + 美国兜底，JP/KR 已确认 Gemini 可用
       "filter": "(?i)(台湾|台北|Taiwan|(?<![A-Za-z])TW(?![A-Za-z])|日本|Japan|(?<![A-Za-z])JP(?![A-Za-z])|韩国|Korea|(?<![A-Za-z])KR(?![A-Za-z])|新加坡|Singapore|(?<![A-Za-z])SG(?![A-Za-z])|美国|(?<![A-Za-z])US)",
       "exclude-filter": "(一分|一毛|三毛|🇭🇰|香港|🇲🇾|马来)", // 剔除“一分”“三毛”，并兜底排除港/马来落地（见文件头 Fix 说明）
@@ -507,11 +533,11 @@
       "name": "Claude",
       "type": "url-test",
       "icon": "https://www.google.com/s2/favicons?domain=claude.ai&sz=128",
-      // 自建 Reality / HY2(旧机与台北2)在组合机场，经港 / 经台北2 的中转各在自己的代理集，由下面的 filter 挑出
-      "use": ["组合机场", "自建经港", "自建经台北2", "台湾家宽经台北2", "台湾家宽中转"],
-      // 🚀 2026-10-21 起(用户选「几种出口都放、自动选」，只增不删):出口有三个 IP,全部在台湾——
-      //   台北2(直连 Reality / HY2)、旧机 85.237.206.158(直连、经港、经台北2)、台湾家宽2 的 HiNet 家宽 IP
-      //   (经台北2、经港)。按测速自动选，通常落在台北2 直连(家里 68ms);切换时 Claude 看到的 IP 会变。
+      // 自建直连 Reality 在组合机场;中转「中转·<跳板>·<落地>」各在自己的代理集(见 proxy-providers 的中转代理集说明)
+      "use": ["组合机场", "自建经综合", "自建经香港", "自建经台北2", "台湾家宽经香港", "台湾家宽经台北2"],
+      // 🚀 2026-10-21 起(用户选「几种出口都放、自动选」):出口有三个 IP,全部在台湾——台北2(直连、经香港、经综合)、
+      //   旧机 85.237.206.158(直连、经香港、经综合、经台北2)、台湾家宽2 的 HiNet 家宽 IP(经香港、经台北2)。
+      //   按测速自动选;切换时 Claude 看到的 IP 会变。自建 HY2 10-22 起在 Sub-Store 注释掉(晚高峰 QUIC 被切)。
       // 2026-10-20 ~ 10-21 只留自建台湾 3 条(经港 SS / Reality / HY2),出口固定 85.237.206.158,3 条之间切换不改变出口 IP。
       //   之前(10-18 晚起)还有中转·悦·台湾家宽2 A/B(HiNet 家宽 IP),用户 10-20 要求去掉。
       //   3 条都挂时 Claude 连接会失败(组里没有别的节点)，不会落到其他地区;订阅改名把 3 条都滤掉时按 empty-fallback 拒绝。
@@ -521,10 +547,11 @@
       //   收窄到同一地区后可解除锁定，坏了在台湾家宽之间自动换。
       //   2026-10-18：直连台湾家宽新建连接只有 45~66% 成功，改用「台湾家宽中转」代理集(经香港中转，93~100%)；
       //   Hysteria2 的「台湾家宽1」叠不上中转，不再收。
-      // 台北\d* 同时认旧名「自建·台北·」与 10-21 起的「自建·台北1·」「自建·台北2·」(组合机场已排除裸 SS,这里只会进 Reality / HY2)
-      "filter": "^(自建·台北\\d*·|中转·自建·台北\\d*·|经台北2·|中转·悦·.*台湾家宽2)",
-      // 自建节点名里不能出现「香港」/🇭🇰(会被下面这条滤掉)。
-      "exclude-filter": "(三毛|一毛|一分|🇭🇰|香港|🇲🇾|马来|星链)", // 兜底排除港/马来落地（见文件头 Fix 说明）
+      // 直连：自建·台北N·(组合机场已排除裸 SS,这里只会进 Reality);中转：中转·<任一跳板>·<自建台北N 或 悦·台湾家宽2>
+      "filter": "^(自建·台北\\d*·|中转·[^·]+·(自建·台北\\d*·|悦·.*台湾家宽2))",
+      // 兜底排除港/马来等落地，只看落地部分：中转节点跳过「中转·<跳板>·」再查(否则「中转·香港·…」会因跳板名被误杀)，
+      //   其他节点查全名。自建节点名里不能出现「香港」/🇭🇰。
+      "exclude-filter": "^(?:中转·[^·]+·|(?!中转·))(?=.*(三毛|一毛|一分|🇭🇰|香港|🇲🇾|马来|星链))", // 见文件头 Fix 说明
       "empty-fallback": "REJECT", // 白名单滤空时显式失败，不回落直连（见文件头 Fix 说明）
       "url": "https://api.anthropic.com", // 标准 Lumex 兼容字段
       // 第 1 条是主判据(每轮健康检查都测，只看可达)；第 3 条带 expected-body，是解锁判据(RFC-027 R1)，
@@ -569,8 +596,8 @@
     },
     // —— 跳板组：只当前置跳板，不承载业务流量(规则不指向它们)，图标统一 RELAY_ICON ——
     {
-      // 「台湾家宽中转」代理集的跳板(2026-10-18 晚由「Claude中转」改名)。中转只换「家 → 台湾」这一段路，
-      //   来回切换也不改变 Claude 看到的出口 IP。
+      // 「台湾家宽经香港」「自建经香港」两个代理集的跳板(2026-10-18 晚由「Claude中转」改名)。中转只换「家 → 台湾」这一段路，
+      //   来回切换也不改变 Claude 看到的出口 IP。V4.19 起也给自建 SS 当跳板，所以加了 empty-fallback: REJECT。
       // 2026-10-19 起按延迟挑选(score-based):每次新建连接在存活成员里选最近一次健康检查延迟最低的(每 120 秒测一次，
       //   无容差)。依据 10-18 12:20~23:30 长测(每路约 3346 次新建连接):
       //   - 经 悦·🇭🇰香港家宽2💎 · A:成功 93.3%,建连中位 306ms / P90 946ms,心跳往返 74ms,卡顿 5.9%
@@ -578,8 +605,9 @@
       //   两条失败几乎独立(同轮同时失败 0.5%);晚高峰 19、21 点两条都降到 81~84%。凌晨三轮曾显示香港2A 更稳，长测不成立。
       //   测速打 gstatic,测的是「家 → 香港节点」(两条的差距就在这一段),测不到「香港 → 台湾家宽」——机场节点没法放测速地址。
       //   香港家宽2A 排第一：没有成员测出延迟时(刚启动 / 都不存活)score-based 退回列表第一个。
-      //   两个都被订阅改名滤掉时组为空，按内核旧行为回落直连 = 退回中转前的走法，不会整组断掉。
-      "name": "跳板·香港", // 改名时同步「台湾家宽中转」代理集的 dialer-proxy
+      //   两个都被订阅改名滤掉时组为空，必须 REJECT(V4.19 前是回落直连，那时只承载台湾家宽 VLESS;现在也承载自建 SS2022,
+      //   回落直连会让它从家里直接过墙)。
+      "name": "跳板·香港", // 改名时同步「台湾家宽经香港」「自建经香港」代理集的 dialer-proxy
       "type": "fallback",
       "icon": RELAY_ICON,
       "use": ["组合机场"],
@@ -588,10 +616,13 @@
       "url": "https://www.gstatic.com/generate_204",
       "expected-status": "204",
       "interval": 120,
-      "lazy": false
+      "lazy": false,
+      "empty-fallback": "REJECT"
     },
     {
-      // 自建台湾 SS2022 节点的跳板：上方「自建经港」代理集的 override.dialer-proxy 指向本组(改名时同步)。
+      // 自建 SS2022 节点的综合跳板：上方「自建经综合」代理集的 override.dialer-proxy 指向本组(改名时同步)。
+      //   V4.19 起由「跳板·自建」改名，并按用户要求去掉悦·香港家宽2 A(香港家宽归「跳板·香港」,两组成员不重叠，坏也不一起坏)。
+      //   三毛 2x 专线-香港仍在本组(专线不是家宽)。
       //   测速地址是台北 VPS 自己的 /generate_204(VPS 上 traffic-info 服务提供，公开、只回 204),测的正是
       //   「家 → 跳板 → 台北」这一段;score-based 在存活成员里挑这段延迟最低的。不测 gstatic:到 gstatic 快≠到台北快。
       //   成员来自 2026-10-18 晚高峰实测(家→跳板→台北 SS2022→api.anthropic.com 全新连接各 40 次全成功，
@@ -601,11 +632,11 @@
       //   为空(订阅改名把成员全滤掉)时必须 REJECT:回落直连会让 SS2022 从家里直接过墙，全加密流量会被识别，
       //   台北 IP 可能被封。成员全挂时 score-based 仍拨第一个成员(失败),不会直连。
       //   三毛节点名里的 | 是字面字符，filter 里必须写成 \\|,否则变成「或」会多匹配一串节点。
-      "name": "跳板·自建",
+      "name": "跳板·综合",
       "type": "fallback",
       "icon": RELAY_ICON,
       "use": ["组合机场"],
-      "filter": "^悦·🇭🇰香港家宽2💎 · A$`^悦·🇸🇬新加坡AI解锁2💎 · [AB]$`^悦·🇯🇵日本AI解锁2💎 · [AB]$`^三毛·新加坡1\\|高速下载\\|移动优化$`^三毛·2x专线-(日本-1|香港-[12])$",
+      "filter": "^悦·🇸🇬新加坡AI解锁2💎 · [AB]$`^悦·🇯🇵日本AI解锁2💎 · [AB]$`^三毛·新加坡1\\|高速下载\\|移动优化$`^三毛·2x专线-(日本-1|香港-[12])$",
       "score-based": true,
       "url": "http://85.237.206.158:39078/generate_204",
       "expected-status": "204",
@@ -636,7 +667,7 @@
       "name": "Copilot",
       "type": "url-test",
       "icon": "https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/Microsoft.png",
-      "use": ["组合机场", "自建经港"], // 引入代理集(自建经港 = 自建台湾经跳板的 SS 节点)
+      "use": ["组合机场", "自建经综合"], // 引入代理集(自建经综合 = 自建 SS 经「跳板·综合」)
       "filter": "^(?!.*(俄罗斯|Russia|🇷🇺|(?<![A-Za-z])RU(?![A-Za-z])|朝鲜|北韩|North ?Korea|🇰🇵|(?<![A-Za-z])KP(?![A-Za-z])|古巴|Cuba|🇨🇺|(?<![A-Za-z])CU(?![A-Za-z])|中国|China|(?<![A-Za-z])CN(?![A-Za-z0-9]))).*", // 补全：排除 RU/KP/CU/CN
       "url": "https://www.bing.com", // 标准 Lumex 兼容字段
       "urls": [
@@ -662,7 +693,7 @@
       "name": "GitHub Copilot",
       "type": "url-test",
       "icon": "https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/github.png",
-      "use": ["组合机场", "自建经港"], // 引入代理集(自建经港 = 自建台湾经跳板的 SS 节点)
+      "use": ["组合机场", "自建经综合"], // 引入代理集(自建经综合 = 自建 SS 经「跳板·综合」)
       "filter": "^(?!.*(俄罗斯|Russia|🇷🇺|(?<![A-Za-z])RU(?![A-Za-z])|朝鲜|北韩|North ?Korea|🇰🇵|(?<![A-Za-z])KP(?![A-Za-z])|古巴|Cuba|🇨🇺|(?<![A-Za-z])CU(?![A-Za-z])|伊朗|Iran|🇮🇷|(?<![A-Za-z])IR(?![A-Za-z])|叙利亚|Syria|🇸🇾|(?<![A-Za-z])SY(?![A-Za-z])|白俄罗斯|Belarus|🇧🇾|(?<![A-Za-z])BY(?![A-Za-z])|中国|China|(?<![A-Za-z])CN(?![A-Za-z0-9]))).*", // 补全：官方封锁全列表
       "url": "https://copilot.github.com", // 标准 Lumex 兼容字段
       "urls": [
@@ -688,7 +719,7 @@
       "name": "Cursor",
       "type": "url-test",
       "icon": "https://www.google.com/s2/favicons?domain=cursor.com&sz=128",
-      "use": ["组合机场", "自建经港"], // 引入代理集(自建经港 = 自建台湾经跳板的 SS 节点)
+      "use": ["组合机场", "自建经综合"], // 引入代理集(自建经综合 = 自建 SS 经「跳板·综合」)
       "filter": "(?i)(美国|(?<![A-Za-z])US|日本|Japan|(?<![A-Za-z])JP(?![A-Za-z])|新加坡|Singapore|(?<![A-Za-z])SG(?![A-Za-z])|台湾|台北|Taiwan|(?<![A-Za-z])TW(?![A-Za-z])|英国|(?<![A-Za-z])UK(?![A-Za-z])|(?<![A-Za-z])GB(?![A-Za-z])|加拿大|(?<![A-Za-z])CA(?![A-Za-z])|澳大利亚|Australia|(?<![A-Za-z])AU(?![A-Za-z]))",
       "exclude-filter": "(三毛|一毛|一分|🇭🇰|香港|🇲🇾|马来)", // 兜底排除港/马来落地（见文件头 Fix 说明）
       "empty-fallback": "REJECT", // 白名单滤空时显式失败，不回落直连（见文件头 Fix 说明）
@@ -715,7 +746,7 @@
       "name": "ChatGPT",
       "type": "url-test",
       "icon": "https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/OpenAI.png",
-      "use": ["组合机场", "自建经港"], // 引入代理集(自建经港 = 自建台湾经跳板的 SS 节点)
+      "use": ["组合机场", "自建经综合"], // 引入代理集(自建经综合 = 自建 SS 经「跳板·综合」)
       "filter": "(?i)(美国|(?<![A-Za-z])US|日本|Japan|(?<![A-Za-z])JP(?![A-Za-z])|新加坡|Singapore|(?<![A-Za-z])SG(?![A-Za-z])|台湾|台北|Taiwan|(?<![A-Za-z])TW(?![A-Za-z])|英国|(?<![A-Za-z])UK(?![A-Za-z])|(?<![A-Za-z])GB(?![A-Za-z])|加拿大|(?<![A-Za-z])CA(?![A-Za-z])|澳大利亚|Australia|(?<![A-Za-z])AU(?![A-Za-z]))",
       "exclude-filter": "(三毛|一毛|一分|🇭🇰|香港|🇲🇾|马来)", // 兜底排除港/马来落地（见文件头 Fix 说明）
       "empty-fallback": "REJECT", // 白名单滤空时显式失败，不回落直连（见文件头 Fix 说明）
@@ -745,7 +776,7 @@
       "name": "Telegram",
       "type": "url-test",
       "icon": "https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/Telegram.png",
-      "use": ["组合机场", "自建经港"], // 引入代理集(自建经港 = 自建台湾经跳板的 SS 节点)
+      "use": ["组合机场", "自建经综合"], // 引入代理集(自建经综合 = 自建 SS 经「跳板·综合」)
       "filter": "^(?!.*(俄罗斯|Russia|RU)).*",
       // 排除立陶宛防止假延迟？扁平化测速会自动剔除假延迟节点，故不再强制正则排除，靠测速说话
       "url": "https://api.telegram.org", // 标准 Lumex 兼容字段
