@@ -1,7 +1,10 @@
 // Lumex Party 专用配置文件覆写脚本
 // 引用链接: https://raw.githubusercontent.com/int-del/LumexOverwrite/main/Lumex_active.js
 // 加速链接: https://cdn.jsdelivr.net/gh/int-del/LumexOverwrite@main/Lumex_active.js
-// 版本: V4.17-AntiCN  | 更新日期: 2026-10-21
+// 版本: V4.18-AntiCN  | 更新日期: 2026-10-21
+// V4.18: 旧机节点改名「自建·台北·…」→「自建·台北1·…」(用户要求，与台北2 对称)。按名字认裸 SS 的三处(组合机场排除、
+//      自建经港、自建经台北2)改成「自建·<机器>·SS」通配，Claude 组 filter 改成「自建·台北\d*·」,新旧名字都认——
+//      先推本版、本机与工作电脑都点覆写更新后，Sub-Store 才改名，避免改名后裸 SS 漏进自动选择从家里直接过墙。
 // V4.17: 新增自建台北2(ByteVirt TW VPS,地址只写在本机 Sub-Store;与旧机同机房、共用密钥;家里到它 68ms,旧机直连 247ms)。
 //      它既直接当出口(Sub-Store「自建·台北2·Reality / HY2」,经组合机场进白名单含「台北」的组),也当新跳板组「跳板·台北2」:
 //      新代理集「自建经台北2」(旧机 SS 经它,前缀「经台北2·」)、「台湾家宽经台北2」(台湾家宽2 经它)。
@@ -104,7 +107,7 @@
   function main(config) {
   // 打印版本号，用于确认是否下载到了最新版
   // eslint-disable-next-line no-console
-  console.log("✅ 加载脚本 V4.17-AntiCN (新增自建台北2 与经台北2 中转)...");
+  console.log("✅ 加载脚本 V4.18-AntiCN (自建 SS 通配，旧机改名台北1)...");
 
   // 关键修复：如果 config 为空，必须返回空对象 {} 而不是 null
 
@@ -267,15 +270,17 @@
       // 排除 IPv6 节点:本配置 ipv6 为 false(见上方),IPv6-only 服务器连不上;2026-10-16 实测 13 个此类节点 10 轮全败,
       // 却每轮被所有组测满(RFC-027 C2)。改回 ipv6: true 时一并删除 ipv6 这一项。
       "filter": "(?i)^(?!.*(流量|到期|重置|官网|剩余|套餐|expire|traffic|reset|群组|频道|@|联系|网站|入群|关注|反馈|更新|ipv6)).*",
-      // 合集里含自建台湾 3 条(wap.ac TW VPS,Sub-Store 本地订阅「自建：台湾」并入本合集，随 Group.yaml 同步到 Gist;
-      //   密钥只在本机 Sub-Store,本仓库公开不写):直连的「自建·台北·Reality」「自建·台北·HY2」,和裸 SS2022「自建·台北·SS」。
+      // 合集里含自建台湾(Sub-Store 本地订阅「自建：台湾」并入本合集，随 Group.yaml 同步到 Gist;密钥只在本机 Sub-Store,
+      //   本仓库公开不写):旧机 wap.ac 的「自建·台北1·Reality / HY2」和裸 SS2022「自建·台北1·SS」(10-21 前叫「自建·台北·…」),
+      //   新机 ByteVirt 的「自建·台北2·Reality / HY2」(没有 SS)。
       //   2026-10-18 起按用户决定放给除 EMBY 外的所有组试效果——Reality / HY2 经本代理集直接可见(Gemini / ChatGPT /
       //   Cursor 的地区白名单为此加了「台北」,EMBY 组用 exclude-filter 排除);SS 只经下方「自建经港」代理集带跳板提供。
       //   ⚠️ 裸 SS 节点必须在这里排除：它不带跳板，进了自动选择等组会让 SS2022 从家里直接过墙，全加密流量会被识别，
-      //   台北 IP 可能被封。改 Sub-Store 里这个节点的名字时，同步这里和「自建经港」的 filter。
-      //   ⚠️ VPS 每月 1TB、超出整机限速 2Mbps(Claude 一起变慢到重置日);用量看 Sub-Store 订阅「自建：台湾」的流量条。
-      //   节点名必须保持「自建·台北·…」(Sub-Store 订阅里不要加改名操作),Claude 组 filter 按这个前缀认。
-      "exclude-filter": "^自建·台北·SS$",
+      //   台北 IP 可能被封。这里和「自建经港」「自建经台北2」都按「自建·<机器>·SS」认，不写死机器名(V4.18):
+      //   给机器改名、加机器都不用改覆写，只要 Sub-Store 里的 SS 节点名保持这个格式(中间段不能含「·」)。
+      //   ⚠️ 旧机每月 1TB、超出整机限速 2Mbps(Claude 一起变慢到重置日);用量看 Sub-Store 订阅「自建：台湾」的流量条。
+      //   节点名必须保持「自建·台北N·…」(Sub-Store 订阅里不要加改名操作),Claude 组 filter 按这个前缀认。
+      "exclude-filter": "^自建·[^·]+·SS$",
       "health-check": {
         "enable": true,
         "hierarchical": true,
@@ -303,7 +308,7 @@
         "expected-status": "204"
       }
     },
-    // 自建台湾的裸 SS2022 节点「自建·台北·SS」经「跳板·自建」拨号，名字前加「中转·」——与「台湾家宽中转」同法：
+    // 自建台湾的裸 SS2022 节点(目前只有旧机的「自建·台北1·SS」)经「跳板·自建」拨号，名字前加「中转·」——与「台湾家宽中转」同法：
     //   Sub-Store 里只描述服务器，走哪个跳板是本机的选路策略，写在这里。组合机场把裸 SS 节点排除了，SS 只从本代理集出现。
     //   给除 EMBY 外的业务组用(各组 use 里都加了本代理集)。Sub-Store 改名之前本代理集为空，内核只记一条
     //   "doesn't match any proxy" 照常运行;失败后要 24 小时才重拉，改完名手动更新一次本代理集。
@@ -312,7 +317,7 @@
       "url": "http://127.0.0.1:38324/download/collection/%E7%BB%84%E5%90%88%E6%9C%BA%E5%9C%BA", // 与「组合机场」相同
       "path": "./proxy_providers/自建经港.yaml",
       "interval": 86400,
-      "filter": "^自建·台北·SS$",
+      "filter": "^自建·[^·]+·SS$", // 与组合机场的 exclude-filter 同一写法
       "override": {
         "dialer-proxy": "跳板·自建", // 必须与下方跳板组的 name 逐字一致
         "additional-prefix": "中转·"
@@ -331,7 +336,7 @@
       "url": "http://127.0.0.1:38324/download/collection/%E7%BB%84%E5%90%88%E6%9C%BA%E5%9C%BA", // 与「组合机场」相同
       "path": "./proxy_providers/自建经台北2.yaml",
       "interval": 86400,
-      "filter": "^自建·台北·SS$",
+      "filter": "^自建·[^·]+·SS$", // 与组合机场的 exclude-filter 同一写法
       "override": {
         "dialer-proxy": "跳板·台北2", // 必须与下方跳板组的 name 逐字一致
         "additional-prefix": "经台北2·"
@@ -516,7 +521,8 @@
       //   收窄到同一地区后可解除锁定，坏了在台湾家宽之间自动换。
       //   2026-10-18：直连台湾家宽新建连接只有 45~66% 成功，改用「台湾家宽中转」代理集(经香港中转，93~100%)；
       //   Hysteria2 的「台湾家宽1」叠不上中转，不再收。
-      "filter": "^(自建·台北·|自建·台北2·|中转·自建·台北·|经台北2·|中转·悦·.*台湾家宽2)",
+      // 台北\d* 同时认旧名「自建·台北·」与 10-21 起的「自建·台北1·」「自建·台北2·」(组合机场已排除裸 SS,这里只会进 Reality / HY2)
+      "filter": "^(自建·台北\\d*·|中转·自建·台北\\d*·|经台北2·|中转·悦·.*台湾家宽2)",
       // 自建节点名里不能出现「香港」/🇭🇰(会被下面这条滤掉)。
       "exclude-filter": "(三毛|一毛|一分|🇭🇰|香港|🇲🇾|马来|星链)", // 兜底排除港/马来落地（见文件头 Fix 说明）
       "empty-fallback": "REJECT", // 白名单滤空时显式失败，不回落直连（见文件头 Fix 说明）
