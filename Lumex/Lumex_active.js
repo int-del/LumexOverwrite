@@ -124,7 +124,7 @@
   function main(config) {
   // 打印版本号，用于确认是否下载到了最新版
   // eslint-disable-next-line no-console
-  console.log("✅ 加载脚本 V4.22-AntiCN (浏览器 UDP 不直连)...");
+  console.log("✅ 加载脚本 V4.23-AntiCN (UU 远程直连)...");
 
   // 关键修复：如果 config 为空，必须返回空对象 {} 而不是 null
 
