@@ -1,7 +1,10 @@
 // Lumex Party 专用配置文件覆写脚本
 // 引用链接: https://raw.githubusercontent.com/int-del/LumexOverwrite/main/Lumex_active.js
 // 加速链接: https://cdn.jsdelivr.net/gh/int-del/LumexOverwrite@main/Lumex_active.js
-// 版本: V4.22-AntiCN  | 更新日期: 2026-10-22
+// 版本: V4.23-AntiCN  | 更新日期: 2026-10-25
+// V4.23: 网易 UU 远程四个进程(GameViewer / GameViewerServer / GameViewerService / GameViewerHealthd)全部直连，
+//      放在「UDP 443 拒绝」之前。原因：电脑连电脑时被控端一连上就离线，手机连没事——电脑端走 UDP 串流，被 QUIC 拦截
+//      和代理节点截走。同时补回本机覆写里手加的 grok.com → Claude(仓库里原来没有，更新覆写会被冲掉)。
 // V4.22: 浏览器 UDP(QUIC 已拒，剩下的就是 WebRTC)不再按目的地直连:发往国内的拒绝，其余走自动选择。
 //      原因：网页脚本无需任何权限就能让 WebRTC 打国内 STUN(B 站 / 芒果 / 小米),GEOSITE / GEOIP cn 把它直连，
 //      对方就拿到家宽真实出口;浏览器策略 default_public_interface_only 只管网卡，管不了内核分流。
@@ -843,6 +846,13 @@
     // media-balance 才能看到真实视频吞吐。直连服域名规则在上方,优先级不受影响。
     "PROCESS-NAME,LumexEmby.exe,EMBY",
 
+    // 🖥️ 网易 UU 远程全部直连(V4.23):电脑连电脑走 UDP 串流 / 打洞，被下方「UDP 443 拒绝」和代理节点截走后
+    // 一连上就掉线(手机连不受影响)。主控、被控、服务、守护四个进程都要放，被控端靠 GameViewerServer.exe 收发画面。
+    "PROCESS-NAME,GameViewer.exe,DIRECT",
+    "PROCESS-NAME,GameViewerServer.exe,DIRECT",
+    "PROCESS-NAME,GameViewerService.exe,DIRECT",
+    "PROCESS-NAME,GameViewerHealthd.exe,DIRECT",
+
     // ==========================================
     // 🟡 层级 3：系统底层修正与协议拦截
     // 作用: 修复 Windows 系统连通性状态，并强制拦截 UDP(QUIC) 以挽救测速和流媒体稳定性
@@ -873,6 +883,9 @@
     // 🔵 层级 5：核心 AI 服务精确保护
     // 作用: 防止被 `GEOSITE,google` 这类大包大揽的后缀接管，造成 AI 无法进入你指定的测速组
     // ==========================================
+    //grok
+    "DOMAIN-SUFFIX,grok.com,Claude",
+
     // Google AI / Gemini (关键: opa-pa/proactivebackend)
     "DOMAIN-SUFFIX,gemini.google.com,Gemini",
     "DOMAIN-SUFFIX,bard.google.com,Gemini",
