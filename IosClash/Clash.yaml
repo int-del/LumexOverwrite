@@ -1,0 +1,342 @@
+# Last Updated: 2026-11-01 [Clash v1.00]
+# mihomo 配置,Clash Mi 与 Clash(OmniWide)通用。分流与 IosStash/Stash.stoverride v3.00 相同。
+# ⚠️ 本仓库公开,下方订阅地址是占位符。导入前换成 Sub-Store 的 Group.yaml 地址(ClashMeta 格式)。
+
+mode: rule
+log-level: error
+ipv6: false # 只用 IPv4;IPv6-only 节点已被下方订阅白名单排除
+allow-lan: false
+find-process-mode: off # iOS 没有进程规则,不查进程
+unified-delay: false # 打开后每次测速多发一个请求
+tcp-concurrent: false
+disable-keep-alive: true # mihomo 在 Android 上强制关闭(component/keepalive),iOS 不会自动关,空闲连接的探测会唤醒蜂窝网络
+geo-auto-update: false # 不用 geodata,全部规则走下方 MRS 规则集
+profile:
+  store-selected: true
+  store-fake-ip: true # iOS 可能重启隧道,保留 fake-ip 映射,已有连接不会解析到错误地址
+sniffer:
+  enable: false # fake-ip 已能还原域名,不必为每条连接解析首包
+
+hosts:
+  # BoundaryAI 内网服务,与 PC 一致
+  pola.boundaryai.com: 192.168.1.200
+  skillhub.boundaryai.cn: 192.168.1.67
+
+# ==========================================
+# DNS
+# ==========================================
+# 走代理的域名靠 fake-ip 不在本机解析,所有 IP 规则也都带 no-resolve(RFC-031),所以默认上游只服务直连域名,国内 UDP 最省。
+# 不配 fallback(RFC-031);节点域名单独走 IP 直连的 DoH,运营商看不到机场域名。
+dns:
+  enable: true
+  ipv6: false
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.0.1/16
+  use-hosts: true
+  nameserver:
+    - 223.5.5.5
+    - 119.29.29.29
+  proxy-server-nameserver:
+    - https://223.5.5.5/dns-query
+    - https://1.12.12.12/dns-query
+  nameserver-policy:
+    "+.qq.com": 119.29.29.29
+    "+.bilibili.com": 119.29.29.29
+    "+.taobao.com": 223.5.5.5
+    "+.aliyun.com": 223.5.5.5
+  fake-ip-filter:
+    - "*.lan"
+    - "+.local"
+    - "+.home.arpa"
+    - "stun.*"
+    - "+.stun.*.*"
+    - "+.stun.*.*.*"
+    - "+.ntp.org"
+    - "time.*.com"
+    - "time.*.gov"
+    - "time.*.edu.cn"
+    - "time.*.apple.com"
+    - "time1.cloud.tencent.com"
+    - "*.bambulab.com"
+    - "*.bambulab.cn"
+
+# ==========================================
+# 远程代理集
+# ==========================================
+# mihomo 按代理集测速,不按组:
+#   - 只要有一个组在用,代理集里的节点每轮全部要测,所以 filter 必须正好是各组成员的并集,多一个就多测一个;
+#   - 组上不写 url,否则会给代理集多注册一个测速任务;都用同一个地址,结果才能各组共享。
+# 白名单同时挡住裸 SS「自建·<机器>·SS」(不带跳板从手机直接过墙,台北 IP 可能被封)、机场公告节点、IPv6-only 节点。
+proxy-providers:
+  组合机场:
+    type: http
+    url: "https://example.invalid/replace-with-group-yaml-url"
+    path: ./providers/group.yaml
+    interval: 21600 # 与 Sub-Store 每 6 小时同步 Gist 对齐
+    filter: "^(微斯·(🇭🇰|🇨🇳TW|🇯🇵|🇸🇬|🇰🇷|🇺🇸).*备用入口$|悦·(🇭🇰|🇺🇸)|悦·(🇯🇵日本|🇸🇬新加坡|🇹🇼台湾|🇰🇷韩国)[12] · |悦·(🇯🇵|🇸🇬)[^·]*AI解锁|一分·(🇭🇰|🇯🇵日本专线|🇸🇬|🇹🇼)|自建·台北[0-9]+·Reality$)"
+    health-check:
+      enable: true
+      url: http://www.gstatic.com/generate_204 # HTTP 少一次 TLS 握手
+      expected-status: 204
+      interval: 600
+      timeout: 5000
+      lazy: true
+
+# ==========================================
+# 规则集
+# ==========================================
+# 用 MRS 代替 GEOSITE / GEOIP:9 份合计约 0.6 MB,不必下载 4 MB 的 geosite.dat 和 9 MB 的 geoip.metadb。
+# 2026-11-01 同配置实测启动后内存 39.9 MB 对 57.6 MB(LumexCore,Windows,未开测速);iOS 隧道内存有上限,这一项很关键。
+# 内核下载也走下方规则:平时经 自动选择,节点还没就绪时组为空会走直连,所以不需要单独放行。
+# 内容变化慢,每周更新一次;下载失败时内核会按退避自动重试,不用等满一周。
+rule-providers:
+  cn-site:
+    type: http
+    behavior: domain
+    format: mrs
+    url: https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@meta/geo/geosite/cn.mrs
+    path: ./rules/cn-site.mrs
+    interval: 604800
+  cn-ip:
+    type: http
+    behavior: ipcidr
+    format: mrs
+    url: https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@meta/geo/geoip/cn.mrs
+    path: ./rules/cn-ip.mrs
+    interval: 604800
+  apple:
+    type: http
+    behavior: domain
+    format: mrs
+    url: https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@meta/geo/geosite/apple.mrs
+    path: ./rules/apple.mrs
+    interval: 604800
+  ads:
+    type: http
+    behavior: domain
+    format: mrs
+    url: https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@meta/geo/geosite/category-ads-all.mrs
+    path: ./rules/ads.mrs
+    interval: 604800
+  openai:
+    type: http
+    behavior: domain
+    format: mrs
+    url: https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@meta/geo/geosite/openai.mrs
+    path: ./rules/openai.mrs
+    interval: 604800
+  youtube:
+    type: http
+    behavior: domain
+    format: mrs
+    url: https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@meta/geo/geosite/youtube.mrs
+    path: ./rules/youtube.mrs
+    interval: 604800
+  google:
+    type: http
+    behavior: domain
+    format: mrs
+    url: https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@meta/geo/geosite/google.mrs
+    path: ./rules/google.mrs
+    interval: 604800
+  ai-chat:
+    type: http
+    behavior: domain
+    format: mrs
+    url: https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@meta/geo/geosite/category-ai-chat-!cn.mrs
+    path: ./rules/ai-chat.mrs
+    interval: 604800
+  tiktok:
+    type: http
+    behavior: domain
+    format: mrs
+    url: https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@meta/geo/geosite/tiktok.mrs
+    path: ./rules/tiktok.mrs
+    interval: 604800
+
+# ==========================================
+# 策略组
+# ==========================================
+proxy-groups:
+  - name: 自动选择
+    type: url-test
+    icon: https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/Urltest.png
+    use:
+      - 组合机场
+    filter: "^(微斯·(🇭🇰|🇨🇳TW|🇯🇵|🇸🇬|🇰🇷).*备用入口$|悦·🇭🇰|悦·(🇯🇵日本|🇸🇬新加坡|🇹🇼台湾)[12] · |一分·(🇭🇰|🇯🇵日本专线|🇸🇬|🇹🇼))"
+    tolerance: 100
+
+  # 不收日本(与 PC 一致)和自建(VPS 流量有限);不收微斯:它延迟最低但流量有限,视频留给不限量的悦和 0.1 倍率的一分。
+  - name: EMBY
+    type: url-test
+    icon: https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/Emby.png
+    use:
+      - 组合机场
+    filter: "^(悦·🇭🇰|悦·(🇰🇷韩国|🇸🇬新加坡|🇹🇼台湾)[12] · |一分·(🇭🇰|🇸🇬|🇹🇼))"
+    tolerance: 100
+
+  # 节点池同 EMBY,原因相同:YouTube 走 自动选择 会选中微斯,很快用完它的流量。
+  - name: YouTube
+    type: url-test
+    icon: https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/YouTube.png
+    use:
+      - 组合机场
+    filter: "^(悦·🇭🇰|悦·(🇰🇷韩国|🇸🇬新加坡|🇹🇼台湾)[12] · |一分·(🇭🇰|🇸🇬|🇹🇼))"
+    tolerance: 100
+
+  # Google 与 TikTok 也走本组。不收港澳(Gemini 不可用)和一分(与 PC 一致)。
+  # empty-fallback:组被滤空时拒绝连接,不带真实 IP 直连;内核不认识这个字段时会忽略。
+  - name: Gemini
+    type: url-test
+    icon: https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/Google.png
+    use:
+      - 组合机场
+    filter: "^(微斯·(🇨🇳TW|🇯🇵|🇸🇬|🇺🇸).*备用入口$|悦·(🇯🇵|🇸🇬|🇺🇸)[^·]*AI解锁|悦·🇺🇸美国[12] · )"
+    tolerance: 100
+    empty-fallback: REJECT
+
+  - name: ChatGPT
+    type: url-test
+    icon: https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/OpenAI.png
+    use:
+      - 组合机场
+    filter: "^(微斯·(🇨🇳TW|🇯🇵|🇸🇬|🇺🇸).*备用入口$|悦·(🇯🇵|🇸🇬|🇺🇸)[^·]*AI解锁|悦·🇺🇸美国[12] · )"
+    tolerance: 100
+    empty-fallback: REJECT
+
+  # 与 PC 的 Claude 组用同一批台湾出口。
+  - name: Claude
+    type: url-test
+    icon: https://www.google.com/s2/favicons?domain=claude.ai&sz=128
+    use:
+      - 组合机场
+    filter: "^自建·台北[0-9]+·Reality$"
+    tolerance: 100
+    empty-fallback: REJECT
+
+  # 只收美国落地(PC V4.24)。Facebook / Instagram 也走本组(V4.25),保持 Meta 看到的地区一致。
+  - name: Muse
+    type: url-test
+    icon: https://www.google.com/s2/favicons?domain=muse.ai&sz=128
+    use:
+      - 组合机场
+    filter: "^(微斯·🇺🇸.*备用入口$|悦·🇺🇸)"
+    tolerance: 100
+    empty-fallback: REJECT
+
+  # select 组不定时测速(adapter/outboundgroup/parser.go),这里不用像 Stash 那样关。
+  - name: 国内
+    type: select
+    icon: https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/CN.png
+    proxies:
+      - DIRECT
+      - 自动选择
+
+# ==========================================
+# 规则
+# ==========================================
+# 落到 MATCH 的都走 自动选择,所以和它同去向的规则都不写,只写例外。
+rules:
+  # === 局域网 ===
+  - IP-CIDR,192.168.0.0/16,DIRECT,no-resolve
+  - IP-CIDR,10.0.0.0/8,DIRECT,no-resolve
+  - IP-CIDR,172.16.0.0/12,DIRECT,no-resolve
+  - IP-CIDR,127.0.0.0/8,DIRECT,no-resolve
+  - IP-CIDR,169.254.0.0/16,DIRECT,no-resolve
+  - IP-CIDR,224.0.0.0/4,DIRECT,no-resolve
+  - DOMAIN-SUFFIX,lan,DIRECT
+  - DOMAIN-SUFFIX,local,DIRECT
+  - DOMAIN-SUFFIX,home.arpa,DIRECT
+  - DOMAIN-SUFFIX,boundaryai.com,DIRECT
+  - DOMAIN-SUFFIX,boundaryai.cn,DIRECT
+
+  # === 苹果:iOS 后台流量最大头。前三条保证规则集还没下载时也直连 ===
+  - DOMAIN-SUFFIX,apple.com,DIRECT
+  - DOMAIN-SUFFIX,icloud.com,DIRECT
+  - DOMAIN-SUFFIX,mzstatic.com,DIRECT
+  - RULE-SET,apple,DIRECT
+
+  # === Emby ===
+  - DOMAIN,tv.ash.yt,EMBY # AshEmby
+  - DOMAIN,ask.ash.yt,EMBY # Ask AshS
+  - DOMAIN,emby.bangumi.ca,EMBY # Nyamedia:公益
+  - DOMAIN,1.eoos.lol,EMBY # eoos
+  - DOMAIN,v1.uhdnow.com,EMBY # UHD
+  - DOMAIN,emby-cm.hohai.eu.org,EMBY # honhai:公费
+  - DOMAIN,emby-npo.hohai.eu.org,EMBY # hohai:公益
+  - DOMAIN,us01.doudou.pet,EMBY # Ryan:公益
+  - DOMAIN-SUFFIX,startspoint.com,EMBY # 起点公费A
+  - DOMAIN-SUFFIX,mobaiemby.site,EMBY # 墨云阁:公益30天保号
+  - DOMAIN-SUFFIX,yue.to,EMBY # 悦:stream.yue.to
+  - DOMAIN-SUFFIX,28.al,EMBY # 起点:公益2-30天保号
+  # Emby 直连服
+  - DOMAIN-SUFFIX,xmsl.org,DIRECT # 1111:公费
+  - DOMAIN-SUFFIX,1huanlesap02.top,DIRECT # 起点:Pro
+  - DOMAIN-SUFFIX,yfjc.xyz,DIRECT
+
+  # === 自定义直连 ===
+  - DOMAIN-SUFFIX,1145145.com,DIRECT
+  - DOMAIN-SUFFIX,bambulab.com,DIRECT
+  - DOMAIN-SUFFIX,bambulab.cn,DIRECT
+  - DOMAIN-SUFFIX,bambulab.co,DIRECT
+  - DOMAIN,cn.bing.com,DIRECT # 修复 Bing 重定向循环
+  - DOMAIN-SUFFIX,speedtest.net,DIRECT
+  - DOMAIN-SUFFIX,ookla.com,DIRECT
+
+  # === 拦截 QUIC:只拦要走代理的。国内 QUIC 照常直连,不必被拒后再重试一次 TCP ===
+  - AND,((NETWORK,UDP),(DST-PORT,443),(NOT,((RULE-SET,cn-site))),(NOT,((RULE-SET,cn-ip,no-resolve)))),REJECT
+
+  # === 广告 ===
+  - RULE-SET,ads,REJECT
+
+  # === OpenAI ===
+  - DOMAIN-SUFFIX,openai.com,ChatGPT
+  - DOMAIN-SUFFIX,chatgpt.com,ChatGPT
+  - DOMAIN-SUFFIX,oaistatic.com,ChatGPT
+  - DOMAIN-SUFFIX,oaiusercontent.com,ChatGPT
+  - DOMAIN-SUFFIX,sora.com,ChatGPT
+  - RULE-SET,openai,ChatGPT
+
+  # === Anthropic(含 Intercom、Statsig,与 PC 一致);grok 也走本组 ===
+  - DOMAIN-SUFFIX,anthropic.com,Claude
+  - DOMAIN-SUFFIX,claude.ai,Claude
+  - DOMAIN-SUFFIX,claude.com,Claude
+  - DOMAIN-SUFFIX,claudeapi.com,Claude
+  - DOMAIN-SUFFIX,claudeapp.com,Claude
+  - DOMAIN-SUFFIX,claudepro.com,Claude
+  - DOMAIN-SUFFIX,mcp.exa.ai,Claude
+  - DOMAIN-SUFFIX,intercom.io,Claude
+  - DOMAIN-SUFFIX,intercomassets.com,Claude
+  - DOMAIN-SUFFIX,intercomcdn.com,Claude
+  - DOMAIN-SUFFIX,statsig.com,Claude
+  - DOMAIN-SUFFIX,statsigapi.net,Claude
+  - DOMAIN-SUFFIX,grok.com,Claude
+
+  # === Meta Muse ===
+  - DOMAIN-SUFFIX,muse.ai,Muse
+  - DOMAIN-SUFFIX,museai.com,Muse
+  - DOMAIN-SUFFIX,meta.ai,Muse
+  - DOMAIN-SUFFIX,auth.meta.com,Muse
+  - DOMAIN-SUFFIX,fbcdn.net,Muse
+  - DOMAIN-SUFFIX,facebook.com,Muse
+  - DOMAIN-SUFFIX,instagram.com,Muse
+  - DOMAIN-SUFFIX,hatch.club,Muse
+  - DOMAIN-SUFFIX,ecto1.ai,Muse
+
+  # === Google:YouTube 排在前面,免得被 google 规则集截走 ===
+  - RULE-SET,youtube,YouTube
+  - DOMAIN-SUFFIX,googleapis.cn,Gemini
+  - DOMAIN-SUFFIX,deepmind.com,Gemini
+  - DOMAIN-SUFFIX,deepmind.google,Gemini
+  - RULE-SET,google,Gemini
+  - RULE-SET,ai-chat,Gemini
+  - RULE-SET,tiktok,Gemini
+
+  # === mihomo 没有 PROTOCOL,STUN 按常用端口直连,保留微信、FaceTime 等通话质量 ===
+  - AND,((NETWORK,UDP),(DST-PORT,3478-3497/19302-19309)),DIRECT
+  - DST-PORT,123,DIRECT
+
+  # === 兜底 ===
+  - RULE-SET,cn-site,国内
+  - RULE-SET,cn-ip,国内,no-resolve
+  - MATCH,自动选择

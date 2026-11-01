@@ -14,6 +14,8 @@ const files = [
   'Lumex/Lumex_active.js',
   'Stash_Override.js',
   'Stash.stoverride',
+  'IosStash/Stash.stoverride',
+  'IosClash/Clash.yaml',
   'IosStash/Stash_Override.stoverride'
 ]
 const artifacts = files.filter((file) => fs.existsSync(path.join(root, file))).map((file) => {

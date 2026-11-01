@@ -113,3 +113,198 @@ for (const relative of scripts) {
   })
   console.log(`[profile-test] ${relative}: OK (dns + ${rules.length} IP rules)`)
 }
+
+// 两份手机配置共用的节点边界。组为空时 Stash 会静默走 DIRECT，filter 写错还可能放进不该走的节点，所以用代表性节点名核对。
+const IOS_NODES = {
+  hk: '悦·🇭🇰香港家宽2💎 · A',
+  hkFast: '微斯·🇭🇰HK-01 · 备用入口',
+  jp: '悦·🇯🇵日本1 · B',
+  jpAi: '悦·🇯🇵日本AI解锁1💎 · A',
+  sgAi: '悦·🇸🇬新加坡AI解锁1💎 · A',
+  tw: '悦·🇹🇼台湾2 · A',
+  twFast: '微斯·🇨🇳TW-01 · 备用入口',
+  kr: '悦·🇰🇷韩国1 · B',
+  us: '悦·🇺🇸美国1 · A',
+  usFast: '微斯·🇺🇸US-01 · 备用入口',
+  oneHk: '一分·🇭🇰香港HKBN',
+  oneJp: '一分·🇯🇵日本专线-0.1倍率',
+  claude: '自建·台北2·Reality'
+}
+// 这些节点绝不能进代理集:裸 SS 会让 SS2022 从手机直接过墙，其余是公告或用不了的节点
+const IOS_PROVIDER_EXCLUDED = ['自建·台北1·SS', '自建·台北2·SS', '悦·剩余流量：无限', '悦·套餐到期：长期有效', '一分·剩余流量：737.62 GB', '微斯·距离下次重置剩余：6 天', '三毛·流量已耗尽！', '星链·ipv6-高速-德州', '微斯·🇭🇰HK-06[Max]×3', '微斯·🇭🇰HK-01']
+const IOS_EXPECTED_MEMBERS = {
+  自动选择: { in: ['hk', 'hkFast', 'jp', 'tw', 'twFast', 'oneHk', 'oneJp'], out: ['us', 'usFast', 'claude'] },
+  EMBY: { in: ['hk', 'tw', 'kr', 'oneHk'], out: ['hkFast', 'jp', 'jpAi', 'oneJp', 'claude'] },
+  YouTube: { in: ['hk', 'tw', 'kr', 'oneHk'], out: ['hkFast', 'twFast', 'usFast', 'claude'] },
+  Gemini: { in: ['jpAi', 'sgAi', 'us', 'usFast', 'twFast'], out: ['hk', 'hkFast', 'oneHk', 'oneJp', 'claude'] },
+  ChatGPT: { in: ['jpAi', 'sgAi', 'us', 'usFast', 'twFast'], out: ['hk', 'hkFast', 'oneHk', 'oneJp', 'claude'] },
+  Claude: { in: ['claude'], out: ['hk', 'tw', 'us', 'usFast'] },
+  Muse: { in: ['us', 'usFast'], out: ['hk', 'jp', 'tw', 'twFast', 'claude'] }
+}
+
+// IosStash/Stash.stoverride 是手机在用的覆写。v2.12 曾带着指向不存在的组的规则放了 8 个月,这里按行守住:
+{
+  const relative = 'IosStash/Stash.stoverride'
+  const raw = fs.readFileSync(path.join(root, relative), 'utf8')
+  assert(!raw.startsWith('\uFEFF'), `${relative}: must not have BOM`)
+  assert(!raw.includes('\uFFFD'), `${relative}: contains U+FFFD`)
+  const lines = raw.split(/\r?\n/)
+  const sectionStart = (key) => lines.findIndex((line) => line.startsWith(`${key}:`))
+  const section = (key) => {
+    const start = sectionStart(key)
+    assert(start >= 0, `${relative}: ${key} required`)
+    const end = lines.findIndex((line, i) => i > start && /^\S/.test(line) && !line.startsWith('#'))
+    return lines.slice(start + 1, end < 0 ? lines.length : end)
+  }
+  for (const key of ['dns', 'proxy-groups', 'rules']) {
+    assert(lines[sectionStart(key)].includes('#!replace'), `${relative}: ${key} must be #!replace`)
+  }
+
+  // 只查配置项，不查注释:注释里需要解释为什么不用它们
+  const body = lines.filter((line) => !/^\s*#/.test(line)).join('\n')
+  // 文档没有这些字段(多是从 mihomo 抄来的);PROCESS-* 在 iOS 上被忽略;pre-matching / arguments 还只在 3.7 Beta
+  const forbidden = /^\s*(sniffer|tcp-concurrent|prefer-ipv6|bind-address|allow-lan|respect-rules|enhanced-mode|health-check|exclude-filter|empty-fallback|include-all|arguments|arguments-version|fallback|fallback-filter):|PROCESS-NAME|PROCESS-PATH|pre-matching/m
+  assert(!forbidden.test(body), `${relative}: unsupported field: ${body.match(forbidden)?.[0]}`)
+
+  // 规则目标必须是已定义的组
+  const groupLines = section('proxy-groups')
+  const groups = []
+  for (const line of groupLines) {
+    const name = line.match(/^ {2}- name:\s*(.+?)\s*$/)?.[1]
+    if (name) groups.push({ name, fields: [] })
+    else if (groups.length && line.trim() && !line.trim().startsWith('#')) groups.at(-1).fields.push(line.trim())
+  }
+  const groupNames = new Set(groups.map((group) => group.name))
+  assert.equal(groupNames.size, groups.length, `${relative}: duplicate proxy-group names`)
+  const rules = section('rules')
+    .map((line) => line.match(/^\s*-\s*(.+?)(?:\s+#.*)?$/)?.[1])
+    .filter(Boolean)
+  const OPTIONS = new Set(['no-resolve', 'no-track'])
+  const BUILTIN = new Set(['DIRECT', 'REJECT', 'REJECT-DROP'])
+  const targetOf = (rule) => rule.split(',').map((part) => part.trim()).filter((part) => !OPTIONS.has(part)).at(-1)
+  for (const rule of rules) {
+    const target = targetOf(rule)
+    assert(BUILTIN.has(target) || groupNames.has(target), `${relative}: rule target not defined: ${rule}`)
+  }
+  assert.deepEqual(ipRulesWithoutNoResolve(rules), [], `${relative}: IP rules must carry no-resolve`)
+  assert(rules.at(-1).startsWith('MATCH,'), `${relative}: last rule must be MATCH`)
+  const firstGeosite = rules.findIndex((rule) => rule.includes('GEOSITE,'))
+  assert(
+    rules.findIndex((rule) => rule === 'DOMAIN-SUFFIX,github.com,自动选择') < firstGeosite,
+    `${relative}: github.com must come before GEOSITE rules (GEOSITE data is first fetched from it)`
+  )
+
+  // 公开仓库不写订阅地址
+  const provider = section('proxy-providers')
+  assert(!provider.some((line) => /^\s*url:/.test(line)), `${relative}: subscription url must stay out of this public repo`)
+  assert(provider.some((line) => /^\s*benchmark-url:\s*http:\/\//.test(line)), `${relative}: benchmark-url must be plain HTTP`)
+
+  // 组为空时 Stash 会静默走 DIRECT，所以 filter 只用正向白名单，并用代表性节点名核对边界。
+  const filterOf = (lines_) => {
+    const value = lines_.map((line) => line.match(/^\s*filter:\s*"(.+)"\s*$/)?.[1]).find(Boolean)
+    assert(value, `${relative}: filter required`)
+    assert(!value.includes('(?'), `${relative}: filter must not use lookaround: ${value}`)
+    return new RegExp(value, 'u')
+  }
+  const providerFilter = filterOf(provider)
+  for (const node of IOS_PROVIDER_EXCLUDED) {
+    assert(!providerFilter.test(node), `${relative}: provider filter must exclude ${node}`)
+  }
+  for (const node of Object.values(IOS_NODES)) assert(providerFilter.test(node), `${relative}: provider filter must keep ${node}`)
+  for (const group of groups) {
+    const field = (key) => group.fields.find((line) => line.startsWith(`${key}:`))?.split('#')[0].slice(key.length + 1).trim()
+    assert(!group.fields.some((line) => /^url:/.test(line)), `${relative}: ${group.name} must not set url (benchmark is per proxy)`)
+    if (field('type') === 'select') {
+      assert.equal(field('interval'), '-1', `${relative}: select group ${group.name} must not test recursively`)
+      continue
+    }
+    assert.equal(field('type'), 'url-test', `${relative}: ${group.name} unexpected type`)
+    assert.equal(field('lazy'), 'true', `${relative}: ${group.name} must be lazy`)
+    assert.equal(field('interval'), '600', `${relative}: ${group.name} must share one interval so tests run together`)
+    const filter = filterOf(group.fields)
+    const expected = IOS_EXPECTED_MEMBERS[group.name]
+    assert(expected, `${relative}: add ${group.name} to IOS_EXPECTED_MEMBERS`)
+    for (const key of expected.in) assert(filter.test(IOS_NODES[key]), `${relative}: ${group.name} must keep ${IOS_NODES[key]}`)
+    for (const key of expected.out) assert(!filter.test(IOS_NODES[key]), `${relative}: ${group.name} must exclude ${IOS_NODES[key]}`)
+  }
+  console.log(`[profile-test] ${relative}: OK (${groups.length} groups, ${rules.length} rules)`)
+}
+
+// IosClash/Clash.yaml 是同一套分流的 mihomo 版。mihomo 按代理集测速，且规则语法与 Stash 不同，单独核对。
+{
+  const relative = 'IosClash/Clash.yaml'
+  const raw = fs.readFileSync(path.join(root, relative), 'utf8')
+  assert(!raw.startsWith('\uFEFF'), `${relative}: must not have BOM`)
+  assert(!raw.includes('\uFFFD'), `${relative}: contains U+FFFD`)
+  const lines = raw.split(/\r?\n/)
+  const section = (key) => {
+    const start = lines.findIndex((line) => line.startsWith(`${key}:`))
+    assert(start >= 0, `${relative}: ${key} required`)
+    const end = lines.findIndex((line, i) => i > start && /^\S/.test(line) && !line.startsWith('#'))
+    return lines.slice(start + 1, end < 0 ? lines.length : end)
+  }
+
+  const body = lines.filter((line) => !/^\s*#/.test(line)).join('\n')
+  // PROTOCOL / no-track 是 Stash 语法，mihomo 不认识的规则类型会让整份配置加载失败;GEOSITE / GEOIP 改用 MRS 规则集;iOS 没有进程规则
+  const forbidden = /^\s*-\s*(PROTOCOL|GEOSITE|GEOIP|PROCESS-NAME|PROCESS-PATH),|no-track|\(PROTOCOL,|\(GEOSITE,|\(GEOIP,|#!replace|^\s*(fallback|fallback-filter|benchmark-url|benchmark-timeout):/m
+  assert(!forbidden.test(body), `${relative}: unsupported field: ${body.match(forbidden)?.[0]}`)
+  assert(/^disable-keep-alive: true/m.test(body), `${relative}: keep-alive must stay off on mobile`)
+
+  // 公开仓库只放占位符
+  const provider = section('proxy-providers')
+  const urls = provider.map((line) => line.match(/^\s*url:\s*"?([^"\s]+)/)?.[1]).filter(Boolean)
+  assert.deepEqual(urls, ['https://example.invalid/replace-with-group-yaml-url', 'http://www.gstatic.com/generate_204'], `${relative}: subscription url must stay a placeholder`)
+  assert(provider.some((line) => /^\s*lazy: true/.test(line)), `${relative}: health-check must be lazy`)
+
+  const groups = []
+  for (const line of section('proxy-groups')) {
+    const name = line.match(/^ {2}- name:\s*(.+?)\s*$/)?.[1]
+    if (name) groups.push({ name, fields: [] })
+    else if (groups.length && line.trim() && !line.trim().startsWith('#')) groups.at(-1).fields.push(line.trim())
+  }
+  const groupNames = new Set(groups.map((group) => group.name))
+  assert.equal(groupNames.size, groups.length, `${relative}: duplicate proxy-group names`)
+  const ruleSets = new Set(section('rule-providers').map((line) => line.match(/^ {2}([\w-]+):\s*$/)?.[1]).filter(Boolean))
+  const rules = section('rules')
+    .map((line) => line.match(/^\s*-\s*(.+?)(?:\s+#.*)?$/)?.[1])
+    .filter(Boolean)
+  for (const rule of rules) {
+    const target = rule.split(',').map((part) => part.trim()).filter((part) => part !== 'no-resolve').at(-1)
+    assert(['DIRECT', 'REJECT'].includes(target) || groupNames.has(target), `${relative}: rule target not defined: ${rule}`)
+    for (const [, name] of rule.matchAll(/RULE-SET,([\w-]+)/g)) {
+      assert(ruleSets.has(name), `${relative}: rule-set not defined: ${rule}`)
+    }
+    if (/^IP-CIDR|RULE-SET,cn-ip/.test(rule)) assert(rule.includes('no-resolve'), `${relative}: IP rule must carry no-resolve: ${rule}`)
+  }
+  for (const name of ruleSets) {
+    assert(rules.some((rule) => rule.includes(`RULE-SET,${name}`)), `${relative}: rule-set never used: ${name}`)
+  }
+  assert(rules.at(-1).startsWith('MATCH,'), `${relative}: last rule must be MATCH`)
+  const youtube = rules.findIndex((rule) => rule.startsWith('RULE-SET,youtube,'))
+  assert(youtube >= 0 && youtube < rules.findIndex((rule) => rule.startsWith('RULE-SET,google,')), `${relative}: youtube must come before google`)
+
+  const filterOf = (fields) => {
+    const value = fields.map((line) => line.match(/^\s*filter:\s*"(.+)"\s*$/)?.[1]).find(Boolean)
+    assert(value, `${relative}: filter required`)
+    return new RegExp(value, 'u')
+  }
+  const providerFilter = filterOf(provider)
+  for (const node of IOS_PROVIDER_EXCLUDED) assert(!providerFilter.test(node), `${relative}: provider filter must exclude ${node}`)
+  for (const node of Object.values(IOS_NODES)) assert(providerFilter.test(node), `${relative}: provider filter must keep ${node}`)
+  for (const group of groups) {
+    const field = (key) => group.fields.find((line) => line.startsWith(`${key}:`))?.split('#')[0].slice(key.length + 1).trim()
+    if (field('type') === 'select') continue
+    assert.equal(field('type'), 'url-test', `${relative}: ${group.name} unexpected type`)
+    // 组上写 url 会给代理集多注册一个测速任务，整个代理集多测一轮
+    assert(!group.fields.some((line) => /^(url|interval|lazy):/.test(line)), `${relative}: ${group.name} must leave testing to the provider`)
+    const filter = filterOf(group.fields)
+    const expected = IOS_EXPECTED_MEMBERS[group.name]
+    assert(expected, `${relative}: add ${group.name} to IOS_EXPECTED_MEMBERS`)
+    for (const key of expected.in) assert(filter.test(IOS_NODES[key]), `${relative}: ${group.name} must keep ${IOS_NODES[key]}`)
+    for (const key of expected.out) assert(!filter.test(IOS_NODES[key]), `${relative}: ${group.name} must exclude ${IOS_NODES[key]}`)
+    if (['Gemini', 'ChatGPT', 'Claude', 'Muse'].includes(group.name)) {
+      assert.equal(field('empty-fallback'), 'REJECT', `${relative}: ${group.name} must not fall back to direct when empty`)
+    }
+  }
+  console.log(`[profile-test] ${relative}: OK (${groups.length} groups, ${rules.length} rules, ${ruleSets.size} rule-sets)`)
+}
