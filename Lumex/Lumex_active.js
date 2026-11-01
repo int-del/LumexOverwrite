@@ -1,7 +1,10 @@
 // Lumex Party 专用配置文件覆写脚本
 // 引用链接: https://raw.githubusercontent.com/int-del/LumexOverwrite/main/Lumex_active.js
 // 加速链接: https://cdn.jsdelivr.net/gh/int-del/LumexOverwrite@main/Lumex_active.js
-// 版本: V4.24-AntiCN  | 更新日期: 2026-11-01
+// 版本: V4.25-AntiCN  | 更新日期: 2026-11-01
+// V4.25: facebook.com / instagram.com / fbcdn.net 并进 Muse 组(用户要求)。原因：11-01 15:14 登录 Muse 时 muse.ai、auth.meta.com
+//      走美国，同一次登录里浏览器连的 www.facebook.com、www.instagram.com 仍走自动选择(台湾),Meta 同时看到两个地区的 IP。
+//      代价：平时刷 Facebook / Instagram 也走美国;Muse 组无合格节点时这些网站一起连不上。WhatsApp 不动。
 // V4.24: 新增 Muse 组(Meta 的个人 AI 代理，2026-09-08 上线，只对美国 18 岁以上用户开放):只收美国落地，
 //      解锁判据要求出口在美国(RFC-028 严格判据，不符拒绝)。分流域名取自 muse.ai 前端代码(2026-11-01):
 //      muse.ai / museai.com、登录用的 meta.ai(agent.meta.ai)与 auth.meta.com、静态资源 nest-static.fbcdn.net。
@@ -128,7 +131,7 @@
   function main(config) {
   // 打印版本号，用于确认是否下载到了最新版
   // eslint-disable-next-line no-console
-  console.log("✅ 加载脚本 V4.24-AntiCN (Muse 组)...");
+  console.log("✅ 加载脚本 V4.25-AntiCN (Muse 组收 Facebook / Instagram)...");
 
   // 关键修复：如果 config 为空，必须返回空对象 {} 而不是 null
 
@@ -991,7 +994,9 @@
     "DOMAIN-SUFFIX,museai.com,Muse", // production.museai.com / voice.museai.com
     "DOMAIN-SUFFIX,meta.ai,Muse", // agent.meta.ai 是登录中转;整个 meta.ai(含 Meta AI 网页版)一起走美国
     "DOMAIN-SUFFIX,auth.meta.com,Muse", // Meta 账号登录(OIDC,含 <数字>.od.auth.meta.com)
-    "DOMAIN,nest-static.fbcdn.net,Muse", // 网页版静态资源(/v1/hatch-web/)
+    "DOMAIN-SUFFIX,fbcdn.net,Muse", // 含网页版静态资源 nest-static.fbcdn.net(/v1/hatch-web/)、头像 scontent-*
+    "DOMAIN-SUFFIX,facebook.com,Muse", // 登录 Muse 时浏览器会连，地区要与 auth.meta.com 一致(V4.25)
+    "DOMAIN-SUFFIX,instagram.com,Muse", // 同上
     "DOMAIN-SUFFIX,hatch.club,Muse", // 前端代码里列为生产域名(Muse 内部代号 hatch)
     "DOMAIN-SUFFIX,ecto1.ai,Muse", // 同上(hatch.ecto1.ai)
 
