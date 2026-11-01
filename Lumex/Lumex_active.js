@@ -1,7 +1,11 @@
 // Lumex Party 专用配置文件覆写脚本
 // 引用链接: https://raw.githubusercontent.com/int-del/LumexOverwrite/main/Lumex_active.js
 // 加速链接: https://cdn.jsdelivr.net/gh/int-del/LumexOverwrite@main/Lumex_active.js
-// 版本: V4.23-AntiCN  | 更新日期: 2026-10-25
+// 版本: V4.24-AntiCN  | 更新日期: 2026-11-01
+// V4.24: 新增 Muse 组(Meta 的个人 AI 代理，2026-09-08 上线，只对美国 18 岁以上用户开放):只收美国落地，
+//      解锁判据要求出口在美国(RFC-028 严格判据，不符拒绝)。分流域名取自 muse.ai 前端代码(2026-11-01):
+//      muse.ai / museai.com、登录用的 meta.ai(agent.meta.ai)与 auth.meta.com、静态资源 nest-static.fbcdn.net。
+//      整个 meta.ai(含 Meta AI 网页版)随之走美国出口;facebook.com / fbcdn.net 其余部分不动。
 // V4.23: 网易 UU 远程四个进程(GameViewer / GameViewerServer / GameViewerService / GameViewerHealthd)全部直连，
 //      放在「UDP 443 拒绝」之前。原因：电脑连电脑时被控端一连上就离线，手机连没事——电脑端走 UDP 串流，被 QUIC 拦截
 //      和代理节点截走。同时补回本机覆写里手加的 grok.com → Claude(仓库里原来没有，更新覆写会被冲掉)。
@@ -124,7 +128,7 @@
   function main(config) {
   // 打印版本号，用于确认是否下载到了最新版
   // eslint-disable-next-line no-console
-  console.log("✅ 加载脚本 V4.23-AntiCN (UU 远程直连)...");
+  console.log("✅ 加载脚本 V4.24-AntiCN (Muse 组)...");
 
   // 关键修复：如果 config 为空，必须返回空对象 {} 而不是 null
 
@@ -738,6 +742,49 @@
       "lazy": false // 🎯 关键业务：保持即时检测
     },
     {
+      "name": "Muse",
+      "type": "url-test",
+      "icon": "https://www.google.com/s2/favicons?domain=muse.ai&sz=128",
+      "use": RELAY_USE.slice(), // 引入代理集：组合机场 + 全部中转(见上方中转代理集表)
+      // Meta 的个人 AI 代理 Muse 只对美国开放，本组只收美国落地。有些星链美国节点名里只写城市
+      //   (「星链·LAX-洛杉矶1」「星链·vless-core-纽约」),白名单因此带上美国城市名;US 不加后置守卫，原因见文件头。
+      //   2026-11-01 按实时节点缓存模拟：命中 89 个，兜底排除一分 / 三毛后剩 60 个。
+      "filter": "(美国|🇺🇸|(?<![A-Za-z])US|(?<![A-Za-z])LAX(?![A-Za-z])|洛杉矶|圣何塞|硅谷|西雅图|拉斯维加斯|凤凰城|达拉斯|休斯敦|芝加哥|纽约|迈阿密)",
+      // 与 ChatGPT / Cursor 同一兜底排除(见文件头 Fix 说明);只查落地部分，不误杀「中转·香港·…」
+      "exclude-filter": "^(?:中转·[^·-]+-|(?!中转·))(?=.*(三毛|一毛|一分|🇭🇰|香港|🇲🇾|马来))",
+      "empty-fallback": "REJECT", // 白名单滤空时显式失败，不回落直连（见文件头 Fix 说明）
+      "url": "https://muse.ai", // 标准 Lumex 兼容字段
+      // 第 1 条是主判据(每轮健康检查都测，只看可达)；第 3 条带 expected-body，是解锁判据，只在换节点前与在位者复查时测(同 Claude 组)。
+      "urls": [
+        {
+          "url": "https://muse.ai",
+          "weight": 0.6,
+          "expected-status": "200/301/302/307/308" // 2026-11-01 实测 HEAD 200
+        },
+        {
+          "url": "https://agent.meta.ai", // 网页版登录中转(SSO broker)
+          "weight": 0.2,
+          "expected-status": "200/301/302/307/308" // 2026-11-01 实测 HEAD 302
+        },
+        {
+          // 出口必须在美国。muse.ai 托管在 Vercel、前面是 Meta 自己的代理，不在 Cloudflare 后面，
+          //   借 www.cloudflare.com 的 trace 看出口 IP 所属国家(loc 字段，同 Gemini 组)。带 expected-body 的条目按 GET 探测。
+          "url": "https://www.cloudflare.com/cdn-cgi/trace",
+          "weight": 0.2,
+          "expected-status": "200",
+          "expected-body": "(?m)^loc=US$", // 出口不在美国 → 不符
+          // RFC-028 严格判据(同 Claude 组):不符的节点不得承载流量，没有符合的就拒绝连接(手动固定的节点放行)。
+          //   GUI「解锁判据生效」关闭时只记账。需要支持 on-mismatch 的 LumexCore;老内核与标准 mihomo 忽略本字段。
+          "on-mismatch": "reject"
+        }
+      ],
+      "interval": 300,
+      "tolerance": 60,
+      "adaptive-cooldown-sec": 60, // 🔥 AI 关键组
+      "adaptive-stage-cooldown-sec": 300,
+      "lazy": false
+    },
+    {
       "name": "Telegram",
       "type": "url-test",
       "icon": "https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/Telegram.png",
@@ -938,6 +985,15 @@
     // 必须排在 PROCESS-NAME,Code.exe,Gemini 之前，否则被 Code.exe 进程规则截走
     "DOMAIN,anthropic.gallery.vsassets.io,Claude",
     "DOMAIN,anthropic.gallerycdn.vsassets.io,Claude",
+
+    // Meta Muse(只对美国开放，走美国出口的 Muse 组;域名取自 muse.ai 前端代码,2026-11-01)
+    "DOMAIN-SUFFIX,muse.ai,Muse", // 含 api.muse.ai
+    "DOMAIN-SUFFIX,museai.com,Muse", // production.museai.com / voice.museai.com
+    "DOMAIN-SUFFIX,meta.ai,Muse", // agent.meta.ai 是登录中转;整个 meta.ai(含 Meta AI 网页版)一起走美国
+    "DOMAIN-SUFFIX,auth.meta.com,Muse", // Meta 账号登录(OIDC,含 <数字>.od.auth.meta.com)
+    "DOMAIN,nest-static.fbcdn.net,Muse", // 网页版静态资源(/v1/hatch-web/)
+    "DOMAIN-SUFFIX,hatch.club,Muse", // 前端代码里列为生产域名(Muse 内部代号 hatch)
+    "DOMAIN-SUFFIX,ecto1.ai,Muse", // 同上(hatch.ecto1.ai)
 
     // AI 服务 - Rule Sets (已废弃，清理残留)
     "GEOSITE,openai,ChatGPT",
