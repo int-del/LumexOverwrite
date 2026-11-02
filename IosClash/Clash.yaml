@@ -1,5 +1,6 @@
-# Last Updated: 2026-11-01 [Clash v1.00]
-# mihomo 配置,Clash Mi 与 Clash(OmniWide)通用。分流与 IosStash/Stash.stoverride v3.00 相同。
+# Last Updated: 2026-11-02 [Clash v1.01]
+# mihomo 配置,按 Clash(OmniWide)1.0.13 / 内核 v1.19.33-clash.4 的源码调优,Clash Mi 也能导入,但下面标了 OmniWide 的说法不适用于它。
+# 分流与 IosStash/Stash.stoverride v3.00 相同,另加两处:只认纯 IP 连接的嗅探、Apple 17.0.0.0/8 直连;节点池比 Stash 少 Hysteria2。
 # ⚠️ 本仓库公开,下方订阅地址是占位符。导入前换成 Sub-Store 的 Group.yaml 地址(ClashMeta 格式)。
 
 mode: rule
@@ -7,15 +8,24 @@ log-level: error
 ipv6: false # 只用 IPv4;IPv6-only 节点已被下方订阅白名单排除
 allow-lan: false
 find-process-mode: off # iOS 没有进程规则,不查进程
-unified-delay: false # 打开后每次测速多发一个请求
-tcp-concurrent: false
-disable-keep-alive: true # mihomo 在 Android 上强制关闭(component/keepalive),iOS 不会自动关,空闲连接的探测会唤醒蜂窝网络
+unified-delay: false # OmniWide 不写时默认 true,写了才保留。关掉后每次测速少发一个请求,测到的也是新连接真正要等的时间(含握手)
+tcp-concurrent: true # 域名解析出多个 IP 时同时连,不用等坏 IP 超时;官方模板也开
+disable-keep-alive: true # OmniWide 默认空闲 5 分钟起每 75 秒探测一次(component/keepalive),每条空闲 TCP 都可能单独唤醒蜂窝网络;换网时内核会关掉全部连接,不靠它发现死连接
 geo-auto-update: false # 不用 geodata,全部规则走下方 MRS 规则集
 profile:
   store-selected: true
   store-fake-ip: true # iOS 可能重启隧道,保留 fake-ip 映射,已有连接不会解析到错误地址
+# 只为直接用 IP 连的 App(自带 DNS、写死 IP)识别域名,否则它们会漏过所有域名规则落到 MATCH。
+# 走 fake-ip 的连接已经有域名,不会进嗅探(component/sniffer/dispatcher.go shouldOverride),所以平时没有额外开销。
 sniffer:
-  enable: false # fake-ip 已能还原域名,不必为每条连接解析首包
+  enable: true
+  parse-pure-ip: true
+  override-destination: false # 域名只用于匹配规则,实际还连原 IP
+  sniff: # 不嗅探 QUIC:要走代理的 QUIC 在下方规则里已被拒绝,App 会退回 TCP
+    TLS:
+      ports: [443, 8443]
+    HTTP:
+      ports: [80, 8080]
 
 hosts:
   # BoundaryAI 内网服务,与 PC 一致
@@ -66,6 +76,7 @@ dns:
 # mihomo 按代理集测速,不按组:
 #   - 只要有一个组在用,代理集里的节点每轮全部要测,所以 filter 必须正好是各组成员的并集,多一个就多测一个;
 #   - 组上不写 url,否则会给代理集多注册一个测速任务;都用同一个地址,结果才能各组共享。
+# 不要为了让空闲组少测而拆代理集:各组成员高度重叠,日常 + Google 就要测 53 个(现在只共 47 个),全用上时 76 个,还要多下载几份订阅。
 # 白名单同时挡住裸 SS「自建·<机器>·SS」(不带跳板从手机直接过墙,台北 IP 可能被封)、机场公告节点、IPv6-only 节点。
 proxy-providers:
   组合机场:
@@ -74,12 +85,15 @@ proxy-providers:
     path: ./providers/group.yaml
     interval: 21600 # 与 Sub-Store 每 6 小时同步 Gist 对齐
     filter: "^(微斯·(🇭🇰|🇨🇳TW|🇯🇵|🇸🇬|🇰🇷|🇺🇸).*备用入口$|悦·(🇭🇰|🇺🇸)|悦·(🇯🇵日本|🇸🇬新加坡|🇹🇼台湾|🇰🇷韩国)[12] · |悦·(🇯🇵|🇸🇬)[^·]*AI解锁|一分·(🇭🇰|🇯🇵日本专线|🇸🇬|🇹🇼)|自建·台北[0-9]+·Reality$)"
+    # QUIC 只要连接上还有流就每 10 秒发一次心跳,disable-keep-alive 管不到,一条挂着的后台连接就能让蜂窝网络一直醒着(sing-quic DefaultKeepAlivePeriod)。
+    # 这 32 个节点也是池里最不稳的:2026-11-01、11-02 晚高峰家宽实测只活 13、7 个,其余 47 个活 36、27 个;11-02 那次各组延迟最低的也都不是它们。手机上视频明显变慢时再去掉这行试试。
+    exclude-type: hysteria2
     health-check:
       enable: true
       url: http://www.gstatic.com/generate_204 # HTTP 少一次 TLS 握手
       expected-status: 204
-      interval: 600
-      timeout: 5000
+      interval: 1800 # 这只是兜底:OmniWide 在开机、唤醒、换网和连续拨号失败时都会另外测,不用靠定时发现坏节点
+      timeout: 3000 # 死节点占着并发名额直到超时,一轮的时间几乎都花在这;2026-11-01 实测活节点超过 3 秒的只有 1/49
       lazy: true
 
 # ==========================================
@@ -87,7 +101,8 @@ proxy-providers:
 # ==========================================
 # 用 MRS 代替 GEOSITE / GEOIP:9 份合计约 0.6 MB,不必下载 4 MB 的 geosite.dat 和 9 MB 的 geoip.metadb。
 # 2026-11-01 同配置实测启动后内存 39.9 MB 对 57.6 MB(LumexCore,Windows,未开测速);iOS 隧道内存有上限,这一项很关键。
-# 内核下载也走下方规则:平时经 自动选择,节点还没就绪时组为空会走直连,所以不需要单独放行。
+# OmniWide 也一样:MRS 是编译好的,不用在隧道里再编译;它的源码记录编译 geosite 峰值 72.7 MiB,隧道预算只有 50 MiB。
+# App 没有副本时由内核下载,也走下方规则:平时经 自动选择,节点还没就绪时组为空会走直连,所以不需要单独放行。
 # 内容变化慢,每周更新一次;下载失败时内核会按退避自动重试,不用等满一周。
 rule-providers:
   cn-site:
@@ -255,6 +270,7 @@ rules:
   - DOMAIN-SUFFIX,icloud.com,DIRECT
   - DOMAIN-SUFFIX,mzstatic.com,DIRECT
   - RULE-SET,apple,DIRECT
+  - IP-CIDR,17.0.0.0/8,DIRECT,no-resolve # 整段属于 Apple;5223 推送端口嗅探不到域名,直接用 IP 连时也不绕节点
 
   # === Emby ===
   - DOMAIN,tv.ash.yt,EMBY # AshEmby

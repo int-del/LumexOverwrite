@@ -249,6 +249,11 @@ const IOS_EXPECTED_MEMBERS = {
   const forbidden = /^\s*-\s*(PROTOCOL|GEOSITE|GEOIP|PROCESS-NAME|PROCESS-PATH),|no-track|\(PROTOCOL,|\(GEOSITE,|\(GEOIP,|#!replace|^\s*(fallback|fallback-filter|benchmark-url|benchmark-timeout):/m
   assert(!forbidden.test(body), `${relative}: unsupported field: ${body.match(forbidden)?.[0]}`)
   assert(/^disable-keep-alive: true/m.test(body), `${relative}: keep-alive must stay off on mobile`)
+  // QUIC 自带 10 秒心跳，不受 disable-keep-alive 控制
+  assert(/^ {4}exclude-type: hysteria2/m.test(body), `${relative}: hysteria2 must stay out of the phone pool`)
+  // 嗅探只给纯 IP 连接用：force-dns-mapping 或 force-domain 会让 fake-ip 连接也等首包，改目标会改变实际连接
+  assert(/^ {2}parse-pure-ip: true/m.test(body) && /^ {2}override-destination: false/m.test(body), `${relative}: sniffer must only classify pure-IP connections`)
+  assert(!/^ {2}(force-dns-mapping: true|force-domain:)/m.test(body), `${relative}: sniffer must not touch fake-ip connections`)
 
   // 公开仓库只放占位符
   const provider = section('proxy-providers')
