@@ -313,6 +313,12 @@ const IOS_EXPECTED_MEMBERS = {
     for (const node of ['自建·台北1·Reality', '自建·台北2·Reality']) {
       assert.equal(filter.test(node), keepsSelfHosted, `${relative}: ${group.name} ${keepsSelfHosted ? 'must keep' : 'must exclude'} ${node}`)
     }
+    // 台湾家宽的名字不带「台湾[12]」，普通台湾节点的写法匹配不到它，曾因此不属于任何组
+    const keepsTaiwanHome = group.name !== 'Muse'
+    for (const node of ['悦·🇹🇼台湾家宽1💎 · A', '悦·🇹🇼台湾家宽2💎 · B']) {
+      assert(providerFilter.test(node), `${relative}: provider filter must keep ${node}`)
+      assert.equal(filter.test(node), keepsTaiwanHome, `${relative}: ${group.name} ${keepsTaiwanHome ? 'must keep' : 'must exclude'} ${node}`)
+    }
     if (['Gemini', 'ChatGPT', 'Claude', 'Muse'].includes(group.name)) {
       assert.equal(field('empty-fallback'), 'REJECT', `${relative}: ${group.name} must not fall back to direct when empty`)
     }

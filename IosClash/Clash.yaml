@@ -1,6 +1,6 @@
-# Last Updated: 2026-11-02 [Clash v1.02]
+# Last Updated: 2026-11-02 [Clash v1.03]
 # mihomo 配置,按 Clash(OmniWide)1.0.13 / 内核 v1.19.33-clash.4 的源码调优,Clash Mi 也能导入,但下面标了 OmniWide 的说法不适用于它。
-# 分流与 IosStash/Stash.stoverride v3.00 相同,另加两处:只认纯 IP 连接的嗅探、Apple 17.0.0.0/8 直连;除 EMBY、Muse 外,各组都多收自建台北两台。
+# 分流与 IosStash/Stash.stoverride v3.00 相同,另加两处:只认纯 IP 连接的嗅探、Apple 17.0.0.0/8 直连;除 EMBY、Muse 外,各组都多收自建台北两台;除 Muse 外,各组都多收悦的台湾家宽。
 # ⚠️ 本仓库公开,下方订阅地址是占位符。导入前换成 Sub-Store 的 Group.yaml 地址(ClashMeta 格式)。
 
 mode: rule
@@ -76,7 +76,7 @@ dns:
 # mihomo 按代理集测速,不按组:
 #   - 只要有一个组在用,代理集里的节点每轮全部要测,所以 filter 必须正好是各组成员的并集,多一个就多测一个;
 #   - 组上不写 url,否则会给代理集多注册一个测速任务;都用同一个地址,结果才能各组共享。
-# 不要为了让空闲组少测而拆代理集:各组成员高度重叠,日常 + Google 就要测 85 个(现在只共 79 个),全用上时 157 个,还要多下载几份订阅。
+# 不要为了让空闲组少测而拆代理集:各组成员高度重叠,日常 + Google 就要测 93 个(现在只共 83 个),全用上时 177 个,还要多下载几份订阅。
 # 白名单同时挡住裸 SS「自建·<机器>·SS」(不带跳板从手机直接过墙,台北 IP 可能被封)、机场公告节点、IPv6-only 节点。
 proxy-providers:
   组合机场:
@@ -84,7 +84,7 @@ proxy-providers:
     url: "https://example.invalid/replace-with-group-yaml-url"
     path: ./providers/group.yaml
     interval: 21600 # 与 Sub-Store 每 6 小时同步 Gist 对齐
-    filter: "^(微斯·(🇭🇰|🇨🇳TW|🇯🇵|🇸🇬|🇰🇷|🇺🇸).*备用入口$|悦·(🇭🇰|🇺🇸)|悦·(🇯🇵日本|🇸🇬新加坡|🇹🇼台湾|🇰🇷韩国)[12] · |悦·(🇯🇵|🇸🇬)[^·]*AI解锁|一分·(🇭🇰|🇯🇵日本专线|🇸🇬|🇹🇼)|自建·台北[0-9]+·Reality$)"
+    filter: "^(微斯·(🇭🇰|🇨🇳TW|🇯🇵|🇸🇬|🇰🇷|🇺🇸).*备用入口$|悦·(🇭🇰|🇺🇸)|悦·(🇯🇵日本|🇸🇬新加坡|🇹🇼台湾|🇰🇷韩国)[12] · |悦·🇹🇼台湾家宽[12]|悦·(🇯🇵|🇸🇬)[^·]*AI解锁|一分·(🇭🇰|🇯🇵日本专线|🇸🇬|🇹🇼)|自建·台北[0-9]+·Reality$)"
     # 不按协议排除 Hysteria2:2026-11-02 同机场比较,悦差一些、一分更好,家宽数据也不能代表手机。QUIC 连接在用时每 10 秒发一次心跳(sing-quic DefaultKeepAlivePeriod),耗电差多少没测过。
     health-check:
       enable: true
@@ -176,7 +176,7 @@ proxy-groups:
     icon: https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/Urltest.png
     use:
       - 组合机场
-    filter: "^(微斯·(🇭🇰|🇨🇳TW|🇯🇵|🇸🇬|🇰🇷).*备用入口$|悦·🇭🇰|悦·(🇯🇵日本|🇸🇬新加坡|🇹🇼台湾)[12] · |一分·(🇭🇰|🇯🇵日本专线|🇸🇬|🇹🇼)|自建·台北[0-9]+·Reality$)"
+    filter: "^(微斯·(🇭🇰|🇨🇳TW|🇯🇵|🇸🇬|🇰🇷).*备用入口$|悦·🇭🇰|悦·(🇯🇵日本|🇸🇬新加坡|🇹🇼台湾)[12] · |悦·🇹🇼台湾家宽[12]|一分·(🇭🇰|🇯🇵日本专线|🇸🇬|🇹🇼)|自建·台北[0-9]+·Reality$)"
     tolerance: 100
 
   # 不收日本(与 PC 一致)和自建(VPS 流量有限);不收微斯:它延迟最低但流量有限,视频留给不限量的悦和 0.1 倍率的一分。
@@ -185,7 +185,7 @@ proxy-groups:
     icon: https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/Emby.png
     use:
       - 组合机场
-    filter: "^(悦·🇭🇰|悦·(🇰🇷韩国|🇸🇬新加坡|🇹🇼台湾)[12] · |一分·(🇭🇰|🇸🇬|🇹🇼))"
+    filter: "^(悦·🇭🇰|悦·(🇰🇷韩国|🇸🇬新加坡|🇹🇼台湾)[12] · |悦·🇹🇼台湾家宽[12]|一分·(🇭🇰|🇸🇬|🇹🇼))"
     tolerance: 100
 
   # 比 EMBY 多收自建,其余相同,原因也相同:YouTube 走 自动选择 会选中微斯,很快用完它的流量。
@@ -194,7 +194,7 @@ proxy-groups:
     icon: https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/YouTube.png
     use:
       - 组合机场
-    filter: "^(悦·🇭🇰|悦·(🇰🇷韩国|🇸🇬新加坡|🇹🇼台湾)[12] · |一分·(🇭🇰|🇸🇬|🇹🇼)|自建·台北[0-9]+·Reality$)"
+    filter: "^(悦·🇭🇰|悦·(🇰🇷韩国|🇸🇬新加坡|🇹🇼台湾)[12] · |悦·🇹🇼台湾家宽[12]|一分·(🇭🇰|🇸🇬|🇹🇼)|自建·台北[0-9]+·Reality$)"
     tolerance: 100
 
   # Google 与 TikTok 也走本组。不收港澳(Gemini 不可用)和一分(与 PC 一致)。
@@ -204,7 +204,7 @@ proxy-groups:
     icon: https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/Google.png
     use:
       - 组合机场
-    filter: "^(微斯·(🇨🇳TW|🇯🇵|🇸🇬|🇺🇸).*备用入口$|悦·(🇯🇵|🇸🇬|🇺🇸)[^·]*AI解锁|悦·🇺🇸美国[12] · |自建·台北[0-9]+·Reality$)"
+    filter: "^(微斯·(🇨🇳TW|🇯🇵|🇸🇬|🇺🇸).*备用入口$|悦·(🇯🇵|🇸🇬|🇺🇸)[^·]*AI解锁|悦·🇺🇸美国[12] · |悦·🇹🇼台湾家宽[12]|自建·台北[0-9]+·Reality$)"
     tolerance: 100
     empty-fallback: REJECT
 
@@ -213,17 +213,17 @@ proxy-groups:
     icon: https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/OpenAI.png
     use:
       - 组合机场
-    filter: "^(微斯·(🇨🇳TW|🇯🇵|🇸🇬|🇺🇸).*备用入口$|悦·(🇯🇵|🇸🇬|🇺🇸)[^·]*AI解锁|悦·🇺🇸美国[12] · |自建·台北[0-9]+·Reality$)"
+    filter: "^(微斯·(🇨🇳TW|🇯🇵|🇸🇬|🇺🇸).*备用入口$|悦·(🇯🇵|🇸🇬|🇺🇸)[^·]*AI解锁|悦·🇺🇸美国[12] · |悦·🇹🇼台湾家宽[12]|自建·台北[0-9]+·Reality$)"
     tolerance: 100
     empty-fallback: REJECT
 
-  # 与 PC 的 Claude 组用同一批台湾出口。
+  # 只收台湾出口:台北两台加悦的台湾家宽。PC 上台湾家宽经中转(2026-10-18 家宽直连只有 31~37%),手机不走中转,测不通时 url-test 不会选。
   - name: Claude
     type: url-test
     icon: https://www.google.com/s2/favicons?domain=claude.ai&sz=128
     use:
       - 组合机场
-    filter: "^自建·台北[0-9]+·Reality$"
+    filter: "^(自建·台北[0-9]+·Reality$|悦·🇹🇼台湾家宽[12])"
     tolerance: 100
     empty-fallback: REJECT
 
