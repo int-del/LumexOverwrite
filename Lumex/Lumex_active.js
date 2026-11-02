@@ -1,7 +1,9 @@
 // Lumex Party 专用配置文件覆写脚本
 // 引用链接: https://raw.githubusercontent.com/int-del/LumexOverwrite/main/Lumex_active.js
 // 加速链接: https://cdn.jsdelivr.net/gh/int-del/LumexOverwrite@main/Lumex_active.js
-// 版本: V4.26-AntiCN  | 更新日期: 2026-11-03
+// 版本: V4.27-AntiCN  | 更新日期: 2026-11-03
+// V4.27: EMBY 组放行自建洛杉矶(用户要求):exclude-filter 从排除全部自建改成只排除台北两台。每月 1000GB,
+//      分到它的 Emby 站点会一直走它;只进直连 Reality,裸 SS 与中转不进 EMBY。
 // V4.26: 新增自建洛杉矶(搬瓦工 LA VPS,2026-11-02 起;地址只写在本机 Sub-Store,独有一套密钥):「自建·洛杉矶·Reality」
 //      经组合机场直接当出口;裸 SS2022「自建·洛杉矶·SS」按通配排除，只经中转用(新增代理集「自建洛杉矶SS经香港 / 经综合」)。
 //      Gemini / ChatGPT / Cursor 白名单加「洛杉矶」(节点名里没有「美国」);Muse 白名单本来就认「洛杉矶」。
@@ -135,7 +137,7 @@
   function main(config) {
   // 打印版本号，用于确认是否下载到了最新版
   // eslint-disable-next-line no-console
-  console.log("✅ 加载脚本 V4.26-AntiCN (新增自建洛杉矶)...");
+  console.log("✅ 加载脚本 V4.27-AntiCN (EMBY 放行自建洛杉矶)...");
 
   // 关键修复：如果 config 为空，必须返回空对象 {} 而不是 null
 
@@ -452,7 +454,9 @@
       "use": ["组合机场"], // 引入代理集
       "filter": "^(?!.*(俄罗斯|Russia|🇷🇺|(?<![A-Za-z])RU(?![A-Za-z])|朝鲜|北韩|North ?Korea|🇰🇵|(?<![A-Za-z])KP(?![A-Za-z])|古巴|Cuba|🇨🇺|(?<![A-Za-z])CU(?![A-Za-z])|日本|Japan|🇯🇵|(?<![A-Za-z])JP(?![A-Za-z]))).*", // 额外排除日本节点
       // 不用自建台湾(VPS 每月 1TB):本组按站点哈希分配出口，分到自建的站点会长期走 VPS,视频几天就能吃光流量。
-      "exclude-filter": "^自建·",
+      //   V4.27 起按用户要求放行自建洛杉矶(每月 1000GB,24 日重置;1080p 约 2.25GB/小时，约 440 小时)。只放直连 Reality:
+      //   本组只用组合机场，裸 SS 已在代理集排除，中转不进本组。
+      "exclude-filter": "^自建·(?!洛杉矶·)",
       "url": "https://www.gstatic.com/generate_204", // 组内节点存活检查（media-balance 不支持多 URL 加权）
       "interval": 600, // 🎯 非关键业务：降低检测频率，减少不必要的连接
       "lazy": true, // 🎯 非关键业务：延迟测速，进一步节省开销
