@@ -96,6 +96,9 @@ for (const relative of scripts) {
     .map((rule) => rule.replace(/\s+#.*$/, ''))
   assert.deepEqual(ipRulesWithoutNoResolve(rules), [], `${relative}: IP rules must carry no-resolve`)
   assert(!/^ {2}fallback(-filter)?:/m.test(text), `${relative}: dns.fallback must stay removed`)
+  // 公开仓库只放占位符
+  const subscription = lines.slice(lines.indexOf('proxy-providers:')).find((line) => /^ {4}url:/.test(line))
+  assert(subscription?.includes('https://example.invalid/'), `${relative}: subscription url must stay a placeholder`)
   const block = (key) => {
     const start = lines.findIndex((line) => line === `  ${key}:`)
     if (start < 0) return []

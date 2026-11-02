@@ -1,7 +1,8 @@
 ﻿# Lumex Party 专用配置文件 (由 Lumex.js 转换而来)
 # 引用链接: https://raw.githubusercontent.com/int-del/LumexOverwrite/main/Lumex.yaml
 # 加速链接: https://cdn.jsdelivr.net/gh/int-del/LumexOverwrite@main/Lumex.yaml
-# 版本: v2.14 | 更新日期: 2026-10-18
+# 版本: v2.15 | 更新日期: 2026-11-02
+# v2.15: 订阅地址改为占位符,导入后在 proxy-providers 里换成自己的地址。
 # v2.14: DNS 防泄漏重排，与 Lumex_active.js V4.12 同步(RFC-031):默认上游改国外 DoH、国内 DoH 只管国内域名与直连、
 #        删 fallback、节点域名解析改 IP 直连 DoH、GEOIP,telegram 补 no-resolve、局域网名交给路由器。
 # 说明: 
@@ -135,7 +136,7 @@ rule-providers: {}
 proxy-providers:
   组合机场:
     type: http
-    url: https://sub.tymin.cn:8443/xiejian2026/download/collection/%E7%BB%84%E5%90%88%E6%9C%BA%E5%9C%BA
+    url: https://example.invalid/replace-with-subscription-url # 公开仓库只放占位符,导入后换成自己的订阅地址
     path: ./proxy_providers/组合机场.yaml
     interval: 3600
     filter: (?i)^(?!.*(流量|到期|重置|官网|剩余|套餐|expire|traffic|reset|群组|频道|@|联系|网站|入群|关注|反馈|更新)).*
