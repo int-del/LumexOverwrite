@@ -296,7 +296,13 @@ const IOS_EXPECTED_MEMBERS = {
   }
   const providerFilter = filterOf(provider)
   for (const node of IOS_PROVIDER_EXCLUDED) assert(!providerFilter.test(node), `${relative}: provider filter must exclude ${node}`)
-  for (const node of Object.values(IOS_NODES)) assert(providerFilter.test(node), `${relative}: provider filter must keep ${node}`)
+  // Clash 版不收新加坡，Stash 版不变
+  for (const node of [IOS_NODES.sgAi, '微斯·🇸🇬SG-01 · 备用入口', '悦·🇸🇬新加坡2 · A', '一分·🇸🇬新加坡专线']) {
+    assert(!providerFilter.test(node), `${relative}: provider filter must exclude ${node}`)
+  }
+  for (const [key, node] of Object.entries(IOS_NODES)) {
+    if (key !== 'sgAi') assert(providerFilter.test(node), `${relative}: provider filter must keep ${node}`)
+  }
   for (const group of groups) {
     const field = (key) => group.fields.find((line) => line.startsWith(`${key}:`))?.split('#')[0].slice(key.length + 1).trim()
     if (field('type') === 'select') continue
@@ -306,7 +312,7 @@ const IOS_EXPECTED_MEMBERS = {
     const filter = filterOf(group.fields)
     const expected = IOS_EXPECTED_MEMBERS[group.name]
     assert(expected, `${relative}: add ${group.name} to IOS_EXPECTED_MEMBERS`)
-    for (const key of expected.in) assert(filter.test(IOS_NODES[key]), `${relative}: ${group.name} must keep ${IOS_NODES[key]}`)
+    for (const key of expected.in.filter((key) => key !== 'sgAi')) assert(filter.test(IOS_NODES[key]), `${relative}: ${group.name} must keep ${IOS_NODES[key]}`)
     // 自建的边界与 Stash 版不同：除 EMBY、Muse 外都收台北两台
     for (const key of expected.out.filter((key) => key !== 'claude')) assert(!filter.test(IOS_NODES[key]), `${relative}: ${group.name} must exclude ${IOS_NODES[key]}`)
     const keepsSelfHosted = !['EMBY', 'Muse'].includes(group.name)
