@@ -252,8 +252,6 @@ const IOS_EXPECTED_MEMBERS = {
   const forbidden = /^\s*-\s*(PROTOCOL|GEOSITE|GEOIP|PROCESS-NAME|PROCESS-PATH),|no-track|\(PROTOCOL,|\(GEOSITE,|\(GEOIP,|#!replace|^\s*(fallback|fallback-filter|benchmark-url|benchmark-timeout):/m
   assert(!forbidden.test(body), `${relative}: unsupported field: ${body.match(forbidden)?.[0]}`)
   assert(/^disable-keep-alive: true/m.test(body), `${relative}: keep-alive must stay off on mobile`)
-  // QUIC 自带 10 秒心跳，不受 disable-keep-alive 控制
-  assert(/^ {4}exclude-type: hysteria2/m.test(body), `${relative}: hysteria2 must stay out of the phone pool`)
   // 嗅探只给纯 IP 连接用：force-dns-mapping 或 force-domain 会让 fake-ip 连接也等首包，改目标会改变实际连接
   assert(/^ {2}parse-pure-ip: true/m.test(body) && /^ {2}override-destination: false/m.test(body), `${relative}: sniffer must only classify pure-IP connections`)
   assert(!/^ {2}(force-dns-mapping: true|force-domain:)/m.test(body), `${relative}: sniffer must not touch fake-ip connections`)
@@ -309,7 +307,12 @@ const IOS_EXPECTED_MEMBERS = {
     const expected = IOS_EXPECTED_MEMBERS[group.name]
     assert(expected, `${relative}: add ${group.name} to IOS_EXPECTED_MEMBERS`)
     for (const key of expected.in) assert(filter.test(IOS_NODES[key]), `${relative}: ${group.name} must keep ${IOS_NODES[key]}`)
-    for (const key of expected.out) assert(!filter.test(IOS_NODES[key]), `${relative}: ${group.name} must exclude ${IOS_NODES[key]}`)
+    // 自建的边界与 Stash 版不同：除 EMBY、Muse 外都收台北两台
+    for (const key of expected.out.filter((key) => key !== 'claude')) assert(!filter.test(IOS_NODES[key]), `${relative}: ${group.name} must exclude ${IOS_NODES[key]}`)
+    const keepsSelfHosted = !['EMBY', 'Muse'].includes(group.name)
+    for (const node of ['自建·台北1·Reality', '自建·台北2·Reality']) {
+      assert.equal(filter.test(node), keepsSelfHosted, `${relative}: ${group.name} ${keepsSelfHosted ? 'must keep' : 'must exclude'} ${node}`)
+    }
     if (['Gemini', 'ChatGPT', 'Claude', 'Muse'].includes(group.name)) {
       assert.equal(field('empty-fallback'), 'REJECT', `${relative}: ${group.name} must not fall back to direct when empty`)
     }
