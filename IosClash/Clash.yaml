@@ -1,11 +1,11 @@
-# Last Updated: 2026-11-02 [Clash v1.04]
+# Last Updated: 2026-11-02 [Clash v1.05]
 # mihomo 配置,按 Clash(OmniWide)1.0.13 / 内核 v1.19.33-clash.4 的源码调优,Clash Mi 也能导入,但下面标了 OmniWide 的说法不适用于它。
-# 分流与 IosStash/Stash.stoverride v3.00 相同,另加两处:只认纯 IP 连接的嗅探、Apple 17.0.0.0/8 直连;除 EMBY、Muse 外,各组都多收自建台北两台;除 Muse 外,各组都多收悦的台湾家宽;不收新加坡。
+# 分流基本同 IosStash/Stash.stoverride v3.00,差别:只认纯 IP 连接的嗅探、Apple 17.0.0.0/8 直连、STUN 走代理、隧道接管 IPv6;除 EMBY、Muse 外,各组都多收自建台北两台;除 Muse 外,各组都多收悦的台湾家宽;不收新加坡。
 # ⚠️ 本仓库公开,下方订阅地址是占位符。导入前换成 Sub-Store 的 Group.yaml 地址(ClashMeta 格式)。
 
 mode: rule
 log-level: error
-ipv6: false # 只用 IPv4;IPv6-only 节点已被下方订阅白名单排除
+ipv6: true # 只为让隧道接管 IPv6:写 false 时内核会清掉隧道的 IPv6 地址(config/config.go parseIPV6),走 5G 时 IPv6 可能绕过隧道。解析结果仍只给 IPv4,见 dns.ipv6;IPv6-only 节点已被下方订阅白名单排除
 allow-lan: false
 find-process-mode: off # iOS 没有进程规则,不查进程
 unified-delay: false # OmniWide 不写时默认 true,写了才保留。关掉后每次测速少发一个请求,测到的也是新连接真正要等的时间(含握手)
@@ -39,7 +39,7 @@ hosts:
 # 不配 fallback(RFC-031);节点域名单独走 IP 直连的 DoH,运营商看不到机场域名。
 dns:
   enable: true
-  ipv6: false
+  ipv6: false # App 只拿到 IPv4 解析结果,与上方全局 ipv6 是两回事
   enhanced-mode: fake-ip
   fake-ip-range: 198.18.0.1/16
   use-hosts: true
@@ -347,9 +347,11 @@ rules:
   - RULE-SET,ai-chat,Gemini
   - RULE-SET,tiktok,Gemini
 
-  # === mihomo 没有 PROTOCOL,STUN 按常用端口直连,保留微信、FaceTime 等通话质量 ===
-  - AND,((NETWORK,UDP),(DST-PORT,3478-3497/19302-19309)),DIRECT
-  - DST-PORT,123,DIRECT
+  # === WebRTC:网页不需要任何权限就能让浏览器打 STUN,直连会暴露真实出口(RFC-031 §8)。mihomo 没有 PROTOCOL,按常用端口走代理;123 也算在内,网页可以把 STUN 放在上面 ===
+  # 必须排在国内规则前面,国内 STUN 同样会暴露。节点不支持 UDP 时内核会跳过第一条(tunnel/tunnel.go),第二条拒绝,不落回直连。
+  # FaceTime 连 Apple 的部分已在上方 17.0.0.0/8 直连。手机没有进程规则,国内服务器的非标准端口挡不住。
+  - AND,((NETWORK,UDP),(DST-PORT,123/3478-3497/19302-19309)),自动选择
+  - AND,((NETWORK,UDP),(DST-PORT,123/3478-3497/19302-19309)),REJECT
 
   # === 兜底 ===
   - RULE-SET,cn-site,国内

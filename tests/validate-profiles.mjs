@@ -286,6 +286,16 @@ const IOS_EXPECTED_MEMBERS = {
     assert(rules.some((rule) => rule.includes(`RULE-SET,${name}`)), `${relative}: rule-set never used: ${name}`)
   }
   assert(rules.at(-1).startsWith('MATCH,'), `${relative}: last rule must be MATCH`)
+  // 网页不需要权限就能让 WebRTC 打 STUN：这些端口不能直连，国内 STUN 也一样，所以要排在国内规则前面;节点不支持 UDP 时内核跳过代理规则，靠下一条拒绝
+  const stunPorts = 'DST-PORT,123/3478-3497/19302-19309'
+  const stun = rules.indexOf(`AND,((NETWORK,UDP),(${stunPorts})),自动选择`)
+  assert(stun >= 0, `${relative}: STUN ports must go through a proxy`)
+  assert.equal(rules[stun + 1], `AND,((NETWORK,UDP),(${stunPorts})),REJECT`, `${relative}: STUN must be rejected when the proxy has no UDP`)
+  assert(stun < rules.findIndex((rule) => rule.startsWith('RULE-SET,cn-site,')), `${relative}: STUN rule must come before the domestic rules`)
+  assert(!rules.some((rule) => /DST-PORT,[^)]*\b(123|3478|19302)\b/.test(rule) && rule.endsWith(',DIRECT')), `${relative}: STUN ports must not go direct`)
+  // ipv6: false 时内核清掉隧道的 IPv6 地址，隧道不接管 IPv6;App 只拿 IPv4 解析结果靠 dns.ipv6
+  assert(/^ipv6: true/m.test(body), `${relative}: the tunnel must take over IPv6`)
+  assert(/^dns:\n(?: .*\n)*? {2}ipv6: false/m.test(body), `${relative}: dns.ipv6 must stay off`)
   const youtube = rules.findIndex((rule) => rule.startsWith('RULE-SET,youtube,'))
   assert(youtube >= 0 && youtube < rules.findIndex((rule) => rule.startsWith('RULE-SET,google,')), `${relative}: youtube must come before google`)
 
