@@ -1,7 +1,11 @@
 // Lumex Party 专用配置文件覆写脚本
 // 引用链接: https://raw.githubusercontent.com/int-del/LumexOverwrite/main/Lumex_active.js
 // 加速链接: https://cdn.jsdelivr.net/gh/int-del/LumexOverwrite@main/Lumex_active.js
-// 版本: V4.25-AntiCN  | 更新日期: 2026-11-01
+// 版本: V4.26-AntiCN  | 更新日期: 2026-11-03
+// V4.26: 新增自建洛杉矶(搬瓦工 LA VPS,2026-11-02 起;地址只写在本机 Sub-Store,独有一套密钥):「自建·洛杉矶·Reality」
+//      经组合机场直接当出口;裸 SS2022「自建·洛杉矶·SS」按通配排除，只经中转用(新增代理集「自建洛杉矶SS经香港 / 经综合」)。
+//      Gemini / ChatGPT / Cursor 白名单加「洛杉矶」(节点名里没有「美国」);Muse 白名单本来就认「洛杉矶」。
+//      Claude 组不加(只用台湾出口，免得 Claude 看到的 IP 在两个国家之间切);EMBY 照旧排除全部自建。
 // V4.25: facebook.com / instagram.com / fbcdn.net 并进 Muse 组(用户要求)。原因：11-01 15:14 登录 Muse 时 muse.ai、auth.meta.com
 //      走美国，同一次登录里浏览器连的 www.facebook.com、www.instagram.com 仍走自动选择(台湾),Meta 同时看到两个地区的 IP。
 //      代价：平时刷 Facebook / Instagram 也走美国;Muse 组无合格节点时这些网站一起连不上。WhatsApp 不动。
@@ -131,7 +135,7 @@
   function main(config) {
   // 打印版本号，用于确认是否下载到了最新版
   // eslint-disable-next-line no-console
-  console.log("✅ 加载脚本 V4.25-AntiCN (Muse 组收 Facebook / Instagram)...");
+  console.log("✅ 加载脚本 V4.26-AntiCN (新增自建洛杉矶)...");
 
   // 关键修复：如果 config 为空，必须返回空对象 {} 而不是 null
 
@@ -297,6 +301,7 @@
       // 合集里含自建台湾(Sub-Store 本地订阅「自建：台湾」并入本合集，随 Group.yaml 同步到 Gist;密钥只在本机 Sub-Store,
       //   本仓库公开不写):旧机 wap.ac 的「自建·台北1·Reality / HY2」和裸 SS2022「自建·台北1·SS」(10-21 前叫「自建·台北·…」),
       //   新机 ByteVirt 的「自建·台北2·Reality / HY2」和裸 SS2022「自建·台北2·SS」(10-22 起)。两台的 HY2 10-22 起注释掉。
+      //   洛杉矶(搬瓦工)的「自建·洛杉矶·Reality」和裸 SS2022「自建·洛杉矶·SS」(11-02 起，V4.26)。
       //   2026-10-18 起按用户决定放给除 EMBY 外的所有组试效果——Reality / HY2 经本代理集直接可见(Gemini / ChatGPT /
       //   Cursor 的地区白名单为此加了「台北」,EMBY 组用 exclude-filter 排除);SS 只经下方中转代理集带跳板提供。
       //   ⚠️ 裸 SS 节点必须在这里排除：它不带跳板，进了自动选择等组会让 SS2022 从家里直接过墙，全加密流量会被识别，
@@ -338,6 +343,9 @@
     ["自建台北2SS经香港", "^自建·台北2·SS$", "跳板·香港", "中转·香港-"],
     ["自建台北1SS经综合", "^自建·台北1·SS$", "跳板·综合", "中转·综合-"],
     ["自建台北2SS经综合", "^自建·台北2·SS$", "跳板·综合", "中转·综合-"],
+    // 洛杉矶(V4.26):和台北2 一样经香港、经综合两条;没有同机房的跳板。
+    ["自建洛杉矶SS经香港", "^自建·洛杉矶·SS$", "跳板·香港", "中转·香港-"],
+    ["自建洛杉矶SS经综合", "^自建·洛杉矶·SS$", "跳板·综合", "中转·综合-"],
     ["自建台北1SS经台北2", "^自建·台北1·SS$", "跳板·台北2", "中转·台北2-"]
   ];
   // 业务组和 Claude 组的 use:组合机场 + 上表全部中转代理集。各组用 .slice() 拿一份拷贝——共用同一个数组，
@@ -462,7 +470,7 @@
       "icon": "https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/Google.png",
       "use": RELAY_USE.slice(), // 引入代理集：组合机场 + 全部中转(见上方中转代理集表)
       // 🚀 白名单锁定亚洲低延迟 + 美国兜底，JP/KR 已确认 Gemini 可用
-      "filter": "(?i)(台湾|台北|Taiwan|(?<![A-Za-z])TW(?![A-Za-z])|日本|Japan|(?<![A-Za-z])JP(?![A-Za-z])|韩国|Korea|(?<![A-Za-z])KR(?![A-Za-z])|新加坡|Singapore|(?<![A-Za-z])SG(?![A-Za-z])|美国|(?<![A-Za-z])US)",
+      "filter": "(?i)(台湾|台北|Taiwan|(?<![A-Za-z])TW(?![A-Za-z])|日本|Japan|(?<![A-Za-z])JP(?![A-Za-z])|韩国|Korea|(?<![A-Za-z])KR(?![A-Za-z])|新加坡|Singapore|(?<![A-Za-z])SG(?![A-Za-z])|美国|洛杉矶|(?<![A-Za-z])US)", // 洛杉矶 = 自建洛杉矶(V4.26)
       // 剔除“一分”“三毛”，并兜底排除港/马来落地（见文件头 Fix 说明）。只查落地部分：中转节点跳过「中转·<跳板>-」再查，
       //   否则「中转·香港·…」会因跳板名被误杀(与 Claude 组同一写法，V4.20)
       "exclude-filter": "^(?:中转·[^·-]+-|(?!中转·))(?=.*(一分|一毛|三毛|🇭🇰|香港|🇲🇾|马来))",
@@ -690,7 +698,7 @@
       "type": "url-test",
       "icon": "https://www.google.com/s2/favicons?domain=cursor.com&sz=128",
       "use": RELAY_USE.slice(), // 引入代理集：组合机场 + 全部中转(见上方中转代理集表)
-      "filter": "(?i)(美国|(?<![A-Za-z])US|日本|Japan|(?<![A-Za-z])JP(?![A-Za-z])|新加坡|Singapore|(?<![A-Za-z])SG(?![A-Za-z])|台湾|台北|Taiwan|(?<![A-Za-z])TW(?![A-Za-z])|英国|(?<![A-Za-z])UK(?![A-Za-z])|(?<![A-Za-z])GB(?![A-Za-z])|加拿大|(?<![A-Za-z])CA(?![A-Za-z])|澳大利亚|Australia|(?<![A-Za-z])AU(?![A-Za-z]))",
+      "filter": "(?i)(美国|洛杉矶|(?<![A-Za-z])US|日本|Japan|(?<![A-Za-z])JP(?![A-Za-z])|新加坡|Singapore|(?<![A-Za-z])SG(?![A-Za-z])|台湾|台北|Taiwan|(?<![A-Za-z])TW(?![A-Za-z])|英国|(?<![A-Za-z])UK(?![A-Za-z])|(?<![A-Za-z])GB(?![A-Za-z])|加拿大|(?<![A-Za-z])CA(?![A-Za-z])|澳大利亚|Australia|(?<![A-Za-z])AU(?![A-Za-z]))", // 洛杉矶 = 自建洛杉矶(V4.26)
       // 兜底排除港/马来落地（见文件头 Fix 说明）;只查落地部分，不误杀「中转·香港·…」(与 Claude 组同一写法，V4.20)
       "exclude-filter": "^(?:中转·[^·-]+-|(?!中转·))(?=.*(三毛|一毛|一分|🇭🇰|香港|🇲🇾|马来))",
       "empty-fallback": "REJECT", // 白名单滤空时显式失败，不回落直连（见文件头 Fix 说明）
@@ -718,7 +726,7 @@
       "type": "url-test",
       "icon": "https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/OpenAI.png",
       "use": RELAY_USE.slice(), // 引入代理集：组合机场 + 全部中转(见上方中转代理集表)
-      "filter": "(?i)(美国|(?<![A-Za-z])US|日本|Japan|(?<![A-Za-z])JP(?![A-Za-z])|新加坡|Singapore|(?<![A-Za-z])SG(?![A-Za-z])|台湾|台北|Taiwan|(?<![A-Za-z])TW(?![A-Za-z])|英国|(?<![A-Za-z])UK(?![A-Za-z])|(?<![A-Za-z])GB(?![A-Za-z])|加拿大|(?<![A-Za-z])CA(?![A-Za-z])|澳大利亚|Australia|(?<![A-Za-z])AU(?![A-Za-z]))",
+      "filter": "(?i)(美国|洛杉矶|(?<![A-Za-z])US|日本|Japan|(?<![A-Za-z])JP(?![A-Za-z])|新加坡|Singapore|(?<![A-Za-z])SG(?![A-Za-z])|台湾|台北|Taiwan|(?<![A-Za-z])TW(?![A-Za-z])|英国|(?<![A-Za-z])UK(?![A-Za-z])|(?<![A-Za-z])GB(?![A-Za-z])|加拿大|(?<![A-Za-z])CA(?![A-Za-z])|澳大利亚|Australia|(?<![A-Za-z])AU(?![A-Za-z]))", // 洛杉矶 = 自建洛杉矶(V4.26)
       // 兜底排除港/马来落地（见文件头 Fix 说明）;只查落地部分，不误杀「中转·香港·…」(与 Claude 组同一写法，V4.20)
       "exclude-filter": "^(?:中转·[^·-]+-|(?!中转·))(?=.*(三毛|一毛|一分|🇭🇰|香港|🇲🇾|马来))",
       "empty-fallback": "REJECT", // 白名单滤空时显式失败，不回落直连（见文件头 Fix 说明）
