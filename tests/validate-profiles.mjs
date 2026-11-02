@@ -134,7 +134,7 @@ const IOS_NODES = {
   claude: '自建·台北2·Reality'
 }
 // 这些节点绝不能进代理集:裸 SS 会让 SS2022 从手机直接过墙，其余是公告或用不了的节点
-const IOS_PROVIDER_EXCLUDED = ['自建·台北1·SS', '自建·台北2·SS', '悦·剩余流量：无限', '悦·套餐到期：长期有效', '一分·剩余流量：737.62 GB', '微斯·距离下次重置剩余：6 天', '三毛·流量已耗尽！', '星链·ipv6-高速-德州', '微斯·🇭🇰HK-06[Max]×3', '微斯·🇭🇰HK-01']
+const IOS_PROVIDER_EXCLUDED = ['自建·台北1·SS', '自建·台北2·SS', '自建·洛杉矶·SS', '悦·剩余流量：无限', '悦·套餐到期：长期有效', '一分·剩余流量：737.62 GB', '微斯·距离下次重置剩余：6 天', '三毛·流量已耗尽！', '星链·ipv6-高速-德州', '微斯·🇭🇰HK-06[Max]×3', '微斯·🇭🇰HK-01']
 const IOS_EXPECTED_MEMBERS = {
   自动选择: { in: ['hk', 'hkFast', 'jp', 'tw', 'twFast', 'oneHk', 'oneJp'], out: ['us', 'usFast', 'claude'] },
   EMBY: { in: ['hk', 'tw', 'kr', 'oneHk'], out: ['hkFast', 'jp', 'jpAi', 'oneJp', 'claude'] },
@@ -329,6 +329,11 @@ const IOS_EXPECTED_MEMBERS = {
     for (const node of ['自建·台北1·Reality', '自建·台北2·Reality']) {
       assert.equal(filter.test(node), keepsSelfHosted, `${relative}: ${group.name} ${keepsSelfHosted ? 'must keep' : 'must exclude'} ${node}`)
     }
+    // 洛杉矶不是台湾出口，只有 Claude 不收(与 PC V4.27 一致，PC 的 Claude 也只收台湾)
+    const keepsLosAngeles = group.name !== 'Claude'
+    assert(providerFilter.test('自建·洛杉矶·Reality'), `${relative}: provider filter must keep 自建·洛杉矶·Reality`)
+    assert.equal(filter.test('自建·洛杉矶·Reality'), keepsLosAngeles, `${relative}: ${group.name} ${keepsLosAngeles ? 'must keep' : 'must exclude'} 自建·洛杉矶·Reality`)
+    assert(!filter.test('自建·洛杉矶·SS'), `${relative}: ${group.name} must exclude 自建·洛杉矶·SS`)
     // 台湾家宽的名字不带「台湾[12]」，普通台湾节点的写法匹配不到它，曾因此不属于任何组
     const keepsTaiwanHome = group.name !== 'Muse'
     for (const node of ['悦·🇹🇼台湾家宽1💎 · A', '悦·🇹🇼台湾家宽2💎 · B']) {
