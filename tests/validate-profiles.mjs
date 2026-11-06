@@ -61,20 +61,29 @@ function assertJumpGroups(groups) {
   const hk = jumps.find((group) => group.name === '跳板·香港')
   const mixed = jumps.find((group) => group.name === '跳板·综合')
   assert(hk && mixed, 'Lumex_active.js: 跳板·香港 / 跳板·综合 required')
-  const hkMembers = ['悦·🇭🇰香港家宽2💎', '悦·🇭🇰香港2', '悦·🇭🇰香港家宽2💎 · A', '悦·🇭🇰香港2 · A', '悦·悦 · 🇭🇰 香港家宽2💎', '悦·悦 · 🇭🇰 香港2']
+  // V4.29:香港节点(任何机场、改名前后两种格式)全归跳板·香港,跳板·综合一个不收。
+  const hkMembers = [
+    '悦·🇭🇰香港家宽2💎', '悦·🇭🇰香港2', '悦·🇭🇰香港家宽1💎', '悦·🇭🇰香港2 · A', '悦·悦 · 🇭🇰 香港家宽2💎',
+    '微斯·🇭🇰HK-01 · 备用入口', '微斯·🇭🇰HK-05[Residential] · 备用入口', '一分·🇭🇰香港HKBN', '🇭🇰 HK03', '星链·HK香港02', '星链·HK高速-香港03'
+  ]
   for (const node of hkMembers) {
     assert(keeps(hk, node), `Lumex_active.js: 跳板·香港 must keep ${node}`)
     assert(!keeps(mixed, node), `Lumex_active.js: 跳板·综合 must not overlap 跳板·香港 (${node})`)
   }
-  for (const node of ['悦·🇭🇰香港家宽1💎', '悦·🇭🇰香港1', '悦·🇭🇰香港20', '一分·🇭🇰香港HKBN', '自建·台北2·Reality']) {
+  for (const node of ['悦·🇹🇼台湾家宽2💎', '微斯·🇲🇴MO-01 · 备用入口', '星链·SHKG-测试', '自建·台北2·Reality', '一分·香港勿跑大流量']) {
     assert(!keeps(hk, node), `Lumex_active.js: 跳板·香港 must exclude ${node}`)
   }
-  for (const node of ['悦·🇯🇵日本AI解锁1💎', '悦·🇸🇬新加坡1', '悦·🇭🇰香港家宽1💎', '一分·🇭🇰香港HKBN', '微斯·🇯🇵JP-01', '星链·US拉斯维加斯01-IPLC', '🇸🇬 SG02']) {
+  const nonHk = ['悦·🇯🇵日本AI解锁1💎', '悦·🇸🇬新加坡1', '微斯·🇨🇳TW-01 · 备用入口', '微斯·🇲🇴MO-01 · 备用入口', '星链·US拉斯维加斯01-IPLC', '🇸🇬 SG02']
+  for (const node of nonHk) {
     assert(keeps(mixed, node), `Lumex_active.js: 跳板·综合 must keep ${node}`)
+    assert(!keeps(hk, node), `Lumex_active.js: 跳板·香港 must not overlap 跳板·综合 (${node})`)
   }
   for (const node of ['自建·台北1·Reality', '自建·台北2·Reality', '自建·洛杉矶·Reality', '一分·日本勿跑大流量']) {
     assert(!keeps(mixed, node), `Lumex_active.js: 跳板·综合 must exclude ${node}`)
   }
+  // 成员跨机场后,gstatic 只测「家 → 跳板」,挑不出能跳到台北的;两组必须测同一个到台北的地址。
+  assert(/^http:\/\/[^/]+:39078\/generate_204$/.test(mixed.url), `Lumex_active.js: 跳板·综合 must test the Taipei VPS (${mixed.url})`)
+  assert.equal(hk.url, mixed.url, 'Lumex_active.js: 跳板·香港 must test the same Taipei URL as 跳板·综合')
 }
 
 for (const relative of scripts) {
