@@ -48,6 +48,35 @@ function assertDnsLeakGuards(label, dns) {
   }
 }
 
+// 跳板组承载自建 SS2022:为空时必须 REJECT(回落直连会从家里直接过墙)。2026-11 悦通改名、三毛停用，
+// 写死全名的两个跳板组被滤空、中转全断，所以这里用改名前后两种格式的节点名核对成员边界。
+// mihomo 的 filter / exclude-filter 用 ` 分隔多条，任一条命中即算;引擎是 regexp2,这里的写法在 JS u 模式下语义一致。
+function assertJumpGroups(groups) {
+  const anyMatch = (patterns, node) => patterns.split('`').some((p) => new RegExp(p, 'u').test(node))
+  const keeps = (group, node) =>
+    (!group.filter || anyMatch(group.filter, node)) && !(group['exclude-filter'] && anyMatch(group['exclude-filter'], node))
+  const jumps = groups.filter((group) => group.name.startsWith('跳板·'))
+  assert(jumps.length >= 3, 'Lumex_active.js: jump groups missing')
+  for (const group of jumps) assert.equal(group['empty-fallback'], 'REJECT', `Lumex_active.js: ${group.name} must REJECT when empty`)
+  const hk = jumps.find((group) => group.name === '跳板·香港')
+  const mixed = jumps.find((group) => group.name === '跳板·综合')
+  assert(hk && mixed, 'Lumex_active.js: 跳板·香港 / 跳板·综合 required')
+  const hkMembers = ['悦·🇭🇰香港家宽2💎', '悦·🇭🇰香港2', '悦·🇭🇰香港家宽2💎 · A', '悦·🇭🇰香港2 · A', '悦·悦 · 🇭🇰 香港家宽2💎', '悦·悦 · 🇭🇰 香港2']
+  for (const node of hkMembers) {
+    assert(keeps(hk, node), `Lumex_active.js: 跳板·香港 must keep ${node}`)
+    assert(!keeps(mixed, node), `Lumex_active.js: 跳板·综合 must not overlap 跳板·香港 (${node})`)
+  }
+  for (const node of ['悦·🇭🇰香港家宽1💎', '悦·🇭🇰香港1', '悦·🇭🇰香港20', '一分·🇭🇰香港HKBN', '自建·台北2·Reality']) {
+    assert(!keeps(hk, node), `Lumex_active.js: 跳板·香港 must exclude ${node}`)
+  }
+  for (const node of ['悦·🇯🇵日本AI解锁1💎', '悦·🇸🇬新加坡1', '悦·🇭🇰香港家宽1💎', '一分·🇭🇰香港HKBN', '微斯·🇯🇵JP-01', '星链·US拉斯维加斯01-IPLC', '🇸🇬 SG02']) {
+    assert(keeps(mixed, node), `Lumex_active.js: 跳板·综合 must keep ${node}`)
+  }
+  for (const node of ['自建·台北1·Reality', '自建·台北2·Reality', '自建·洛杉矶·Reality', '一分·日本勿跑大流量']) {
+    assert(!keeps(mixed, node), `Lumex_active.js: 跳板·综合 must exclude ${node}`)
+  }
+}
+
 for (const relative of scripts) {
   const source = fs.readFileSync(path.join(root, relative), 'utf8')
   const logs = []
@@ -77,6 +106,7 @@ for (const relative of scripts) {
     }
     assert.equal(emby['media-mode'], 'active', 'Lumex_active.js: EMBY must explicitly select active mode')
     assert.equal(emby['media-racing-ms'], 250, 'Lumex_active.js: EMBY racing delay must be 250ms')
+    assertJumpGroups(output['proxy-groups'])
   }
   if (LEAK_GUARDED.has(relative)) {
     assert.deepEqual(ipRulesWithoutNoResolve(output.rules), [], `${relative}: IP rules must carry no-resolve`)
@@ -118,21 +148,25 @@ for (const relative of scripts) {
 }
 
 // 两份手机配置共用的节点边界。组为空时 Stash 会静默走 DIRECT，filter 写错还可能放进不该走的节点，所以用代表性节点名核对。
+// 悦的名字 2026-11 起没有「 · A/B」后缀(Sub-Store 规范成「悦·🇯🇵日本1」);withLegacy 再按旧后缀各核对一遍。
 const IOS_NODES = {
-  hk: '悦·🇭🇰香港家宽2💎 · A',
+  hk: '悦·🇭🇰香港家宽2💎',
   hkFast: '微斯·🇭🇰HK-01 · 备用入口',
-  jp: '悦·🇯🇵日本1 · B',
-  jpAi: '悦·🇯🇵日本AI解锁1💎 · A',
-  sgAi: '悦·🇸🇬新加坡AI解锁1💎 · A',
-  tw: '悦·🇹🇼台湾2 · A',
+  jp: '悦·🇯🇵日本1',
+  jpAi: '悦·🇯🇵日本AI解锁1💎',
+  sgAi: '悦·🇸🇬新加坡AI解锁1💎',
+  tw: '悦·🇹🇼台湾2',
   twFast: '微斯·🇨🇳TW-01 · 备用入口',
-  kr: '悦·🇰🇷韩国1 · B',
-  us: '悦·🇺🇸美国1 · A',
+  kr: '悦·🇰🇷韩国1',
+  us: '悦·🇺🇸美国1',
   usFast: '微斯·🇺🇸US-01 · 备用入口',
   oneHk: '一分·🇭🇰香港HKBN',
   oneJp: '一分·🇯🇵日本专线-0.1倍率',
   claude: '自建·台北2·Reality'
 }
+const withLegacy = (node) => (node.startsWith('悦·') ? [node, `${node} · A`, `${node} · B`] : [node])
+const testAll = (re, node) => withLegacy(node).every((n) => re.test(n))
+const testNone = (re, node) => withLegacy(node).every((n) => !re.test(n))
 // 这些节点绝不能进代理集:裸 SS 会让 SS2022 从手机直接过墙，其余是公告或用不了的节点
 const IOS_PROVIDER_EXCLUDED = ['自建·台北1·SS', '自建·台北2·SS', '自建·洛杉矶·SS', '悦·剩余流量：无限', '悦·套餐到期：长期有效', '一分·剩余流量：737.62 GB', '微斯·距离下次重置剩余：6 天', '三毛·流量已耗尽！', '星链·ipv6-高速-德州', '微斯·🇭🇰HK-06[Max]×3', '微斯·🇭🇰HK-01']
 const IOS_EXPECTED_MEMBERS = {
@@ -211,9 +245,9 @@ const IOS_EXPECTED_MEMBERS = {
   }
   const providerFilter = filterOf(provider)
   for (const node of IOS_PROVIDER_EXCLUDED) {
-    assert(!providerFilter.test(node), `${relative}: provider filter must exclude ${node}`)
+    assert(testNone(providerFilter, node),`${relative}: provider filter must exclude ${node}`)
   }
-  for (const node of Object.values(IOS_NODES)) assert(providerFilter.test(node), `${relative}: provider filter must keep ${node}`)
+  for (const node of Object.values(IOS_NODES)) assert(testAll(providerFilter, node),`${relative}: provider filter must keep ${node}`)
   for (const group of groups) {
     const field = (key) => group.fields.find((line) => line.startsWith(`${key}:`))?.split('#')[0].slice(key.length + 1).trim()
     assert(!group.fields.some((line) => /^url:/.test(line)), `${relative}: ${group.name} must not set url (benchmark is per proxy)`)
@@ -227,8 +261,8 @@ const IOS_EXPECTED_MEMBERS = {
     const filter = filterOf(group.fields)
     const expected = IOS_EXPECTED_MEMBERS[group.name]
     assert(expected, `${relative}: add ${group.name} to IOS_EXPECTED_MEMBERS`)
-    for (const key of expected.in) assert(filter.test(IOS_NODES[key]), `${relative}: ${group.name} must keep ${IOS_NODES[key]}`)
-    for (const key of expected.out) assert(!filter.test(IOS_NODES[key]), `${relative}: ${group.name} must exclude ${IOS_NODES[key]}`)
+    for (const key of expected.in) assert(testAll(filter, IOS_NODES[key]),`${relative}: ${group.name} must keep ${IOS_NODES[key]}`)
+    for (const key of expected.out) assert(testNone(filter, IOS_NODES[key]),`${relative}: ${group.name} must exclude ${IOS_NODES[key]}`)
   }
   console.log(`[profile-test] ${relative}: OK (${groups.length} groups, ${rules.length} rules)`)
 }
@@ -305,13 +339,13 @@ const IOS_EXPECTED_MEMBERS = {
     return new RegExp(value, 'u')
   }
   const providerFilter = filterOf(provider)
-  for (const node of IOS_PROVIDER_EXCLUDED) assert(!providerFilter.test(node), `${relative}: provider filter must exclude ${node}`)
+  for (const node of IOS_PROVIDER_EXCLUDED) assert(testNone(providerFilter, node),`${relative}: provider filter must exclude ${node}`)
   // Clash 版不收新加坡，Stash 版不变
-  for (const node of [IOS_NODES.sgAi, '微斯·🇸🇬SG-01 · 备用入口', '悦·🇸🇬新加坡2 · A', '一分·🇸🇬新加坡专线']) {
-    assert(!providerFilter.test(node), `${relative}: provider filter must exclude ${node}`)
+  for (const node of [IOS_NODES.sgAi, '微斯·🇸🇬SG-01 · 备用入口', '悦·🇸🇬新加坡2','一分·🇸🇬新加坡专线']) {
+    assert(testNone(providerFilter, node),`${relative}: provider filter must exclude ${node}`)
   }
   for (const [key, node] of Object.entries(IOS_NODES)) {
-    if (key !== 'sgAi') assert(providerFilter.test(node), `${relative}: provider filter must keep ${node}`)
+    if (key !== 'sgAi') assert(testAll(providerFilter, node),`${relative}: provider filter must keep ${node}`)
   }
   for (const group of groups) {
     const field = (key) => group.fields.find((line) => line.startsWith(`${key}:`))?.split('#')[0].slice(key.length + 1).trim()
@@ -322,9 +356,9 @@ const IOS_EXPECTED_MEMBERS = {
     const filter = filterOf(group.fields)
     const expected = IOS_EXPECTED_MEMBERS[group.name]
     assert(expected, `${relative}: add ${group.name} to IOS_EXPECTED_MEMBERS`)
-    for (const key of expected.in.filter((key) => key !== 'sgAi')) assert(filter.test(IOS_NODES[key]), `${relative}: ${group.name} must keep ${IOS_NODES[key]}`)
+    for (const key of expected.in.filter((key) => key !== 'sgAi')) assert(testAll(filter, IOS_NODES[key]),`${relative}: ${group.name} must keep ${IOS_NODES[key]}`)
     // 自建的边界与 Stash 版不同：除 EMBY、Muse 外都收台北两台
-    for (const key of expected.out.filter((key) => key !== 'claude')) assert(!filter.test(IOS_NODES[key]), `${relative}: ${group.name} must exclude ${IOS_NODES[key]}`)
+    for (const key of expected.out.filter((key) => key !== 'claude')) assert(testNone(filter, IOS_NODES[key]),`${relative}: ${group.name} must exclude ${IOS_NODES[key]}`)
     const keepsSelfHosted = !['EMBY', 'Muse'].includes(group.name)
     for (const node of ['自建·台北1·Reality', '自建·台北2·Reality']) {
       assert.equal(filter.test(node), keepsSelfHosted, `${relative}: ${group.name} ${keepsSelfHosted ? 'must keep' : 'must exclude'} ${node}`)
@@ -337,7 +371,7 @@ const IOS_EXPECTED_MEMBERS = {
     // 台湾家宽的名字不带「台湾[12]」，普通台湾节点的写法匹配不到它，曾因此不属于任何组
     const keepsTaiwanHome = group.name !== 'Muse'
     for (const node of ['悦·🇹🇼台湾家宽1💎 · A', '悦·🇹🇼台湾家宽2💎 · B']) {
-      assert(providerFilter.test(node), `${relative}: provider filter must keep ${node}`)
+      assert(testAll(providerFilter, node),`${relative}: provider filter must keep ${node}`)
       assert.equal(filter.test(node), keepsTaiwanHome, `${relative}: ${group.name} ${keepsTaiwanHome ? 'must keep' : 'must exclude'} ${node}`)
     }
     if (['Gemini', 'ChatGPT', 'Claude', 'Muse'].includes(group.name)) {

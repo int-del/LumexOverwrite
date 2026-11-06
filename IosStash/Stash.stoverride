@@ -1,10 +1,10 @@
-# Last Updated: 2026-11-01 [Stash v3.00]
+# Last Updated: 2026-11-06 [Stash v3.01]
 # 引用链接: https://raw.githubusercontent.com/int-del/LumexOverwrite/main/IosStash/Stash.stoverride
 # 加速链接: https://cdn.jsdelivr.net/gh/int-del/LumexOverwrite@main/IosStash/Stash.stoverride
 # 分流同步自 PC 端 Lumex_active.js V4.25;字段以 stash.wiki 为准,适用 App Store 版 3.6+。
 # 没有写入 3.7 Beta 才有的 pre-matching 与覆写参数:旧版本遇到可能加载失败。
-name: "Stash v3.00"
-desc: "v3.00 | 同步 PC V4.25 分流 | 测速量约为 v2.12 的十分之一 | 需要基础配置提供订阅地址"
+name: "Stash v3.01"
+desc: "v3.01 | 同步 PC V4.25 分流 | 测速量约为 v2.12 的十分之一 | 需要基础配置提供订阅地址"
 icon: https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/Stash.png
 category: Lumex
 version: "3.00"
@@ -84,13 +84,14 @@ proxy-providers:
 #   1. url-test 只选延迟最低的,选不上的远距离节点不进组,每轮少测;
 #   2. 全部 lazy: true,闲置的组不测;
 #   3. 全部 interval: 600,一起测;v2.12 的 600/630/660/720 错开,等于各唤醒一次蜂窝射频。
+# v3.01:悦 11 月初去掉了名字末尾的「 · A/B」,「[12] · 」改成「[12]( · |$)」,有无后缀都认。
 proxy-groups: #!replace
   - name: 自动选择
     type: url-test
     icon: https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/Urltest.png
     use:
       - 组合机场
-    filter: "^(微斯·(🇭🇰|🇨🇳TW|🇯🇵|🇸🇬|🇰🇷).*备用入口$|悦·🇭🇰|悦·(🇯🇵日本|🇸🇬新加坡|🇹🇼台湾)[12] · |一分·(🇭🇰|🇯🇵日本专线|🇸🇬|🇹🇼))"
+    filter: "^(微斯·(🇭🇰|🇨🇳TW|🇯🇵|🇸🇬|🇰🇷).*备用入口$|悦·🇭🇰|悦·(🇯🇵日本|🇸🇬新加坡|🇹🇼台湾)[12]( · |$)|一分·(🇭🇰|🇯🇵日本专线|🇸🇬|🇹🇼))"
     interval: 600
     tolerance: 100
     lazy: true
@@ -101,7 +102,7 @@ proxy-groups: #!replace
     icon: https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/Emby.png
     use:
       - 组合机场
-    filter: "^(悦·🇭🇰|悦·(🇰🇷韩国|🇸🇬新加坡|🇹🇼台湾)[12] · |一分·(🇭🇰|🇸🇬|🇹🇼))"
+    filter: "^(悦·🇭🇰|悦·(🇰🇷韩国|🇸🇬新加坡|🇹🇼台湾)[12]( · |$)|一分·(🇭🇰|🇸🇬|🇹🇼))"
     interval: 600
     tolerance: 100
     lazy: true
@@ -112,7 +113,7 @@ proxy-groups: #!replace
     icon: https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/YouTube.png
     use:
       - 组合机场
-    filter: "^(悦·🇭🇰|悦·(🇰🇷韩国|🇸🇬新加坡|🇹🇼台湾)[12] · |一分·(🇭🇰|🇸🇬|🇹🇼))"
+    filter: "^(悦·🇭🇰|悦·(🇰🇷韩国|🇸🇬新加坡|🇹🇼台湾)[12]( · |$)|一分·(🇭🇰|🇸🇬|🇹🇼))"
     interval: 600
     tolerance: 100
     lazy: true
@@ -123,7 +124,7 @@ proxy-groups: #!replace
     icon: https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/Google.png
     use:
       - 组合机场
-    filter: "^(微斯·(🇨🇳TW|🇯🇵|🇸🇬|🇺🇸).*备用入口$|悦·(🇯🇵|🇸🇬|🇺🇸)[^·]*AI解锁|悦·🇺🇸美国[12] · )"
+    filter: "^(微斯·(🇨🇳TW|🇯🇵|🇸🇬|🇺🇸).*备用入口$|悦·(🇯🇵|🇸🇬|🇺🇸)[^·]*AI解锁|悦·🇺🇸美国[12]( · |$))"
     interval: 600
     tolerance: 100
     lazy: true
@@ -133,7 +134,7 @@ proxy-groups: #!replace
     icon: https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/OpenAI.png
     use:
       - 组合机场
-    filter: "^(微斯·(🇨🇳TW|🇯🇵|🇸🇬|🇺🇸).*备用入口$|悦·(🇯🇵|🇸🇬|🇺🇸)[^·]*AI解锁|悦·🇺🇸美国[12] · )"
+    filter: "^(微斯·(🇨🇳TW|🇯🇵|🇸🇬|🇺🇸).*备用入口$|悦·(🇯🇵|🇸🇬|🇺🇸)[^·]*AI解锁|悦·🇺🇸美国[12]( · |$))"
     interval: 600
     tolerance: 100
     lazy: true
