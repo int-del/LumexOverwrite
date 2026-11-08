@@ -1,4 +1,5 @@
-# Last Updated: 2026-11-06 [Clash v1.07]
+# Last Updated: 2026-11-08 [Clash v1.08]
+# v1.08: 节点域名解析去掉腾讯 DoH、改阿里两个地址,与 PC Lumex_active.js V4.30 同步(腾讯对一分的 cf.yfjc.sbs 等一律回空答案)。
 # mihomo 配置,按 Clash(OmniWide)1.0.13 / 内核 v1.19.33-clash.4 的源码调优,Clash Mi 也能导入,但下面标了 OmniWide 的说法不适用于它。
 # 分流基本同 IosStash/Stash.stoverride v3.00,差别:只认纯 IP 连接的嗅探、Apple 17.0.0.0/8 直连、STUN 走代理、隧道接管 IPv6;除 EMBY、Muse 外,各组都多收自建台北两台;自建洛杉矶进除 Claude 外的各组;除 Muse 外,各组都多收悦的台湾家宽;不收新加坡。
 # ⚠️ 本仓库公开,下方订阅地址是占位符。导入前换成 Sub-Store 的 Group.yaml 地址(ClashMeta 格式)。
@@ -48,7 +49,7 @@ dns:
     - 119.29.29.29
   proxy-server-nameserver:
     - https://223.5.5.5/dns-query
-    - https://1.12.12.12/dns-query
+    - https://223.6.6.6/dns-query
   nameserver-policy:
     "+.qq.com": 119.29.29.29
     "+.bilibili.com": 119.29.29.29

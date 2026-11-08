@@ -1,10 +1,11 @@
-# Last Updated: 2026-11-06 [Stash v3.01]
+# Last Updated: 2026-11-08 [Stash v3.02]
+# v3.02: 节点域名解析去掉腾讯 DoH、改阿里两个地址,与 PC Lumex_active.js V4.30 同步(腾讯对一分的 cf.yfjc.sbs 等一律回空答案)。
 # 引用链接: https://raw.githubusercontent.com/int-del/LumexOverwrite/main/IosStash/Stash.stoverride
 # 加速链接: https://cdn.jsdelivr.net/gh/int-del/LumexOverwrite@main/IosStash/Stash.stoverride
 # 分流同步自 PC 端 Lumex_active.js V4.25;字段以 stash.wiki 为准,适用 App Store 版 3.6+。
 # 没有写入 3.7 Beta 才有的 pre-matching 与覆写参数:旧版本遇到可能加载失败。
-name: "Stash v3.01"
-desc: "v3.01 | 同步 PC V4.25 分流 | 测速量约为 v2.12 的十分之一 | 需要基础配置提供订阅地址"
+name: "Stash v3.02"
+desc: "v3.02 | 同步 PC V4.25 分流 | 测速量约为 v2.12 的十分之一 | 需要基础配置提供订阅地址"
 icon: https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/Stash.png
 category: Lumex
 version: "3.00"
@@ -33,7 +34,7 @@ dns: #!replace
   # 节点域名单独走 IP 直连的 DoH,运营商看不到机场域名(RFC-031,与 PC 相同)。只在连节点前偶尔解析,不影响耗电。
   proxy-server-nameserver:
     - https://223.5.5.5/dns-query
-    - https://1.12.12.12/dns-query
+    - https://223.6.6.6/dns-query
   nameserver-policy:
     "geosite:private": system
     "+.qq.com": 119.29.29.29
