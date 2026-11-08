@@ -86,6 +86,24 @@ function assertJumpGroups(groups) {
   assert.equal(hk.url, mixed.url, 'Lumex_active.js: 跳板·香港 must test the same Taipei URL as 跳板·综合')
 }
 
+// 中转代理集只读组合机场下载好的文件，不能各自下载:每多一个 HTTP 代理集，Sub-Store 缓存过期时就把所有机场多请求一遍
+// (2026-11-08 一轮 10 次下载里微斯 5 次回 304)。
+function assertRelayProviders(providers, groups) {
+  const combined = providers['组合机场']
+  assert(combined, 'Lumex_active.js: 组合机场 provider required')
+  assert.equal(combined.type, 'http', 'Lumex_active.js: 组合机场 must be the only provider that downloads')
+  const relays = Object.entries(providers).filter(([, provider]) => provider.override?.['dialer-proxy'])
+  assert(relays.length > 0, 'Lumex_active.js: relay providers missing')
+  const groupNames = new Set(groups.map((group) => group.name))
+  for (const [name, provider] of relays) {
+    assert.equal(provider.type, 'file', `Lumex_active.js: relay ${name} must read a local file`)
+    assert.equal(provider.path, combined.path, `Lumex_active.js: relay ${name} must read 组合机场's file`)
+    assert.equal(provider.url, undefined, `Lumex_active.js: relay ${name} must not download`)
+    assert(provider.filter, `Lumex_active.js: relay ${name} needs a filter`)
+    assert(groupNames.has(provider.override['dialer-proxy']), `Lumex_active.js: relay ${name} jump group not found`)
+  }
+}
+
 for (const relative of scripts) {
   const source = fs.readFileSync(path.join(root, relative), 'utf8')
   const logs = []
@@ -116,6 +134,7 @@ for (const relative of scripts) {
     assert.equal(emby['media-mode'], 'active', 'Lumex_active.js: EMBY must explicitly select active mode')
     assert.equal(emby['media-racing-ms'], 250, 'Lumex_active.js: EMBY racing delay must be 250ms')
     assertJumpGroups(output['proxy-groups'])
+    assertRelayProviders(output['proxy-providers'], output['proxy-groups'])
   }
   if (LEAK_GUARDED.has(relative)) {
     assert.deepEqual(ipRulesWithoutNoResolve(output.rules), [], `${relative}: IP rules must carry no-resolve`)

@@ -1,7 +1,11 @@
 // Lumex Party 专用配置文件覆写脚本
 // 引用链接: https://raw.githubusercontent.com/int-del/LumexOverwrite/main/Lumex_active.js
 // 加速链接: https://cdn.jsdelivr.net/gh/int-del/LumexOverwrite@main/Lumex_active.js
-// 版本: V4.30-AntiCN  | 更新日期: 2026-11-08
+// 版本: V4.31-AntiCN  | 更新日期: 2026-11-08
+// V4.31: 中转代理集不再各自下载合集(用户要求所有中转共用一个来源)。原来 9 个 HTTP 代理集都拉整个「组合机场」合集、
+//      再滤出 1 个节点，连同组合机场一次刷新下载 10 次，Sub-Store 缓存过期时每次都可能请求全部机场
+//      (11-08 一轮 10 次里微斯 5 次回 304，碰上组合机场自己那次会丢 143 个节点)。现在全部改成 type: file，
+//      读组合机场下载好的同一个文件:对机场的请求只剩组合机场 1 次;文件一更新，内核自动通知中转重读。
 // V4.30: 节点域名解析(proxy-server-nameserver)去掉腾讯 DoH,改成阿里两个地址。腾讯 DoH(1.12.12.12、120.53.53.53)
 //      对一分的 cf.yfjc.sbs / cf3.yfjc.sbs 一律回空答案(各 20 次全空),阿里 20/20 正常;内核同时问两家、谁先回用谁，
 //      空答案也算回复，于是这 16 个节点时好时坏报 dns resolve failed(2026-11-08 实测)。
@@ -343,7 +347,10 @@
   //   加落地机器或跳板就在表里加行(V4.18 的通配写法会让一个代理集装多台机器，名字只能写跳板;用户要代理集名写明机器，故按机器拆行)。
   // 每行：[代理集名, 落地节点 filter, 跳板组(dialer-proxy), 节点名前缀]
   //   除 EMBY 外的业务组和 Claude 组都用表里全部代理集(V4.20,用户要求，见下方 RELAY_USE)。
-  const RELAY_SOURCE = "http://127.0.0.1:38324/download/collection/%E7%BB%84%E5%90%88%E6%9C%BA%E5%9C%BA"; // 与「组合机场」相同
+  // V4.31:所有中转共用组合机场下载好的文件，必须与上方组合机场的 path 逐字一致。中转不能自己下载:每个各拉一次合集，
+  //   Sub-Store 缓存过期时会把所有机场多请求一遍。文件里保留裸 SS(组合机场的 exclude-filter 只在解析时生效，不改文件),
+  //   下表的 filter 才取得到。新内容里没有某个落地时，运行中的中转保留原节点，但此时重启内核，它会消失到下次更新成功。
+  const RELAY_SOURCE = "./proxy_providers/组合机场.yaml";
   const RELAYS = [
     // 台湾家宽2：只收 VLESS,「台湾家宽1」是 Hysteria2(UDP)，叠不到 VLESS 中转后面，实测全部失败。
     //   V4.19 前叫「台湾家宽中转」(前缀「中转·」)与「台湾家宽经台北2」(前缀「经台北2·」)。
@@ -367,10 +374,8 @@
   const RELAY_USE = ["组合机场"].concat(RELAYS.map(function(r) { return r[0]; }));
   RELAYS.forEach(function(r) {
     config["proxy-providers"][r[0]] = {
-      "type": "http",
-      "url": RELAY_SOURCE,
-      "path": "./proxy_providers/" + r[0] + ".yaml",
-      "interval": 86400,
+      "type": "file",
+      "path": RELAY_SOURCE,
       "filter": r[1],
       "override": {
         "dialer-proxy": r[2], // 必须与下方跳板组的 name 逐字一致
