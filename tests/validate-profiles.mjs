@@ -51,39 +51,87 @@ function assertDnsLeakGuards(label, dns) {
 // 跳板组承载自建 SS2022:为空时必须 REJECT(回落直连会从家里直接过墙)。2026-11 悦通改名、三毛停用，
 // 写死全名的两个跳板组被滤空、中转全断，所以这里用改名前后两种格式的节点名核对成员边界。
 // mihomo 的 filter / exclude-filter 用 ` 分隔多条，任一条命中即算;引擎是 regexp2,这里的写法在 JS u 模式下语义一致。
+const JUMP_REGIONS = ['台湾', '香港', '日本', '韩国', '新加坡', '美国']
+
 function assertJumpGroups(groups) {
   const anyMatch = (patterns, node) => patterns.split('`').some((p) => new RegExp(p, 'u').test(node))
   const keeps = (group, node) =>
     (!group.filter || anyMatch(group.filter, node)) && !(group['exclude-filter'] && anyMatch(group['exclude-filter'], node))
   const jumps = groups.filter((group) => group.name.startsWith('跳板·'))
-  assert(jumps.length >= 3, 'Lumex_active.js: jump groups missing')
+  assert.deepEqual(
+    [...jumps].map((group) => group.name).sort(),
+    ['跳板·台北2', ...JUMP_REGIONS.map((region) => `跳板·${region}`)].sort(),
+    'Lumex_active.js: jump groups must be one per region plus 跳板·台北2'
+  )
   for (const group of jumps) assert.equal(group['empty-fallback'], 'REJECT', `Lumex_active.js: ${group.name} must REJECT when empty`)
-  const hk = jumps.find((group) => group.name === '跳板·香港')
-  const mixed = jumps.find((group) => group.name === '跳板·综合')
-  assert(hk && mixed, 'Lumex_active.js: 跳板·香港 / 跳板·综合 required')
-  // V4.29:香港节点(任何机场、改名前后两种格式)全归跳板·香港,跳板·综合一个不收。
-  const hkMembers = [
-    '悦·🇭🇰香港家宽2💎', '悦·🇭🇰香港2', '悦·🇭🇰香港家宽1💎', '悦·🇭🇰香港2 · A', '悦·悦 · 🇭🇰 香港家宽2💎',
-    '微斯·🇭🇰HK-01 · 备用入口', '微斯·🇭🇰HK-05[Residential] · 备用入口', '一分·🇭🇰香港HKBN', '🇭🇰 HK03', '星链·HK香港02', '星链·HK高速-香港03'
-  ]
-  for (const node of hkMembers) {
-    assert(keeps(hk, node), `Lumex_active.js: 跳板·香港 must keep ${node}`)
-    assert(!keeps(mixed, node), `Lumex_active.js: 跳板·综合 must not overlap 跳板·香港 (${node})`)
+  const regional = jumps.filter((group) => group.name !== '跳板·台北2')
+  // 每个样例只能进它自己的地区。样例取自真实节点名,含改名前后两种格式、旗子不对的(🇨🇳TW)和带「｜HK｜」线路标记的。
+  const samples = {
+    台湾: ['微斯·🇨🇳TW-01 · 备用入口', 'Sntp· 🇨🇳 TW02', 'Navenix· 🇹🇼台湾02｜HK｜三网优化', '悦·🇹🇼台湾2', '悦·🇹🇼台湾家宽2💎'],
+    香港: [
+      '悦·🇭🇰香港家宽2💎', '悦·🇭🇰香港2', '悦·🇭🇰香港2 · A', '悦·悦 · 🇭🇰 香港家宽2💎', '微斯·🇭🇰HK-01 · 备用入口',
+      '微斯·🇭🇰HK-05[Residential] · 备用入口', '一分·🇭🇰香港HKBN', '🇭🇰 HK03', '星链·HK香港02', '星链·HK高速-香港03', 'Navenix· 🇭🇰香港02｜HK｜三网优化×0.5'
+    ],
+    日本: ['悦·🇯🇵日本AI解锁1💎', '微斯·🇯🇵JP-02 · 备用入口', 'Navenix· 🇯🇵日本01｜HK｜三网优化', '悦·保底 JP'],
+    韩国: ['悦·🇰🇷韩国2', '微斯·🇰🇷KR-02 · 备用入口', 'Navenix· 🇰🇷韩国01｜HK｜三网优化'],
+    新加坡: ['悦·🇸🇬新加坡1', '🇸🇬 SG02', '星链·sg新加坡02-中转', '微斯·🇸🇬SG-04[SG.GS] · 备用入口', '悦·保底 SG'],
+    美国: ['星链·US拉斯维加斯01-IPLC', '星链·LAX-洛杉矶3', '星链·US专线-芝加哥-02', '微斯·🇺🇸US-02 · 备用入口', 'Navenix· 🇺🇸美国02｜HK｜三网优化', '悦·保底 US']
   }
-  for (const node of ['悦·🇹🇼台湾家宽2💎', '微斯·🇲🇴MO-01 · 备用入口', '星链·SHKG-测试', '自建·台北2·Reality', '一分·香港勿跑大流量']) {
-    assert(!keeps(hk, node), `Lumex_active.js: 跳板·香港 must exclude ${node}`)
+  for (const [region, nodes] of Object.entries(samples)) {
+    for (const node of nodes) {
+      const hit = [...regional].filter((group) => keeps(group, node)).map((group) => group.name)
+      assert.deepEqual(hit, [`跳板·${region}`], `Lumex_active.js: ${node} must only be in 跳板·${region}, got ${hit}`)
+    }
   }
-  const nonHk = ['悦·🇯🇵日本AI解锁1💎', '悦·🇸🇬新加坡1', '微斯·🇨🇳TW-01 · 备用入口', '微斯·🇲🇴MO-01 · 备用入口', '星链·US拉斯维加斯01-IPLC', '🇸🇬 SG02']
-  for (const node of nonHk) {
-    assert(keeps(mixed, node), `Lumex_active.js: 跳板·综合 must keep ${node}`)
-    assert(!keeps(hk, node), `Lumex_active.js: 跳板·香港 must not overlap 跳板·综合 (${node})`)
+  // 远区、自建、勿跑大流量不当跳板;澳门带「｜HK｜」标记也不算香港。
+  for (const node of [
+    '自建·台北1·Reality', '自建·台北2·Reality', '自建·洛杉矶·Reality', '一分·日本勿跑大流量', '一分·香港勿跑大流量',
+    '微斯·🇲🇴MO-01 · 备用入口', 'Navenix· 🇲🇴澳门01｜HK｜三网优化×0.5', 'Navenix· 🇬🇧英国01｜HK｜三网优化×0.5', '星链·SHKG-测试'
+  ]) {
+    const hit = [...regional].filter((group) => keeps(group, node)).map((group) => group.name)
+    assert.deepEqual(hit, [], `Lumex_active.js: ${node} must not be a jump, got ${hit}`)
   }
-  for (const node of ['自建·台北1·Reality', '自建·台北2·Reality', '自建·洛杉矶·Reality', '一分·日本勿跑大流量']) {
-    assert(!keeps(mixed, node), `Lumex_active.js: 跳板·综合 must exclude ${node}`)
+  // 成员跨机场,gstatic 只测「家 → 跳板」,挑不出能跳到台北的;地区组必须测同一个到台北的地址。
+  for (const group of regional) {
+    assert(/^http:\/\/[^/]+:39078\/generate_204$/.test(group.url), `Lumex_active.js: ${group.name} must test the Taipei VPS (${group.url})`)
+    assert.equal(group['score-based'], true, `Lumex_active.js: ${group.name} must pick by delay`)
+    assert.equal(group.type, 'fallback', `Lumex_active.js: ${group.name} must be fallback`)
   }
-  // 成员跨机场后,gstatic 只测「家 → 跳板」,挑不出能跳到台北的;两组必须测同一个到台北的地址。
-  assert(/^http:\/\/[^/]+:39078\/generate_204$/.test(mixed.url), `Lumex_active.js: 跳板·综合 must test the Taipei VPS (${mixed.url})`)
-  assert.equal(hk.url, mixed.url, 'Lumex_active.js: 跳板·香港 must test the same Taipei URL as 跳板·综合')
+  // 跳板组排在一起,台北2 在最后。
+  const names = [...groups].map((group) => group.name)
+  const first = names.indexOf(`跳板·${JUMP_REGIONS[0]}`)
+  assert.deepEqual(names.slice(first, first + jumps.length), [...JUMP_REGIONS.map((region) => `跳板·${region}`), '跳板·台北2'], 'Lumex_active.js: jump groups must stay together')
+}
+
+// Muse 只对美国开放:filter 只能看落地。按全名看的话,「中转·美国-自建·台北1·SS」会因跳板名进组,出口却在台湾。
+function assertMuseLandingOnly(groups) {
+  const muse = groups.find((group) => group.name === 'Muse')
+  assert(muse, 'Lumex_active.js: Muse group required')
+  const keeps = (node) => new RegExp(muse.filter, 'u').test(node) && !new RegExp(muse['exclude-filter'], 'u').test(node)
+  for (const node of ['中转·美国-自建·洛杉矶·SS', '中转·香港-自建·洛杉矶·SS', '中转·日本-自建·洛杉矶·SS', '微斯·🇺🇸US-01 · 备用入口', '星链·LAX-洛杉矶3', '自建·洛杉矶·Reality']) {
+    assert(keeps(node), `Lumex_active.js: Muse must keep ${node}`)
+  }
+  for (const node of ['中转·美国-自建·台北1·SS', '中转·美国-自建·台北2·SS', '中转·美国-悦·🇹🇼台湾家宽2💎', '中转·日本-自建·台北2·SS', '自建·台北1·Reality', '悦·🇯🇵日本专属2💎']) {
+    assert(!keeps(node), `Lumex_active.js: Muse must exclude ${node}`)
+  }
+}
+
+// 中转 = 每个地区 × 每个落地,加经台北2 的两条。前缀和前置跳板必须对应,否则中转走错跳板或进错组。
+function assertRelayMatrix(providers) {
+  const expected = new Map([
+    ['台湾家宽经台北2', '台北2'],
+    ['自建台北1SS经台北2', '台北2']
+  ])
+  for (const region of JUMP_REGIONS) {
+    for (const landing of ['台湾家宽', '自建台北1SS', '自建台北2SS', '自建洛杉矶SS']) expected.set(`${landing}经${region}`, region)
+  }
+  const relays = Object.entries(providers).filter(([, provider]) => provider.override?.['dialer-proxy'])
+  assert.deepEqual(relays.map(([name]) => name).sort(), [...expected.keys()].sort(), 'Lumex_active.js: relay providers must be region x landing')
+  for (const [name, provider] of relays) {
+    const region = expected.get(name)
+    assert.equal(provider.override['dialer-proxy'], `跳板·${region}`, `Lumex_active.js: relay ${name} jump`)
+    assert.equal(provider.override['additional-prefix'], `中转·${region}-`, `Lumex_active.js: relay ${name} prefix`)
+  }
 }
 
 // 中转代理集只读组合机场下载好的文件，不能各自下载:每多一个 HTTP 代理集，Sub-Store 缓存过期时就把所有机场多请求一遍
@@ -135,6 +183,13 @@ for (const relative of scripts) {
     assert.equal(emby['media-racing-ms'], 250, 'Lumex_active.js: EMBY racing delay must be 250ms')
     assertJumpGroups(output['proxy-groups'])
     assertRelayProviders(output['proxy-providers'], output['proxy-groups'])
+    assertRelayMatrix(output['proxy-providers'])
+    assertMuseLandingOnly(output['proxy-groups'])
+    // main() 里那行日志是确认客户端有没有拉到新版的手段,V4.28~V4.31 都漏改过,一直显示 V4.27。
+    const headerVersion = /版本: (V[\d.]+)/.exec(source)?.[1]
+    const loggedVersion = /加载脚本 (V[\d.]+)/.exec(logs.join('\n'))?.[1]
+    assert(headerVersion, 'Lumex_active.js: header version missing')
+    assert.equal(loggedVersion, headerVersion, 'Lumex_active.js: console.log version must match the header')
   }
   if (LEAK_GUARDED.has(relative)) {
     assert.deepEqual(ipRulesWithoutNoResolve(output.rules), [], `${relative}: IP rules must carry no-resolve`)
