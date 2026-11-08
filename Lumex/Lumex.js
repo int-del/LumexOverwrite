@@ -1,7 +1,8 @@
 ﻿// Lumex Party 专用配置文件覆写脚本
 // 引用链接: https://raw.githubusercontent.com/int-del/LumexOverwrite/main/Lumex.js
 // 加速链接: https://cdn.jsdelivr.net/gh/int-del/LumexOverwrite@main/Lumex.js
-// 版本: v2.29  | 更新日期: 2026-10-18
+// 版本: v2.30  | 更新日期: 2026-11-08
+// v2.30: 节点域名解析去掉腾讯 DoH、改阿里两个地址，与 Lumex_active.js V4.30 同步(腾讯对部分机场域名回空答案)。
 // v2.29: DNS 防泄漏重排，与 Lumex_active.js V4.12 同步(RFC-031,说明见该文件头):默认上游改国外 DoH、国内 DoH 只管
 //        国内域名与直连、删 fallback、节点域名解析改 IP 直连 DoH、GEOIP,telegram 补 no-resolve、局域网名交给路由器。
 // Phase 1.1: 加权评分 + 自适应容差版 (Gemini/Copilot/GitHub Copilot 多 URL 健康检查)
@@ -57,7 +58,7 @@ function main(config) {
     "default-nameserver": ["223.5.5.5", "119.29.29.29"], // 只用来解析 doh.pub / dns.alidns.com 这两个 DoH 主机名
     // 节点域名解析：直连国内、IP 直连 DoH(原明文 UDP 会让运营商看到机场域名);原 proxy-server-nameserver-policy 已删，
     // 理由见 Lumex_active.js 同处。
-    "proxy-server-nameserver": ["https://223.5.5.5/dns-query", "https://1.12.12.12/dns-query"],
+    "proxy-server-nameserver": ["https://223.5.5.5/dns-query", "https://223.6.6.6/dns-query"], // 不用腾讯：会对部分机场域名回空，见 Lumex_active.js V4.30
     "fake-ip-filter": [
       "*.lan", "*.local", // 优化：防止局域网域名被 Fake-IP 劫持，保障本地设备发现
       "+.msftconnecttest.com", "+.msftncsi.com",

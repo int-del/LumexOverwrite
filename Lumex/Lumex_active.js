@@ -1,7 +1,10 @@
 // Lumex Party 专用配置文件覆写脚本
 // 引用链接: https://raw.githubusercontent.com/int-del/LumexOverwrite/main/Lumex_active.js
 // 加速链接: https://cdn.jsdelivr.net/gh/int-del/LumexOverwrite@main/Lumex_active.js
-// 版本: V4.29-AntiCN  | 更新日期: 2026-11-07
+// 版本: V4.30-AntiCN  | 更新日期: 2026-11-08
+// V4.30: 节点域名解析(proxy-server-nameserver)去掉腾讯 DoH,改成阿里两个地址。腾讯 DoH(1.12.12.12、120.53.53.53)
+//      对一分的 cf.yfjc.sbs / cf3.yfjc.sbs 一律回空答案(各 20 次全空),阿里 20/20 正常;内核同时问两家、谁先回用谁，
+//      空答案也算回复，于是这 16 个节点时好时坏报 dns resolve failed(2026-11-08 实测)。
 // V4.29: 香港节点从跳板·综合挪到跳板·香港(用户要求):跳板·香港收所有机场的香港节点、测速改测台北1;
 //      跳板·综合排除全部香港。两组仍不重叠。起因是 11-06 晚悦的香港节点全挂，经香港的中转全断。
 // V4.28: 修跳板组被滤空。悦通 11 月初改了命名(机场自己加「悦 · 」前缀、国旗后加空格、去掉 · A/B),三毛流量耗尽;
@@ -198,7 +201,8 @@
     // 节点域名解析：代理还没连上，只能直连国内。用 IP 直连的 DoH——原先是明文 UDP,运营商能看到每个机场域名。
     // 原 proxy-server-nameserver-policy(cloudflare/tencent/aliyun 后缀各指定 DNS)已删:960 个节点 0 个命中这些后缀，
     // 且 1.1.1.1 的 DoH 从家宽直连超时(2026-10-18 实测),改成加密反而会让命中的节点解析失败。
-    "proxy-server-nameserver": ["https://223.5.5.5/dns-query", "https://1.12.12.12/dns-query"],
+    // 只用阿里两个地址：腾讯 DoH 会对部分机场域名回空答案，而内核取最先回来的那份(空的也算),见 V4.30。
+    "proxy-server-nameserver": ["https://223.5.5.5/dns-query", "https://223.6.6.6/dns-query"],
     "fake-ip-filter": [
       "*.lan", "*.local", // 优化：防止局域网域名被 Fake-IP 劫持，保障本地设备发现
       "+.msftconnecttest.com", "+.msftncsi.com",
