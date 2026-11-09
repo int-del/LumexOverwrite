@@ -128,6 +128,18 @@ function assertAiGroupsAndRules(groups, rules) {
     const traceRe = new RegExp(g['expected-body'].replace(/^\(\?m\)/, ''), 'mu')
     assert(traceRe.test('fl=1\nloc=TW\ntls=TLSv1.3\n') && !traceRe.test('fl=1\nloc=HK\n'), `Lumex_active.js: ${name} gate must require loc=TW`)
   }
+  // V4.40:Muse 按 Meta 自己的判定(Instagram 首页 PolarisSiteData 的 country_code),必须 US、严格;不用登录页(按次数限频)
+  {
+    const [g, ...rest] = strictGateOf('Muse')
+    assert(g && !rest.length, 'Lumex_active.js: Muse needs exactly one exit-region gate')
+    assert.equal(g.url, 'https://www.instagram.com/', 'Lumex_active.js: Muse gate must use the Instagram home page (login page is rate-limited)')
+    assert.equal(g['expected-status'], '200', 'Lumex_active.js: Muse gate must fail on redirects')
+    assert.equal(g['on-mismatch'], 'reject', 'Lumex_active.js: Muse gate must be strict')
+    const metaRe = new RegExp(g['expected-body'], 'u')
+    const page = (cc) => `x"PolarisSiteData",[],{"country_code":"${cc}","device_id":"A"}y`
+    assert(metaRe.test(page('US')), 'Lumex_active.js: Muse gate must accept Meta US')
+    for (const cc of ['CN', 'RU', 'ZM', 'HK']) assert(!metaRe.test(page(cc)), `Lumex_active.js: Muse gate must reject Meta ${cc}`)
+  }
   const BUILTIN = new Set(['DIRECT', 'REJECT', 'REJECT-DROP', 'PASS', 'COMPATIBLE'])
   const OPTIONS = new Set(['no-resolve', 'src'])
   for (const rule of rules) {

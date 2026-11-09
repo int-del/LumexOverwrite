@@ -1,7 +1,10 @@
 // Lumex Party 专用配置文件覆写脚本
 // 引用链接: https://raw.githubusercontent.com/int-del/LumexOverwrite/main/Lumex_active.js
 // 加速链接: https://cdn.jsdelivr.net/gh/int-del/LumexOverwrite@main/Lumex_active.js
-// 版本: V4.39-AntiCN  | 更新日期: 2026-11-10
+// 版本: V4.40-AntiCN  | 更新日期: 2026-11-10
+// V4.40(用户要求):Muse 的出口地区判据改用 Meta 自己的判定(Instagram 首页里的 country_code,必须 US,严格模式),
+//      不再用 Cloudflare:11-10 实测 Muse 组 18 个 Cloudflare 判美国的节点,Meta 判中国/俄罗斯/赞比亚。
+//      Muse 要加进 GUI 设置的 nodeProfileGroups(画像选路),严格判据才执行;此前 Muse 是 URLTest,判据从没生效。
 // V4.39(用户要求):AI 组按各自服务的判定做出口地区判据。ChatGPT 加 chatgpt.com 前面 Cloudflare 的 trace,必须是台湾，严格模式
 //      (同 Claude)。不统一用 Google 的判定:11-09 实测 Cloudflare 与 Google 对 13% 的节点判得不同,OpenAI、Anthropic 看的是 Cloudflare。
 // V4.38(用户要求):Gemini 组的 Google 国家判据改为严格模式(on-mismatch: reject)。评分模式的结论存盘、跨重启沿用且不分判据，
@@ -172,7 +175,7 @@
   function main(config) {
   // 打印版本号，用于确认是否下载到了最新版
   // eslint-disable-next-line no-console
-  console.log("✅ 加载脚本 V4.39-AntiCN (ChatGPT 出口判据)...");
+  console.log("✅ 加载脚本 V4.40-AntiCN (Muse 按 Meta 判定)...");
 
   // 关键修复：如果 config 为空，必须返回空对象 {} 而不是 null
 
@@ -837,12 +840,16 @@
           "expected-status": "200/301/302/307/308" // 2026-11-01 实测 HEAD 302
         },
         {
-          // 出口必须在美国。muse.ai 托管在 Vercel、前面是 Meta 自己的代理，不在 Cloudflare 后面，
-          //   借 www.cloudflare.com 的 trace 看出口 IP 所属国家(loc 字段，同 Gemini 组)。带 expected-body 的条目按 GET 探测。
-          "url": "https://www.cloudflare.com/cdn-cgi/trace",
+          // 出口必须在 Meta 眼里是美国(V4.40,用户要求按服务自己的判定):Instagram 首页匿名 HTML 里的
+          //   `"PolarisSiteData",[],{"country_code":"US"`,约 177 KB 处(整页约 500 KB,需 LumexCore 46110ae8+ 读完整正文)。
+          //   11-10 实测 Muse 组 23 个节点:Meta 判美国只有 4 个(微斯 US-01/02、星链拉斯维加斯02、自建洛杉矶),判中国 14、
+          //   俄罗斯 2、赞比亚 2,这 18 个 Cloudflare 全判美国——原先用 www.cloudflare.com trace 的判据全放行了。
+          //   用首页不用登录页:登录页按请求次数限频(几次后一直 429),首页同一 IP 5 分钟 9 次都正常。不跟随跳转,被 302 也算不符。
+          //   注意:11-01 查过,Meta 判美国时 Muse 也拦过人,出口在美国只是必要条件。工具 Tools/Google地区判定实测.cjs(GSIG_KEYS=cf,ig)。
+          "url": "https://www.instagram.com/",
           "weight": 0.2,
           "expected-status": "200",
-          "expected-body": "(?m)^loc=US$", // 出口不在美国 → 不符
+          "expected-body": "\"PolarisSiteData\",\\[\\],\\{\"country_code\":\"US\"", // Meta 判的不是美国 → 不符
           // RFC-028 严格判据(同 Claude 组):不符的节点不得承载流量，没有符合的就拒绝连接(手动固定的节点放行)。
           //   GUI「解锁判据生效」关闭时只记账。需要支持 on-mismatch 的 LumexCore;老内核与标准 mihomo 忽略本字段。
           "on-mismatch": "reject"
