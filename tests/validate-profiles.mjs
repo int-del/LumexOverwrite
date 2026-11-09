@@ -85,6 +85,35 @@ function assertEmbyMembers(emby) {
   for (const node of keep) assert(keeps(node), `Lumex_active.js: EMBY must keep ${node}`)
 }
 
+// V4.35(用户要求):Gemini、ChatGPT 与 Claude 用同一组台湾出口;Google 组删除、并入 Gemini;VS Code 整进程走自动选择;
+// YouTube 规则必须排在 GEOSITE,google 之前(google 分类含 YouTube 域名,V4.34 及以前 YouTube 规则从没命中)。
+function assertAiGroupsAndRules(groups, rules) {
+  const byName = Object.fromEntries(groups.map((group) => [group.name, group]))
+  for (const name of ['Gemini', 'ChatGPT']) {
+    for (const key of ['use', 'filter', 'exclude-filter', 'empty-fallback']) {
+      assert.deepEqual([].concat(byName[name][key]), [].concat(byName.Claude[key]), `Lumex_active.js: ${name} ${key} must match Claude`)
+    }
+  }
+  const keeps = (group, node) =>
+    new RegExp(group.filter, 'u').test(node) && !new RegExp(group['exclude-filter'], 'u').test(node)
+  for (const node of ['自建·台北1·Reality', '自建·台北2·Reality', '中转·香港-自建·台北1·SS', '中转·日本-悦·🇹🇼台湾家宽2💎', '中转·台北2-自建·台北1·SS']) {
+    assert(keeps(byName.Gemini, node), `Lumex_active.js: Gemini must keep ${node}`)
+  }
+  for (const node of ['Navenix· 🇯🇵日本｜三网牛逼优化×10', 'Navenix· 🇹🇼台湾｜三网牛逼优化×10', '自建·洛杉矶·Reality', '中转·台湾-自建·洛杉矶·SS', '悦·🇹🇼台湾2', '微斯·🇨🇳TW-01 · 备用入口']) {
+    assert(!keeps(byName.Gemini, node), `Lumex_active.js: Gemini must exclude ${node}`)
+  }
+  assert(!byName.Google, 'Lumex_active.js: Google group was merged into Gemini (V4.35)')
+  const BUILTIN = new Set(['DIRECT', 'REJECT', 'REJECT-DROP', 'PASS', 'COMPATIBLE'])
+  const OPTIONS = new Set(['no-resolve', 'src'])
+  for (const rule of rules) {
+    const target = rule.split(',').map((part) => part.trim()).filter((part) => !OPTIONS.has(part)).at(-1)
+    assert(BUILTIN.has(target) || byName[target], `Lumex_active.js: rule target not defined: ${rule}`)
+  }
+  const at = (rule) => rules.indexOf(rule)
+  assert(at('GEOSITE,youtube,YouTube') >= 0 && at('GEOSITE,youtube,YouTube') < at('GEOSITE,google,Gemini'), 'Lumex_active.js: YouTube must come before GEOSITE,google')
+  assert(at('PROCESS-NAME,Code.exe,自动选择') >= 0, 'Lumex_active.js: VS Code must go through 自动选择')
+}
+
 // 跳板组承载自建 SS2022:为空时必须 REJECT(回落直连会从家里直接过墙)。2026-11 悦通改名、三毛停用，
 // 写死全名的两个跳板组被滤空、中转全断，所以这里用改名前后两种格式的节点名核对成员边界。
 // mihomo 的 filter / exclude-filter 用 ` 分隔多条，任一条命中即算;引擎是 regexp2,这里的写法在 JS u 模式下语义一致。
@@ -223,6 +252,7 @@ for (const relative of scripts) {
     assertRelayProviders(output['proxy-providers'], output['proxy-groups'])
     assertRelayMatrix(output['proxy-providers'])
     assertMuseLandingOnly(output['proxy-groups'])
+    assertAiGroupsAndRules(output['proxy-groups'], output.rules)
     // main() 里那行日志是确认客户端有没有拉到新版的手段,V4.28~V4.31 都漏改过,一直显示 V4.27。
     const headerVersion = /版本: (V[\d.]+)/.exec(source)?.[1]
     const loggedVersion = /加载脚本 (V[\d.]+)/.exec(logs.join('\n'))?.[1]

@@ -1,7 +1,11 @@
 // Lumex Party 专用配置文件覆写脚本
 // 引用链接: https://raw.githubusercontent.com/int-del/LumexOverwrite/main/Lumex_active.js
 // 加速链接: https://cdn.jsdelivr.net/gh/int-del/LumexOverwrite@main/Lumex_active.js
-// 版本: V4.34-AntiCN  | 更新日期: 2026-11-09
+// 版本: V4.35-AntiCN  | 更新日期: 2026-11-09
+// V4.35(用户要求):删除 Google 组，并入 Gemini(它一直选 Gemini,分流不变);Gemini、ChatGPT 改用 Claude 组同一组台湾出口
+//      (TW_AI_FILTER:自建台北两台 + 台湾家宽2 的中转),不再跨国跳 IP、不再选中 ×10 节点;VS Code 整进程规则从 Gemini 改到
+//      自动选择(AI 域名另有规则);YouTube 规则移到 GEOSITE,google 之前(google 分类含 YouTube,原规则从没命中)。
+//      高倍率过滤仍只在 EMBY 组(用户定)。
 // V4.34: EMBY 改为排除倍率高于 2 的全部节点(用户要求,2 倍本身保留),取代 V4.33 的只排 10 倍。认 ×N、xN、Nx、N倍、
 //      倍率:N 五种写法。当时组合机场命中 15 个:×10 6 个、Navenix SBV6 ×3 3 个、微斯 [Max]×3 6 个;Sntp 的 2.00x 12 个保留。
 // V4.33: EMBY 排除 10 倍率节点(用户要求):视频流量大，按 10 倍扣套餐流量不划算。当时命中 Navenix「三网牛逼优化×10」
@@ -159,7 +163,7 @@
   function main(config) {
   // 打印版本号，用于确认是否下载到了最新版
   // eslint-disable-next-line no-console
-  console.log("✅ 加载脚本 V4.34-AntiCN (EMBY 排除 2 倍以上)...");
+  console.log("✅ 加载脚本 V4.35-AntiCN (AI 组统一台湾出口)...");
 
   // 关键修复：如果 config 为空，必须返回空对象 {} 而不是 null
 
@@ -470,6 +474,15 @@
     };
   });
 
+  // AI 组的台湾出口(V4.35 起 Claude、Gemini、ChatGPT 三组共用,用户要求):
+  //   直连:自建·台北N·(组合机场已排除裸 SS,这里只会进 Reality);中转:中转·<任一跳板>-<自建台北N 或 悦·台湾家宽2>。
+  //   出口只有三个台湾 IP(台北1、台北2、台湾家宽2 的 HiNet 家宽),不跨国跳 IP,也不会选中机场的高倍率节点。
+  //   代价:三组同时依赖这三个出口，都不通时三个 AI 一起断，不会落到其他地区(empty-fallback REJECT)。
+  const TW_AI_FILTER = "^(自建·台北\\d*·|中转·[^·-]+-(自建·台北\\d*·|悦·.*台湾家宽2))";
+  // 兜底排除港/马来等落地，只看落地部分：中转节点跳过「中转·<跳板>-」再查(否则「中转·香港·…」会因跳板名被误杀)，
+  //   其他节点查全名。自建节点名里不能出现「香港」/🇭🇰。
+  const TW_AI_EXCLUDE = "^(?:中转·[^·-]+-|(?!中转·))(?=.*(三毛|一毛|一分|🇭🇰|香港|🇲🇾|马来|星链))";
+
   // 1. 定义扁平化的 Proxy Groups
   config["proxy-groups"] = [
     {
@@ -533,11 +546,10 @@
       "type": "url-test",
       "icon": "https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/Google.png",
       "use": RELAY_USE.slice(), // 引入代理集：组合机场 + 全部中转(见上方中转代理集表)
-      // 🚀 白名单锁定亚洲低延迟 + 美国兜底，JP/KR 已确认 Gemini 可用
-      "filter": "(?i)(台湾|台北|Taiwan|(?<![A-Za-z])TW(?![A-Za-z])|日本|Japan|(?<![A-Za-z])JP(?![A-Za-z])|韩国|Korea|(?<![A-Za-z])KR(?![A-Za-z])|新加坡|Singapore|(?<![A-Za-z])SG(?![A-Za-z])|美国|洛杉矶|(?<![A-Za-z])US)", // 洛杉矶 = 自建洛杉矶(V4.26)
-      // 剔除“一分”“三毛”，并兜底排除港/马来落地（见文件头 Fix 说明）。只查落地部分：中转节点跳过「中转·<跳板>-」再查，
-      //   否则「中转·香港·…」会因跳板名被误杀(与 Claude 组同一写法，V4.20)
-      "exclude-filter": "^(?:中转·[^·-]+-|(?!中转·))(?=.*(一分|一毛|三毛|🇭🇰|香港|🇲🇾|马来))",
+      // V4.35 起与 Claude 组同一组台湾出口(见上方 TW_AI_FILTER)。此前白名单横跨台/日/韩/新/美，换节点时国家会变，
+      //   且 11-09 晚选中的是 Navenix「三网牛逼优化×10」(连带 Google、VS Code 流量都按 10 倍扣)。
+      "filter": TW_AI_FILTER,
+      "exclude-filter": TW_AI_EXCLUDE,
       "empty-fallback": "REJECT", // 白名单滤空时显式失败，不回落直连（见文件头 Fix 说明）
       "url": "https://gemini.google.com", // 标准 Lumex 兼容字段
       // 🚀 多 URL 健康检查配置(RFC-027 C1,2026-10-16 改)
@@ -589,11 +601,9 @@
       //   收窄到同一地区后可解除锁定，坏了在台湾家宽之间自动换。
       //   2026-10-18：直连台湾家宽新建连接只有 45~66% 成功，改用「台湾家宽中转」代理集(经香港中转，93~100%)；
       //   Hysteria2 的「台湾家宽1」叠不上中转，不再收。
-      // 直连：自建·台北N·(组合机场已排除裸 SS,这里只会进 Reality);中转：中转·<任一跳板>·<自建台北N 或 悦·台湾家宽2>
-      "filter": "^(自建·台北\\d*·|中转·[^·-]+-(自建·台北\\d*·|悦·.*台湾家宽2))",
-      // 兜底排除港/马来等落地，只看落地部分：中转节点跳过「中转·<跳板>-」再查(否则「中转·香港·…」会因跳板名被误杀)，
-      //   其他节点查全名。自建节点名里不能出现「香港」/🇭🇰。
-      "exclude-filter": "^(?:中转·[^·-]+-|(?!中转·))(?=.*(三毛|一毛|一分|🇭🇰|香港|🇲🇾|马来|星链))", // 见文件头 Fix 说明
+      // 直连与中转的写法见上方 TW_AI_FILTER / TW_AI_EXCLUDE(V4.35 起 Gemini、ChatGPT 共用)
+      "filter": TW_AI_FILTER,
+      "exclude-filter": TW_AI_EXCLUDE, // 见文件头 Fix 说明
       "empty-fallback": "REJECT", // 白名单滤空时显式失败，不回落直连（见文件头 Fix 说明）
       "url": "https://api.anthropic.com", // 标准 Lumex 兼容字段
       // 第 1 条是主判据(每轮健康检查都测，只看可达)；第 3 条带 expected-body，是解锁判据(RFC-027 R1)，
@@ -741,9 +751,10 @@
       "type": "url-test",
       "icon": "https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/OpenAI.png",
       "use": RELAY_USE.slice(), // 引入代理集：组合机场 + 全部中转(见上方中转代理集表)
-      "filter": "(?i)(美国|洛杉矶|(?<![A-Za-z])US|日本|Japan|(?<![A-Za-z])JP(?![A-Za-z])|新加坡|Singapore|(?<![A-Za-z])SG(?![A-Za-z])|台湾|台北|Taiwan|(?<![A-Za-z])TW(?![A-Za-z])|英国|(?<![A-Za-z])UK(?![A-Za-z])|(?<![A-Za-z])GB(?![A-Za-z])|加拿大|(?<![A-Za-z])CA(?![A-Za-z])|澳大利亚|Australia|(?<![A-Za-z])AU(?![A-Za-z]))", // 洛杉矶 = 自建洛杉矶(V4.26)
-      // 兜底排除港/马来落地（见文件头 Fix 说明）;只查落地部分，不误杀「中转·香港·…」(与 Claude 组同一写法，V4.20)
-      "exclude-filter": "^(?:中转·[^·-]+-|(?!中转·))(?=.*(三毛|一毛|一分|🇭🇰|香港|🇲🇾|马来))",
+      // V4.35 起与 Claude 组同一组台湾出口(见上方 TW_AI_FILTER)。此前白名单横跨美/日/新/台/英/加/澳，换节点时国家会变，
+      //   且 11-09 晚选中的是 Navenix「三网牛逼优化×10」。Cursor 组仍用原白名单(不在本次范围)。
+      "filter": TW_AI_FILTER,
+      "exclude-filter": TW_AI_EXCLUDE,
       "empty-fallback": "REJECT", // 白名单滤空时显式失败，不回落直连（见文件头 Fix 说明）
       "url": "https://chatgpt.com", // 标准 Lumex 兼容字段
       "urls": [
@@ -843,12 +854,7 @@
       "icon": "https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/CN.png",
       "proxies": ["DIRECT", "自动选择"]
     },
-    {
-      "name": "Google",
-      "type": "select",
-      "icon": "https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/Google.png",
-      "proxies": ["Gemini", "自动选择"] 
-    },
+    // V4.35 删除 Google 组(用户要求):它只有 Gemini / 自动选择 两项、一直选 Gemini,Google 流量改由规则直接指向 Gemini。
     {
       "name": "YouTube",
       "type": "select",
@@ -985,7 +991,7 @@
     "DOMAIN-SUFFIX,aistudio.google.com,Gemini",
     "DOMAIN-SUFFIX,makersuite.google.com,Gemini",
     "DOMAIN,ohttp-relay-safebrowsing-chrome.google.fastly-edge.com,Gemini", // 新增: Chrome 安全浏览中继也分流至 Gemini
-    "DOMAIN-SUFFIX,googleapis.cn,Google", // 🔴 Fix: Google 中国 CDN，涵盖全部 Google 服务，应走可手动切换的 Google 组而非锁死 Gemini
+    "DOMAIN-SUFFIX,googleapis.cn,Gemini", // Google 中国 CDN,涵盖全部 Google 服务;V4.35 删除 Google 组后直接走 Gemini(与 Google 账号同一出口)
     "DOMAIN-SUFFIX,deepmind.com,Gemini", // DeepMind 相关
     "DOMAIN-SUFFIX,deepmind.google,Gemini", // DeepMind 相关
     
@@ -1013,7 +1019,7 @@
     "DOMAIN-SUFFIX,statsig.com,Claude",
     "DOMAIN-SUFFIX,statsigapi.net,Claude",
     // VS Code 扩展市场里 Anthropic 发布者的元数据与 .vsix 下载（Claude Code 扩展更新），
-    // 必须排在 PROCESS-NAME,Code.exe,Gemini 之前，否则被 Code.exe 进程规则截走
+    // 必须排在 PROCESS-NAME,Code.exe 之前，否则被 Code.exe 进程规则截走
     "DOMAIN,anthropic.gallery.vsassets.io,Claude",
     "DOMAIN,anthropic.gallerycdn.vsassets.io,Claude",
 
@@ -1053,8 +1059,12 @@
     // GitHub 通用（clone/pull/push 与 Copilot 共用本组：本组测 copilot.github.com，比自动选择的 gstatic 更贴近 github.com）
     "GEOSITE,github,GitHub Copilot",
     
-    // AI 服务 - 兜底 (Gemini 通常包含在 Google Geosite 中，防止误伤优先放前面)
-    "GEOSITE,google,Google",
+    // YouTube 必须排在 GEOSITE,google 之前:google 分类包含 YouTube 域名。V4.34 及以前 YouTube 规则排在后面、从没命中过，
+    //   11-06~11-09 的 youtube.com / googlevideo.com / ytimg.com 连接全部经 GeoSite(google) 走了 Google 组(= Gemini)。
+    "GEOSITE,youtube,YouTube",
+    // AI 服务 - 兜底 (Gemini 通常包含在 Google Geosite 中，防止误伤优先放前面)。V4.35 删除 Google 组，其余 Google 流量直接走 Gemini,
+    //   与 Gemini 用的 Google 账号同一出口(此前 Google 组也一直选 Gemini)。
+    "GEOSITE,google,Gemini",
     
     // 强制 gemini.google.com 走 Gemini 策略组 (防止被 GEOSITE,google 抢占)
     // 虽然上面有了 DOMAIN-SUFFIX，但为了保险起见，显式声明 GEOSITE 规则顺序
@@ -1088,8 +1098,10 @@
     "PROCESS-NAME,uTorrent.exe,DIRECT",
     "PROCESS-NAME,IDMan.exe,DIRECT",
     "PROCESS-NAME,git.exe,自动选择",
-    "PROCESS-NAME,Code.exe,Gemini", // Temp: VS Code 流量全部引流至 Gemini
-    "PROCESS-NAME,Code - Insiders.exe,Gemini", // Temp: VS Code Insiders 流量全部引流至 Gemini
+    // V4.35 起 VS Code 其余流量走自动选择(原先整进程走 Gemini):11-09 晚 Gemini 组 543 条连接里 541 条是 VS Code,
+    //   基本是微软插件市场、遥测、CDN。Gemini / Claude / Copilot / Codex 的 AI 域名前面都有单独规则，不受影响。
+    "PROCESS-NAME,Code.exe,自动选择",
+    "PROCESS-NAME,Code - Insiders.exe,自动选择",
     "PROCESS-NAME,Antigravity.exe,Gemini",
     "PROCESS-NAME,cursor.exe,Cursor",
     "PROCESS-NAME,Cursor.exe,Cursor",
@@ -1140,7 +1152,6 @@
     "GEOSITE,telegram,Telegram",
     "GEOIP,telegram,Telegram,no-resolve", // 域名侧已由上面 PROCESS-NAME / GEOSITE,telegram 认领;这里只接 IP 直连的 MTProto
     "GEOSITE,category-communication,自动选择",
-    "GEOSITE,youtube,YouTube",
 
     // 测速与其他兜底
     "DOMAIN-SUFFIX,speedtest.net,DIRECT",
