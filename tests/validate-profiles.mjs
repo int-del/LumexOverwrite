@@ -108,12 +108,13 @@ function assertAiGroupsAndRules(groups, rules) {
   assert(!byName.YouTube, 'Lumex_active.js: YouTube group was merged into Gemini (V4.36)')
   // Cloudflare 国别判据抓不到 Google 判中国的节点、还误伤 Navenix 台湾(V4.36 去掉);不能再加回来
   assert(!(byName.Gemini.urls || []).some((entry) => /cdn-cgi\/trace/.test(entry.url)), 'Lumex_active.js: Gemini must not gate on Cloudflare trace')
-  // V4.37:解锁判据用 Google 自己判定的国家(Gemini 首页三字母码);评分模式,不拒绝全部 Google 流量
+  // V4.37:解锁判据用 Google 自己判定的国家(Gemini 首页三字母码)。V4.38 起严格模式(用户要求):评分模式的结论存盘、
+  // 跨重启沿用且不分判据,装机后在位者 13 分钟没按新判据测过;严格模式重启后首个连接当场测
   const gates = (byName.Gemini.urls || []).filter((entry, i) => i >= 1 && entry['expected-body'])
   assert.equal(gates.length, 1, 'Lumex_active.js: Gemini needs exactly one Google-country gate')
   const [gate] = gates
   assert.equal(gate['expected-status'], '200', 'Lumex_active.js: Gemini gate must fail on the captcha redirect (302)')
-  assert(!gate['on-mismatch'], 'Lumex_active.js: Gemini gate stays in score mode (it also carries YouTube and search)')
+  assert.equal(gate['on-mismatch'], 'reject', 'Lumex_active.js: Gemini gate is strict (V4.38)')
   const gateRe = new RegExp(gate['expected-body'], 'u')
   for (const code of ['TWN', 'JPN', 'KOR', 'SGP', 'USA']) assert(gateRe.test(`x,2,1,200,"${code}"y`), `Lumex_active.js: Gemini gate must accept ${code}`)
   for (const code of ['CHN', 'HKG', 'MAC']) assert(!gateRe.test(`x,2,1,200,"${code}"y`), `Lumex_active.js: Gemini gate must reject ${code}`)

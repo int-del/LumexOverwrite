@@ -1,7 +1,9 @@
 // Lumex Party 专用配置文件覆写脚本
 // 引用链接: https://raw.githubusercontent.com/int-del/LumexOverwrite/main/Lumex_active.js
 // 加速链接: https://cdn.jsdelivr.net/gh/int-del/LumexOverwrite@main/Lumex_active.js
-// 版本: V4.37-AntiCN  | 更新日期: 2026-11-10
+// 版本: V4.38-AntiCN  | 更新日期: 2026-11-10
+// V4.38(用户要求):Gemini 组的 Google 国家判据改为严格模式(on-mismatch: reject)。评分模式的结论存盘、跨重启沿用且不分判据，
+//      装机后在位者 13 分钟没按新判据测过;严格模式重启后首个连接当场测。代价:Google 改版去掉国家码时本组会被全部拒绝。
 // V4.37(用户要求):Gemini 组加 Google 自己判定的出口国家作解锁判据(Gemini 首页三字母码,排除中国/港澳,被要求人机验证也算不符),
 //      评分模式。依赖 LumexCore 46110ae8+(旧内核只读正文前 4 KB,读不到)。
 // V4.36(用户要求):Google、Gemini、YouTube 合并到 Gemini 组(删除 YouTube 组);Gemini 组改回附近地区 + 美国，按名字排除星链、
@@ -168,7 +170,7 @@
   function main(config) {
   // 打印版本号，用于确认是否下载到了最新版
   // eslint-disable-next-line no-console
-  console.log("✅ 加载脚本 V4.37-AntiCN (Google 判定国家)...");
+  console.log("✅ 加载脚本 V4.38-AntiCN (Gemini 严格判据)...");
 
   // 关键修复：如果 config 为空，必须返回空对象 {} 而不是 null
 
@@ -567,11 +569,12 @@
       //   1. gemini.google.com(主判据,HEAD)— 每轮健康检查都测,只看可达。与 url 保持一致。
       //   2. gemini.google.com/(解锁判据,带 expected-body,V4.37)— Google 自己判定的出口国家:首页里的三字母码
       //      `,2,1,200,"TWN"`。中国、香港、澳门不符;被 302 到 www.google.com/sorry(Google 要人机验证)也不符。
-      //      只在换节点前与在位者复查时测(GUI「解锁判据生效」打开时),一次约 140 KB(gzip,解压后约 880 KB,码在 776 KB 处)。
-      //      依赖 LumexCore 46110ae8+:旧内核只读正文前 4 KB,读不到,会把所有节点判不符(连续全败后内核会暂停这条判据)。
+      //      一次约 140 KB(gzip,解压后约 880 KB,码在 776 KB 处)。依赖 LumexCore 46110ae8+(旧内核只读正文前 4 KB,读不到)。
       //      不用 Cloudflare trace:11-09 实测它抓不到 Google 判中国的星链等节点，还把 Google 判台湾的 Navenix 台湾节点当成香港。
-      //      不设 on-mismatch: reject:本组还承载 YouTube 和搜索，找到合格节点前拒绝全部 Google 流量代价太大;
-      //      评分模式下不符的节点不会被换上，在位者明显不符时会被换走。
+      //      V4.38 起严格模式(用户要求):评分模式的结论存盘跨重启沿用、不分是哪条判据测的，重启后在位者最多 30 分钟才按新判据重测;
+      //      严格模式状态只在内存，重启后每个节点的首个连接当场测一次，测完才放行;在位者每 5 分钟复查(每天约 40 MB)。
+      //      ⚠ 严格模式没有「全部失败就暂停」的保护:Google 改版去掉这个码，本组(Google 搜索、YouTube、Gemini)会全部被拒绝，
+      //      日志 [SecondaryGate] 组进入拒绝状态 observed 里没有 google-country=。应急:删掉下一行 on-mismatch 后更新覆写。
       //   3. gemini.google.com/app(只保留地址,url-test 回退模式加权用)。
       "urls": [
         {
@@ -583,7 +586,9 @@
           "url": "https://gemini.google.com/",
           "weight": 0.2,
           "expected-status": "200",
-          "expected-body": ",2,1,200,\"(?!CHN|HKG|MAC)[A-Z]{3}\"" // Google 判中国/港澳或要人机验证 → 不符
+          "expected-body": ",2,1,200,\"(?!CHN|HKG|MAC)[A-Z]{3}\"", // Google 判中国/港澳或要人机验证 → 不符
+          // RFC-028 严格判据:不符的节点不得承载流量，换到已证明符合的节点，没有就拒绝连接(手动固定的节点放行)。
+          "on-mismatch": "reject"
         },
         {
           "url": "https://gemini.google.com/app",
