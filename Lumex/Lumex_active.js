@@ -1,7 +1,10 @@
 // Lumex Party 专用配置文件覆写脚本
 // 引用链接: https://raw.githubusercontent.com/int-del/LumexOverwrite/main/Lumex_active.js
 // 加速链接: https://cdn.jsdelivr.net/gh/int-del/LumexOverwrite@main/Lumex_active.js
-// 版本: V4.41-AntiCN  | 更新日期: 2026-11-10
+// 版本: V4.42-AntiCN  | 更新日期: 2026-11-10
+// V4.42(用户要求):Muse 判据恢复严格模式。LumexCore 6a31fab0 起内核探测按 Chrome 133 发请求(TLS 指纹、UA、h2),
+//      Instagram 首页经各节点都是 200(此前 302 的真因是 http/1.1,开 h2 即可)。评分模式下这条判据测了 4 个节点都不是
+//      美国就被内核暂停,判美国的节点一直轮不到测;严格模式没有暂停,会测候选并切到 Meta 判美国的节点。
 // V4.41(紧急):Muse 判据暂改评分模式。V4.40 装上后 Muse 整组被拒:内核用 Go 的 TLS 请求 Instagram 被 302/429,
 //      curl 同节点正常,Meta 按客户端特征识别。等内核判据请求改用 Chrome 指纹后恢复严格模式。
 // V4.40(用户要求):Muse 的出口地区判据改用 Meta 自己的判定(Instagram 首页里的 country_code,必须 US,严格模式),
@@ -177,7 +180,7 @@
   function main(config) {
   // 打印版本号，用于确认是否下载到了最新版
   // eslint-disable-next-line no-console
-  console.log("✅ 加载脚本 V4.41-AntiCN (Muse 判据暂改评分)...");
+  console.log("✅ 加载脚本 V4.42-AntiCN (Muse 判据恢复严格)...");
 
   // 关键修复：如果 config 为空，必须返回空对象 {} 而不是 null
 
@@ -851,11 +854,13 @@
           "url": "https://www.instagram.com/",
           "weight": 0.2,
           "expected-status": "200",
-          "expected-body": "\"PolarisSiteData\",\\[\\],\\{\"country_code\":\"US\"" // Meta 判的不是美国 → 不符
-          // ⚠ V4.41 暂时去掉 on-mismatch: reject(评分模式):11-10 01:12 装 V4.40 后 Muse 整组进入拒绝状态。内核用 Go 的 TLS 请求
-          //   Instagram,首页、公开主页被 302 到登录页,注册页、登录页回 429;同节点、同请求头用 curl(Windows TLS)都是 200。
-          //   Meta 按客户端特征(很可能是 TLS 指纹)识别非浏览器。等内核的判据请求改用 Chrome 指纹后再恢复严格模式。
-          //   评分模式下这条判据在所有节点上都失败,内核会暂停它(最近 6 次覆盖 ≥3 个候选全失败即旁路),不影响 Muse 选节点。
+          "expected-body": "\"PolarisSiteData\",\\[\\],\\{\"country_code\":\"US\"", // Meta 判的不是美国 → 不符
+          // RFC-028 严格判据(同 Claude 组):不符的节点不得承载流量，没有符合的就拒绝连接(手动固定的节点放行)。
+          //   GUI「解锁判据生效」关闭时只记账。需要支持 on-mismatch 的 LumexCore;老内核与标准 mihomo 忽略本字段。
+          //   必须配 LumexCore 6a31fab0+(探测走 h2):更早的内核用 http/1.1 请求,Instagram 一律 302 到登录页,Muse 会整组被拒(V4.41 的教训)。
+          //   严格模式没有「全失败就暂停」的保护:Meta 不再把任何节点判成美国时,Muse 连同 facebook/instagram 都会连不上;
+          //   应急:删掉下一行后更新覆写。
+          "on-mismatch": "reject"
         }
       ],
       "interval": 300,

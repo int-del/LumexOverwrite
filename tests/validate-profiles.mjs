@@ -134,8 +134,8 @@ function assertAiGroupsAndRules(groups, rules) {
     assert(g && !rest.length, 'Lumex_active.js: Muse needs exactly one exit-region gate')
     assert.equal(g.url, 'https://www.instagram.com/', 'Lumex_active.js: Muse gate must use the Instagram home page (login page is rate-limited)')
     assert.equal(g['expected-status'], '200', 'Lumex_active.js: Muse gate must fail on redirects')
-    // V4.41:内核的 Go TLS 被 Instagram 302/429,严格模式会让 Muse 整组被拒;内核改用 Chrome 指纹前保持评分模式
-    assert(!g['on-mismatch'], 'Lumex_active.js: Muse gate stays in score mode until the kernel sends a browser TLS fingerprint')
+    // V4.42:内核 6a31fab0 起探测走 h2,Instagram 首页不再 302,恢复严格
+    assert.equal(g['on-mismatch'], 'reject', 'Lumex_active.js: Muse gate must be strict')
     const metaRe = new RegExp(g['expected-body'], 'u')
     const page = (cc) => `x"PolarisSiteData",[],{"country_code":"${cc}","device_id":"A"}y`
     assert(metaRe.test(page('US')), 'Lumex_active.js: Muse gate must accept Meta US')
