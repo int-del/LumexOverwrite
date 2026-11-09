@@ -1,4 +1,5 @@
-# Last Updated: 2026-11-08 [Clash v1.08]
+# Last Updated: 2026-11-09 [Clash v1.09]
+# v1.09: EMBY 排除 10 倍率节点,与 PC Lumex_active.js V4.33 同步。现在的白名单里本来就没有 10 倍节点,这条是防以后加机场时漏掉。
 # v1.08: 节点域名解析去掉腾讯 DoH、改阿里两个地址,与 PC Lumex_active.js V4.30 同步(腾讯对一分的 cf.yfjc.sbs 等一律回空答案)。
 # mihomo 配置,按 Clash(OmniWide)1.0.13 / 内核 v1.19.33-clash.4 的源码调优,Clash Mi 也能导入,但下面标了 OmniWide 的说法不适用于它。
 # 分流基本同 IosStash/Stash.stoverride v3.00,差别:只认纯 IP 连接的嗅探、Apple 17.0.0.0/8 直连、STUN 走代理、隧道接管 IPv6;除 EMBY、Muse 外,各组都多收自建台北两台;自建洛杉矶进除 Claude 外的各组;除 Muse 外,各组都多收悦的台湾家宽;不收新加坡。
@@ -190,6 +191,8 @@ proxy-groups:
     use:
       - 组合机场
     filter: "^(悦·🇭🇰|悦·(🇰🇷韩国|🇹🇼台湾)[12]( · |$)|悦·🇹🇼台湾家宽[12]|一分·(🇭🇰|🇹🇼)|自建·洛杉矶·Reality$)"
+    # 10 倍率节点按 10 倍扣流量,视频不用(×10、x10、10x、10倍;前后不能紧挨数字或小数点,不误伤 ×100、×1.0)。单引号:反斜杠原样保留
+    exclude-filter: '×\s*10(?![\d.])|(?<![A-Za-z\d.])[xX]\s*10(?![\d.])|(?<![\d.])10(?:\.0+)?\s*(?:[xX×]|倍)'
     tolerance: 100
 
   # 比 EMBY 多收台北两台,其余相同,原因也相同:YouTube 走 自动选择 会选中微斯,很快用完它的流量。

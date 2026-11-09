@@ -496,6 +496,18 @@ const IOS_EXPECTED_MEMBERS = {
     if (['Gemini', 'ChatGPT', 'Claude', 'Muse'].includes(group.name)) {
       assert.equal(field('empty-fallback'), 'REJECT', `${relative}: ${group.name} must not fall back to direct when empty`)
     }
+    // 10 倍率节点按 10 倍扣流量(v1.09,与 PC V4.33 同步)。白名单里的机场现在没有 10 倍节点,这里按白名单内的名字假设它们出现
+    if (group.name === 'EMBY') {
+      const exclude = group.fields.map((line) => line.match(/^exclude-filter:\s*'(.+)'\s*$/)?.[1]).find(Boolean)
+      assert(exclude, `${relative}: EMBY must exclude 10x nodes`)
+      const ex = new RegExp(exclude, 'u')
+      for (const node of ['悦·🇭🇰香港 ×10', '悦·🇭🇰香港 x10', '一分·🇭🇰香港-10倍率', '一分·🇹🇼台湾 10x']) {
+        assert(filter.test(node) && ex.test(node), `${relative}: EMBY must exclude ${node}`)
+      }
+      for (const node of ['悦·🇭🇰香港家宽2💎', '一分·🇭🇰香港HKBN', '一分·🇭🇰香港-0.1倍率', '悦·🇭🇰香港 ×100', '悦·🇭🇰香港 ×1.0', '自建·洛杉矶·Reality']) {
+        assert(!ex.test(node), `${relative}: EMBY exclude-filter must not drop ${node}`)
+      }
+    }
   }
   console.log(`[profile-test] ${relative}: OK (${groups.length} groups, ${rules.length} rules, ${ruleSets.size} rule-sets)`)
 }
