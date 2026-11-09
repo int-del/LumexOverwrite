@@ -118,6 +118,16 @@ function assertAiGroupsAndRules(groups, rules) {
   const gateRe = new RegExp(gate['expected-body'], 'u')
   for (const code of ['TWN', 'JPN', 'KOR', 'SGP', 'USA']) assert(gateRe.test(`x,2,1,200,"${code}"y`), `Lumex_active.js: Gemini gate must accept ${code}`)
   for (const code of ['CHN', 'HKG', 'MAC']) assert(!gateRe.test(`x,2,1,200,"${code}"y`), `Lumex_active.js: Gemini gate must reject ${code}`)
+  // V4.39:每个 AI 组按该服务自己的判定。ChatGPT 看 chatgpt.com 前面的 Cloudflare,必须是台湾、严格(同 Claude)
+  const strictGateOf = (name) => (byName[name].urls || []).filter((entry, i) => i >= 1 && entry['expected-body'])
+  for (const [name, host] of [['ChatGPT', 'chatgpt.com'], ['Claude', 'claude.ai']]) {
+    const [g, ...rest] = strictGateOf(name)
+    assert(g && !rest.length, `Lumex_active.js: ${name} needs exactly one exit-region gate`)
+    assert.equal(g.url, `https://${host}/cdn-cgi/trace`, `Lumex_active.js: ${name} gate must use ${host}'s own Cloudflare trace`)
+    assert.equal(g['on-mismatch'], 'reject', `Lumex_active.js: ${name} gate must be strict`)
+    const traceRe = new RegExp(g['expected-body'].replace(/^\(\?m\)/, ''), 'mu')
+    assert(traceRe.test('fl=1\nloc=TW\ntls=TLSv1.3\n') && !traceRe.test('fl=1\nloc=HK\n'), `Lumex_active.js: ${name} gate must require loc=TW`)
+  }
   const BUILTIN = new Set(['DIRECT', 'REJECT', 'REJECT-DROP', 'PASS', 'COMPATIBLE'])
   const OPTIONS = new Set(['no-resolve', 'src'])
   for (const rule of rules) {

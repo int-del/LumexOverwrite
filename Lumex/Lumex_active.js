@@ -1,7 +1,9 @@
 // Lumex Party 专用配置文件覆写脚本
 // 引用链接: https://raw.githubusercontent.com/int-del/LumexOverwrite/main/Lumex_active.js
 // 加速链接: https://cdn.jsdelivr.net/gh/int-del/LumexOverwrite@main/Lumex_active.js
-// 版本: V4.38-AntiCN  | 更新日期: 2026-11-10
+// 版本: V4.39-AntiCN  | 更新日期: 2026-11-10
+// V4.39(用户要求):AI 组按各自服务的判定做出口地区判据。ChatGPT 加 chatgpt.com 前面 Cloudflare 的 trace,必须是台湾，严格模式
+//      (同 Claude)。不统一用 Google 的判定:11-09 实测 Cloudflare 与 Google 对 13% 的节点判得不同,OpenAI、Anthropic 看的是 Cloudflare。
 // V4.38(用户要求):Gemini 组的 Google 国家判据改为严格模式(on-mismatch: reject)。评分模式的结论存盘、跨重启沿用且不分判据，
 //      装机后在位者 13 分钟没按新判据测过;严格模式重启后首个连接当场测。代价:Google 改版去掉国家码时本组会被全部拒绝。
 // V4.37(用户要求):Gemini 组加 Google 自己判定的出口国家作解锁判据(Gemini 首页三字母码,排除中国/港澳,被要求人机验证也算不符),
@@ -170,7 +172,7 @@
   function main(config) {
   // 打印版本号，用于确认是否下载到了最新版
   // eslint-disable-next-line no-console
-  console.log("✅ 加载脚本 V4.38-AntiCN (Gemini 严格判据)...");
+  console.log("✅ 加载脚本 V4.39-AntiCN (ChatGPT 出口判据)...");
 
   // 关键修复：如果 config 为空，必须返回空对象 {} 而不是 null
 
@@ -789,6 +791,17 @@
           "weight": 0.3,
           // 2026-10-16 实测:根路径 HEAD 返回 421,无鉴权的 API 路径返回 401(RFC-027 C1)
           "expected-status": "200/301/302/307/308/401/421"
+        },
+        {
+          // V4.39 出口地区判据(用户要求每个 AI 组按该服务自己的判定):chatgpt.com 在 Cloudflare 后面，OpenAI 看到的国家就是
+          //   这里 trace 的 loc(11-10 经本组实测 chatgpt.com 与 api.openai.com 都是 loc=TW、colo=TPE)。不用 Google 的判定:
+          //   11-09 实测两家对 13% 的节点判得不同。本组只收台湾出口(TW_AI_FILTER),所以要求 TW,同 Claude 组。
+          "url": "https://chatgpt.com/cdn-cgi/trace",
+          "weight": 0.2,
+          "expected-status": "200",
+          "expected-body": "(?m)^loc=TW$", // 出口不在台湾 → 不符
+          // RFC-028 严格判据(同 Claude 组):不符的节点不得承载流量，换到已证明符合的节点，没有就拒绝连接(手动固定的节点放行)。
+          "on-mismatch": "reject"
         }
       ],
       "interval": 300, // 🎯 AI 核心业务
