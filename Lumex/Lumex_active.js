@@ -1,7 +1,9 @@
 // Lumex Party 专用配置文件覆写脚本
 // 引用链接: https://raw.githubusercontent.com/int-del/LumexOverwrite/main/Lumex_active.js
 // 加速链接: https://cdn.jsdelivr.net/gh/int-del/LumexOverwrite@main/Lumex_active.js
-// 版本: V4.40-AntiCN  | 更新日期: 2026-11-10
+// 版本: V4.41-AntiCN  | 更新日期: 2026-11-10
+// V4.41(紧急):Muse 判据暂改评分模式。V4.40 装上后 Muse 整组被拒:内核用 Go 的 TLS 请求 Instagram 被 302/429,
+//      curl 同节点正常,Meta 按客户端特征识别。等内核判据请求改用 Chrome 指纹后恢复严格模式。
 // V4.40(用户要求):Muse 的出口地区判据改用 Meta 自己的判定(Instagram 首页里的 country_code,必须 US,严格模式),
 //      不再用 Cloudflare:11-10 实测 Muse 组 18 个 Cloudflare 判美国的节点,Meta 判中国/俄罗斯/赞比亚。
 //      Muse 要加进 GUI 设置的 nodeProfileGroups(画像选路),严格判据才执行;此前 Muse 是 URLTest,判据从没生效。
@@ -175,7 +177,7 @@
   function main(config) {
   // 打印版本号，用于确认是否下载到了最新版
   // eslint-disable-next-line no-console
-  console.log("✅ 加载脚本 V4.40-AntiCN (Muse 按 Meta 判定)...");
+  console.log("✅ 加载脚本 V4.41-AntiCN (Muse 判据暂改评分)...");
 
   // 关键修复：如果 config 为空，必须返回空对象 {} 而不是 null
 
@@ -849,10 +851,11 @@
           "url": "https://www.instagram.com/",
           "weight": 0.2,
           "expected-status": "200",
-          "expected-body": "\"PolarisSiteData\",\\[\\],\\{\"country_code\":\"US\"", // Meta 判的不是美国 → 不符
-          // RFC-028 严格判据(同 Claude 组):不符的节点不得承载流量，没有符合的就拒绝连接(手动固定的节点放行)。
-          //   GUI「解锁判据生效」关闭时只记账。需要支持 on-mismatch 的 LumexCore;老内核与标准 mihomo 忽略本字段。
-          "on-mismatch": "reject"
+          "expected-body": "\"PolarisSiteData\",\\[\\],\\{\"country_code\":\"US\"" // Meta 判的不是美国 → 不符
+          // ⚠ V4.41 暂时去掉 on-mismatch: reject(评分模式):11-10 01:12 装 V4.40 后 Muse 整组进入拒绝状态。内核用 Go 的 TLS 请求
+          //   Instagram,首页、公开主页被 302 到登录页,注册页、登录页回 429;同节点、同请求头用 curl(Windows TLS)都是 200。
+          //   Meta 按客户端特征(很可能是 TLS 指纹)识别非浏览器。等内核的判据请求改用 Chrome 指纹后再恢复严格模式。
+          //   评分模式下这条判据在所有节点上都失败,内核会暂停它(最近 6 次覆盖 ≥3 个候选全失败即旁路),不影响 Muse 选节点。
         }
       ],
       "interval": 300,
