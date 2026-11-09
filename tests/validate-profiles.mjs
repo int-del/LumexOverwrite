@@ -85,24 +85,29 @@ function assertEmbyMembers(emby) {
   for (const node of keep) assert(keeps(node), `Lumex_active.js: EMBY must keep ${node}`)
 }
 
-// V4.35(用户要求):Gemini、ChatGPT 与 Claude 用同一组台湾出口;Google 组删除、并入 Gemini;VS Code 整进程走自动选择;
-// YouTube 规则必须排在 GEOSITE,google 之前(google 分类含 YouTube 域名,V4.34 及以前 YouTube 规则从没命中)。
+// V4.35(用户要求):ChatGPT 与 Claude 用同一组台湾出口;Google 组删除、并入 Gemini;VS Code 整进程走自动选择。
+// V4.36(用户要求):Google、Gemini、YouTube 合并到 Gemini 组(YouTube 组删除);Gemini 用附近地区 + 美国,按名字排除
+// 星链、一分(11-09 实测 Google 判中国或要人机验证的主要是这两家),其余返中返港等新内核用 Google 自己判定的国家过滤。
 function assertAiGroupsAndRules(groups, rules) {
   const byName = Object.fromEntries(groups.map((group) => [group.name, group]))
-  for (const name of ['Gemini', 'ChatGPT']) {
-    for (const key of ['use', 'filter', 'exclude-filter', 'empty-fallback']) {
-      assert.deepEqual([].concat(byName[name][key]), [].concat(byName.Claude[key]), `Lumex_active.js: ${name} ${key} must match Claude`)
-    }
+  for (const key of ['use', 'filter', 'exclude-filter', 'empty-fallback']) {
+    assert.deepEqual([].concat(byName.ChatGPT[key]), [].concat(byName.Claude[key]), `Lumex_active.js: ChatGPT ${key} must match Claude`)
   }
-  const keeps = (group, node) =>
-    new RegExp(group.filter, 'u').test(node) && !new RegExp(group['exclude-filter'], 'u').test(node)
-  for (const node of ['自建·台北1·Reality', '自建·台北2·Reality', '中转·香港-自建·台北1·SS', '中转·日本-悦·🇹🇼台湾家宽2💎', '中转·台北2-自建·台北1·SS']) {
+  // regexp2 认开头的 (?i),JS 不认:去掉后改用 i 标志,语义一致
+  const re = (pattern) => (pattern.startsWith('(?i)') ? new RegExp(pattern.slice(4), 'iu') : new RegExp(pattern, 'u'))
+  const keeps = (group, node) => re(group.filter).test(node) && !re(group['exclude-filter']).test(node)
+  // 名字取自 2026-11-09 实测里 Google 判可用的节点
+  for (const node of ['Navenix· 🇹🇼台湾05｜三网优化', 'Navenix· 🇯🇵日本01｜三网优化', 'Sntp· 🇨🇳 TW01 0.20x', '微斯·🇨🇳TW-01 · 备用入口', '微斯·🇸🇬SG-01 · 备用入口', '悦·🇰🇷韩国1', '悦·🇺🇸美国1', '自建·台北1·Reality', '自建·洛杉矶·Reality']) {
     assert(keeps(byName.Gemini, node), `Lumex_active.js: Gemini must keep ${node}`)
   }
-  for (const node of ['Navenix· 🇯🇵日本｜三网牛逼优化×10', 'Navenix· 🇹🇼台湾｜三网牛逼优化×10', '自建·洛杉矶·Reality', '中转·台湾-自建·洛杉矶·SS', '悦·🇹🇼台湾2', '微斯·🇨🇳TW-01 · 备用入口']) {
+  // Google 判中国的星链、要人机验证的一分,以及港澳、马来落地
+  for (const node of ['星链·LAX-洛杉矶1-TikTok', '星链·US芝加哥03', '星链·JP日本Read-IPLC', '一分·🇯🇵日本1号-0.1倍率', '一分·🇺🇸美国1号-0.1倍率', 'Navenix· 🇭🇰香港01｜HKT｜三网优化', '微斯·🇭🇰MO-01 · 备用入口', '中转·台湾-一分·🇺🇸美国1号-0.1倍率']) {
     assert(!keeps(byName.Gemini, node), `Lumex_active.js: Gemini must exclude ${node}`)
   }
   assert(!byName.Google, 'Lumex_active.js: Google group was merged into Gemini (V4.35)')
+  assert(!byName.YouTube, 'Lumex_active.js: YouTube group was merged into Gemini (V4.36)')
+  // Cloudflare 国别判据抓不到 Google 判中国的节点、还误伤 Navenix 台湾(V4.36 去掉);不能再加回来
+  assert(!(byName.Gemini.urls || []).some((entry) => /cdn-cgi\/trace/.test(entry.url)), 'Lumex_active.js: Gemini must not gate on Cloudflare trace')
   const BUILTIN = new Set(['DIRECT', 'REJECT', 'REJECT-DROP', 'PASS', 'COMPATIBLE'])
   const OPTIONS = new Set(['no-resolve', 'src'])
   for (const rule of rules) {
@@ -110,7 +115,7 @@ function assertAiGroupsAndRules(groups, rules) {
     assert(BUILTIN.has(target) || byName[target], `Lumex_active.js: rule target not defined: ${rule}`)
   }
   const at = (rule) => rules.indexOf(rule)
-  assert(at('GEOSITE,youtube,YouTube') >= 0 && at('GEOSITE,youtube,YouTube') < at('GEOSITE,google,Gemini'), 'Lumex_active.js: YouTube must come before GEOSITE,google')
+  assert(at('GEOSITE,youtube,Gemini') >= 0 && at('GEOSITE,google,Gemini') >= 0, 'Lumex_active.js: YouTube and Google must go through Gemini')
   assert(at('PROCESS-NAME,Code.exe,自动选择') >= 0, 'Lumex_active.js: VS Code must go through 自动选择')
 }
 

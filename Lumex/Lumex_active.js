@@ -1,7 +1,10 @@
 // Lumex Party 专用配置文件覆写脚本
 // 引用链接: https://raw.githubusercontent.com/int-del/LumexOverwrite/main/Lumex_active.js
 // 加速链接: https://cdn.jsdelivr.net/gh/int-del/LumexOverwrite@main/Lumex_active.js
-// 版本: V4.35-AntiCN  | 更新日期: 2026-11-09
+// 版本: V4.36-AntiCN  | 更新日期: 2026-11-10
+// V4.36(用户要求):Google、Gemini、YouTube 合并到 Gemini 组(删除 YouTube 组);Gemini 组改回附近地区 + 美国，按名字排除星链、
+//      一分(11-09 实测 Google 判中国或要人机验证的主要是这两家),去掉 Cloudflare 国别判据(抓不到返中、误伤 Navenix 台湾)。
+//      Google 自己判定的国家作判据要等 LumexCore 46110ae8+ 装好后再加。ChatGPT 仍走台湾自建(V4.35)。
 // V4.35(用户要求):删除 Google 组，并入 Gemini(它一直选 Gemini,分流不变);Gemini、ChatGPT 改用 Claude 组同一组台湾出口
 //      (TW_AI_FILTER:自建台北两台 + 台湾家宽2 的中转),不再跨国跳 IP、不再选中 ×10 节点;VS Code 整进程规则从 Gemini 改到
 //      自动选择(AI 域名另有规则);YouTube 规则移到 GEOSITE,google 之前(google 分类含 YouTube,原规则从没命中)。
@@ -163,7 +166,7 @@
   function main(config) {
   // 打印版本号，用于确认是否下载到了最新版
   // eslint-disable-next-line no-console
-  console.log("✅ 加载脚本 V4.35-AntiCN (AI 组统一台湾出口)...");
+  console.log("✅ 加载脚本 V4.36-AntiCN (Google 系合并)...");
 
   // 关键修复：如果 config 为空，必须返回空对象 {} 而不是 null
 
@@ -546,30 +549,28 @@
       "type": "url-test",
       "icon": "https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/Google.png",
       "use": RELAY_USE.slice(), // 引入代理集：组合机场 + 全部中转(见上方中转代理集表)
-      // V4.35 起与 Claude 组同一组台湾出口(见上方 TW_AI_FILTER)。此前白名单横跨台/日/韩/新/美，换节点时国家会变，
-      //   且 11-09 晚选中的是 Navenix「三网牛逼优化×10」(连带 Google、VS Code 流量都按 10 倍扣)。
-      "filter": TW_AI_FILTER,
-      "exclude-filter": TW_AI_EXCLUDE,
+      // V4.36 起本组承载 Google、Gemini、YouTube 全部流量(用户要求合并;组名保留 Gemini,GUI 画像选路清单里只有这个名字)。
+      //   节点:附近地区(台/日/韩/新)+ 美国。2026-11-09 实测(Tools/Google地区判定实测.cjs):按名字筛的这个池子连通 81 个,
+      //   Google 判可用 49、要人机验证 20、返中返港 9;只台湾+美国 47 个里可用 26、人机验证 13、返中 8,坏的比例差不多。
+      //   名字和 Cloudflare 都不可靠:星链 10 个美/俄/土/日节点 Google 判中国,一分的日本、美国节点大多被 Google 要人机验证,
+      //   所以按名字排除星链和一分;其余返中返港要靠 Google 自己判定的国家过滤(下方 urls,依赖 LumexCore 46110ae8+)。
+      //   V4.35 曾让本组走 Claude 的台湾出口，合并 YouTube 后不再适合压到自建上。
+      "filter": "(?i)(台湾|台北|Taiwan|(?<![A-Za-z])TW(?![A-Za-z])|日本|Japan|(?<![A-Za-z])JP(?![A-Za-z])|韩国|Korea|(?<![A-Za-z])KR(?![A-Za-z])|新加坡|Singapore|(?<![A-Za-z])SG(?![A-Za-z])|美国|洛杉矶|(?<![A-Za-z])US)", // 洛杉矶 = 自建洛杉矶(V4.26)
+      // 剔除一分、三毛、星链，并兜底排除港/马来落地(见文件头 Fix 说明)。只查落地部分：中转节点跳过「中转·<跳板>-」再查，
+      //   否则「中转·香港·…」会因跳板名被误杀(与 Claude 组同一写法，V4.20)
+      "exclude-filter": "^(?:中转·[^·-]+-|(?!中转·))(?=.*(一分|一毛|三毛|星链|🇭🇰|香港|🇲🇾|马来))",
       "empty-fallback": "REJECT", // 白名单滤空时显式失败，不回落直连（见文件头 Fix 说明）
       "url": "https://gemini.google.com", // 标准 Lumex 兼容字段
       // 🚀 多 URL 健康检查配置(RFC-027 C1,2026-10-16 改)
       //   1. gemini.google.com(主判据,HEAD)— 每轮健康检查都测,只看可达。与 url 保持一致。
-      //   2. Cloudflare trace 国别(解锁判据,带 expected-body)— 只在换节点前与在位者复查时测,排除 IP 归属 CN/HK 的出口。
-      //      trace 的 loc 是 Cloudflare 按访问者 IP 判定的国家(数据中心位置是 colo 字段),内核 Gemini 探针用的也是它。
-      //      不再用 ipinfo.io:机场出口 IP 多人共享,实测返回 429 限频,会把正常节点判成「不符」。
-      //   3. gemini.google.com/app(只保留地址,url-test 回退模式加权用)— 原负向前瞻在只读前缀时恒「通过」,
-      //      内核 Gemini 探针所认的可用性标记在新版页面里也已找不到,不再作为判据。
+      //   2. gemini.google.com/app(只保留地址,url-test 回退模式加权用)。
+      //   V4.36 去掉 Cloudflare trace 国别判据:11-09 实测它抓不到 Google 判中国的节点，还把 Google 判台湾的 Navenix 台湾节点
+      //   当成香港。改用 Google 自己判定的国家要等新内核装好(旧内核只读前 4 KB,读不到),到时在这里加一条带 expected-body 的判据。
       "urls": [
         {
           "url": "https://gemini.google.com",
           "weight": 0.5,
           "expected-status": "200/301/302"
-        },
-        {
-          "url": "https://www.cloudflare.com/cdn-cgi/trace",
-          "weight": 0.2,
-          "expected-status": "200",
-          "expected-body": "(?m)^loc=(?!CN|HK)[A-Z]{2}$" // IP 归属 CN/HK → 不符
         },
         {
           "url": "https://gemini.google.com/app",
@@ -853,14 +854,8 @@
       "type": "select",
       "icon": "https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/CN.png",
       "proxies": ["DIRECT", "自动选择"]
-    },
-    // V4.35 删除 Google 组(用户要求):它只有 Gemini / 自动选择 两项、一直选 Gemini,Google 流量改由规则直接指向 Gemini。
-    {
-      "name": "YouTube",
-      "type": "select",
-      "icon": "https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/YouTube.png",
-      "proxies": ["自动选择", "Gemini"]
     }
+    // V4.35 删除 Google 组、V4.36 删除 YouTube 组(用户要求):Google、Gemini、YouTube 合并到 Gemini 组，同一个 Google 账号走同一出口。
   ];
 
   // 地区跳板组插在 跳板·台北2 之前,界面上跳板组排在一起。
@@ -1059,9 +1054,9 @@
     // GitHub 通用（clone/pull/push 与 Copilot 共用本组：本组测 copilot.github.com，比自动选择的 gstatic 更贴近 github.com）
     "GEOSITE,github,GitHub Copilot",
     
-    // YouTube 必须排在 GEOSITE,google 之前:google 分类包含 YouTube 域名。V4.34 及以前 YouTube 规则排在后面、从没命中过，
-    //   11-06~11-09 的 youtube.com / googlevideo.com / ytimg.com 连接全部经 GeoSite(google) 走了 Google 组(= Gemini)。
-    "GEOSITE,youtube,YouTube",
+    // V4.36 起 Google、YouTube 都走 Gemini 组(用户要求合并)。google 分类本来就含 YouTube 域名(V4.34 及以前 YouTube 规则
+    //   排在后面从没命中过),这条显式写出来，免得以后有人以为 YouTube 另有去处。
+    "GEOSITE,youtube,Gemini",
     // AI 服务 - 兜底 (Gemini 通常包含在 Google Geosite 中，防止误伤优先放前面)。V4.35 删除 Google 组，其余 Google 流量直接走 Gemini,
     //   与 Gemini 用的 Google 账号同一出口(此前 Google 组也一直选 Gemini)。
     "GEOSITE,google,Gemini",
