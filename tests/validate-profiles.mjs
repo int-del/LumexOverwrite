@@ -48,6 +48,41 @@ function assertDnsLeakGuards(label, dns) {
   }
 }
 
+// EMBY 视频流量大,10 倍率节点按 10 倍扣套餐流量(V4.33 用户要求排除);自建只放洛杉矶。
+// 节点名取自 2026-11-09 的组合机场,另加几种常见的 10 倍写法和容易误伤的相近写法。
+function assertEmbyMembers(emby) {
+  const anyMatch = (patterns, node) => patterns.split('`').some((p) => new RegExp(p, 'u').test(node))
+  const keeps = (node) =>
+    (!emby.filter || anyMatch(emby.filter, node)) && !(emby['exclude-filter'] && anyMatch(emby['exclude-filter'], node))
+  const out = [
+    'Navenix· 🇭🇰香港｜三网牛逼优化×10',
+    'Navenix· 🇹🇼台湾｜三网牛逼优化×10',
+    'Navenix· 🇺🇸美国｜三网牛逼优化×10',
+    '某机场·🇭🇰香港 x10',
+    '某机场·🇭🇰香港 10x',
+    '某机场·🇭🇰香港-10倍率',
+    '某机场·🇸🇬新加坡 10.0x',
+    '自建·台北1·Reality',
+    '自建·台北2·Reality'
+  ]
+  const keep = [
+    'Navenix· 🇭🇰香港01｜三网优化×0.5',
+    'Navenix· 🇭🇰香港｜SBV6｜三网优化×3',
+    'Navenix· 🇲🇴澳门01｜移动优化×0.1',
+    'Sntp· 🇭🇰 HK09 2.00x',
+    '一分·🇺🇸美国1号-0.01倍率',
+    '一分·🇭🇰香港HKBN',
+    '微斯·🇭🇰HK-10 · 备用入口',
+    '某机场·🇭🇰香港×100',
+    '某机场·🇭🇰香港×1.0',
+    '某机场·🇭🇰香港 0.10x',
+    '星链·USVS1倍-iplc',
+    '自建·洛杉矶·Reality'
+  ]
+  for (const node of out) assert(!keeps(node), `Lumex_active.js: EMBY must exclude ${node}`)
+  for (const node of keep) assert(keeps(node), `Lumex_active.js: EMBY must keep ${node}`)
+}
+
 // 跳板组承载自建 SS2022:为空时必须 REJECT(回落直连会从家里直接过墙)。2026-11 悦通改名、三毛停用，
 // 写死全名的两个跳板组被滤空、中转全断，所以这里用改名前后两种格式的节点名核对成员边界。
 // mihomo 的 filter / exclude-filter 用 ` 分隔多条，任一条命中即算;引擎是 regexp2,这里的写法在 JS u 模式下语义一致。
@@ -181,6 +216,7 @@ for (const relative of scripts) {
     }
     assert.equal(emby['media-mode'], 'active', 'Lumex_active.js: EMBY must explicitly select active mode')
     assert.equal(emby['media-racing-ms'], 250, 'Lumex_active.js: EMBY racing delay must be 250ms')
+    assertEmbyMembers(emby)
     assertJumpGroups(output['proxy-groups'])
     assertRelayProviders(output['proxy-providers'], output['proxy-groups'])
     assertRelayMatrix(output['proxy-providers'])
