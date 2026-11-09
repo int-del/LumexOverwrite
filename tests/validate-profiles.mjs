@@ -48,8 +48,12 @@ function assertDnsLeakGuards(label, dns) {
   }
 }
 
-// EMBY 视频流量大,10 倍率节点按 10 倍扣套餐流量(V4.33 用户要求排除);自建只放洛杉矶。
-// 节点名取自 2026-11-09 的组合机场,另加几种常见的 10 倍写法和容易误伤的相近写法。
+// EMBY 视频流量大,倍率高于 2 的节点按倍数扣套餐流量:V4.34 / Clash v1.10 起排除(用户要求,2 倍本身保留;
+// V4.33 / v1.09 只排除 10 倍)。倍率写法各家不同,PC 与手机共用这组样例:接在节点名后面,高于 2 的必须排除,其余必须保留。
+const EMBY_MULTIPLIER_OUT = ['×10', 'x10', '10x', '-10倍率', '10.0x', '×3', '[Max]×3', '2.5x', 'x2.5', '×2.05', '3倍', '[倍率:3]', '倍率3.0', '×100', '2.50X', '12x']
+const EMBY_MULTIPLIER_KEEP = ['2.00x', '×2', 'x2.0', '2倍', '2x', '×1.5', '1.99x', '×1.0', '×0.5', '×0.1', '0.10x', '-0.01倍率', '-0.1倍率', '0.5倍率', '1倍', 'HK-10']
+
+// 自建只放洛杉矶。真实节点名取自 2026-11-09 的组合机场。
 function assertEmbyMembers(emby) {
   const anyMatch = (patterns, node) => patterns.split('`').some((p) => new RegExp(p, 'u').test(node))
   const keeps = (node) =>
@@ -58,26 +62,24 @@ function assertEmbyMembers(emby) {
     'Navenix· 🇭🇰香港｜三网牛逼优化×10',
     'Navenix· 🇹🇼台湾｜三网牛逼优化×10',
     'Navenix· 🇺🇸美国｜三网牛逼优化×10',
-    '某机场·🇭🇰香港 x10',
-    '某机场·🇭🇰香港 10x',
-    '某机场·🇭🇰香港-10倍率',
-    '某机场·🇸🇬新加坡 10.0x',
+    'Navenix· 🇭🇰香港｜SBV6｜三网优化×3',
+    '微斯·🇭🇰HK-06[Max]×3',
     '自建·台北1·Reality',
-    '自建·台北2·Reality'
+    '自建·台北2·Reality',
+    ...EMBY_MULTIPLIER_OUT.map((tag) => `某机场·🇭🇰香港 ${tag}`)
   ]
   const keep = [
     'Navenix· 🇭🇰香港01｜三网优化×0.5',
-    'Navenix· 🇭🇰香港｜SBV6｜三网优化×3',
     'Navenix· 🇲🇴澳门01｜移动优化×0.1',
     'Sntp· 🇭🇰 HK09 2.00x',
+    'Sntp· 🇨🇳 TW05 2.00x',
+    'Sntp· 🇨🇳 TW01 0.20x',
     '一分·🇺🇸美国1号-0.01倍率',
     '一分·🇭🇰香港HKBN',
     '微斯·🇭🇰HK-10 · 备用入口',
-    '某机场·🇭🇰香港×100',
-    '某机场·🇭🇰香港×1.0',
-    '某机场·🇭🇰香港 0.10x',
     '星链·USVS1倍-iplc',
-    '自建·洛杉矶·Reality'
+    '自建·洛杉矶·Reality',
+    ...EMBY_MULTIPLIER_KEEP.map((tag) => `某机场·🇭🇰香港 ${tag}`)
   ]
   for (const node of out) assert(!keeps(node), `Lumex_active.js: EMBY must exclude ${node}`)
   for (const node of keep) assert(keeps(node), `Lumex_active.js: EMBY must keep ${node}`)
@@ -496,15 +498,16 @@ const IOS_EXPECTED_MEMBERS = {
     if (['Gemini', 'ChatGPT', 'Claude', 'Muse'].includes(group.name)) {
       assert.equal(field('empty-fallback'), 'REJECT', `${relative}: ${group.name} must not fall back to direct when empty`)
     }
-    // 10 倍率节点按 10 倍扣流量(v1.09,与 PC V4.33 同步)。白名单里的机场现在没有 10 倍节点,这里按白名单内的名字假设它们出现
+    // 倍率高于 2 的节点按倍数扣流量(v1.10,与 PC V4.34 同步;2 倍本身保留)。白名单里的机场现在没有高倍率节点,
+    // 这里按白名单内的名字假设它们出现,样例与 PC 共用
     if (group.name === 'EMBY') {
       const exclude = group.fields.map((line) => line.match(/^exclude-filter:\s*'(.+)'\s*$/)?.[1]).find(Boolean)
-      assert(exclude, `${relative}: EMBY must exclude 10x nodes`)
+      assert(exclude, `${relative}: EMBY must exclude nodes above 2x`)
       const ex = new RegExp(exclude, 'u')
-      for (const node of ['悦·🇭🇰香港 ×10', '悦·🇭🇰香港 x10', '一分·🇭🇰香港-10倍率', '一分·🇹🇼台湾 10x']) {
+      for (const node of EMBY_MULTIPLIER_OUT.flatMap((tag) => [`悦·🇭🇰香港 ${tag}`, `一分·🇹🇼台湾${tag}`])) {
         assert(filter.test(node) && ex.test(node), `${relative}: EMBY must exclude ${node}`)
       }
-      for (const node of ['悦·🇭🇰香港家宽2💎', '一分·🇭🇰香港HKBN', '一分·🇭🇰香港-0.1倍率', '悦·🇭🇰香港 ×100', '悦·🇭🇰香港 ×1.0', '自建·洛杉矶·Reality']) {
+      for (const node of ['悦·🇭🇰香港家宽2💎', '一分·🇭🇰香港HKBN', '自建·洛杉矶·Reality', ...EMBY_MULTIPLIER_KEEP.map((tag) => `悦·🇭🇰香港 ${tag}`)]) {
         assert(!ex.test(node), `${relative}: EMBY exclude-filter must not drop ${node}`)
       }
     }
