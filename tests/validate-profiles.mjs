@@ -104,6 +104,13 @@ function assertAiGroupsAndRules(groups, rules) {
   for (const node of ['星链·LAX-洛杉矶1-TikTok', '星链·US芝加哥03', '星链·JP日本Read-IPLC', '一分·🇯🇵日本1号-0.1倍率', '一分·🇺🇸美国1号-0.1倍率', 'Navenix· 🇭🇰香港01｜HKT｜三网优化', '微斯·🇭🇰MO-01 · 备用入口', '中转·台湾-一分·🇺🇸美国1号-0.1倍率']) {
     assert(!keeps(byName.Gemini, node), `Lumex_active.js: Gemini must exclude ${node}`)
   }
+  // V4.43:AI 组的台湾出口收 Matcha 台湾家宽的中转,不收它的直连(入口就是出口本机,直连走家 → 台湾的拥堵路径)
+  for (const node of ['中转·香港-Matcha·🇹🇼TW Chunghwa 01', '中转·台北2-Matcha·🇹🇼TW Chunghwa 02', '中转·香港-悦·🇹🇼台湾家宽2💎', '中转·日本-自建·台北1·SS', '自建·台北2·Reality']) {
+    assert(keeps(byName.Claude, node), `Lumex_active.js: Claude must keep ${node}`)
+  }
+  for (const node of ['Matcha·🇹🇼TW Chunghwa 01', 'Matcha·🇭🇰HK Telecom 01', '中转·台湾-Matcha·🇭🇰HK Telecom 01', '悦·🇹🇼台湾家宽2💎', '中转·香港-自建·洛杉矶·SS']) {
+    assert(!keeps(byName.Claude, node), `Lumex_active.js: Claude must exclude ${node}`)
+  }
   assert(!byName.Google, 'Lumex_active.js: Google group was merged into Gemini (V4.35)')
   assert(!byName.YouTube, 'Lumex_active.js: YouTube group was merged into Gemini (V4.36)')
   // Cloudflare 国别判据抓不到 Google 判中国的节点、还误伤 Navenix 台湾(V4.36 去掉);不能再加回来
@@ -215,7 +222,7 @@ function assertMuseLandingOnly(groups) {
   for (const node of ['中转·美国-自建·洛杉矶·SS', '中转·香港-自建·洛杉矶·SS', '中转·日本-自建·洛杉矶·SS', '微斯·🇺🇸US-01 · 备用入口', '星链·LAX-洛杉矶3', '自建·洛杉矶·Reality']) {
     assert(keeps(node), `Lumex_active.js: Muse must keep ${node}`)
   }
-  for (const node of ['中转·美国-自建·台北1·SS', '中转·美国-自建·台北2·SS', '中转·美国-悦·🇹🇼台湾家宽2💎', '中转·日本-自建·台北2·SS', '自建·台北1·Reality', '悦·🇯🇵日本专属2💎']) {
+  for (const node of ['中转·美国-自建·台北1·SS', '中转·美国-自建·台北2·SS', '中转·美国-悦·🇹🇼台湾家宽2💎', '中转·美国-Matcha·🇹🇼TW Chunghwa 01', '中转·日本-自建·台北2·SS', '自建·台北1·Reality', '悦·🇯🇵日本专属2💎']) {
     assert(!keeps(node), `Lumex_active.js: Muse must exclude ${node}`)
   }
 }
@@ -224,10 +231,11 @@ function assertMuseLandingOnly(groups) {
 function assertRelayMatrix(providers) {
   const expected = new Map([
     ['台湾家宽经台北2', '台北2'],
+    ['Matcha台湾家宽经台北2', '台北2'],
     ['自建台北1SS经台北2', '台北2']
   ])
   for (const region of JUMP_REGIONS) {
-    for (const landing of ['台湾家宽', '自建台北1SS', '自建台北2SS', '自建洛杉矶SS']) expected.set(`${landing}经${region}`, region)
+    for (const landing of ['台湾家宽', 'Matcha台湾家宽', '自建台北1SS', '自建台北2SS', '自建洛杉矶SS']) expected.set(`${landing}经${region}`, region)
   }
   const relays = Object.entries(providers).filter(([, provider]) => provider.override?.['dialer-proxy'])
   assert.deepEqual(relays.map(([name]) => name).sort(), [...expected.keys()].sort(), 'Lumex_active.js: relay providers must be region x landing')
