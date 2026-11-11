@@ -1,7 +1,10 @@
 // Lumex Party 专用配置文件覆写脚本
 // 引用链接: https://raw.githubusercontent.com/int-del/LumexOverwrite/main/Lumex_active.js
 // 加速链接: https://cdn.jsdelivr.net/gh/int-del/LumexOverwrite@main/Lumex_active.js
-// 版本: V4.43-AntiCN  | 更新日期: 2026-11-11
+// 版本: V4.44-AntiCN  | 更新日期: 2026-11-11
+// V4.44(紧急):暂时去掉悦·台湾家宽2 的 7 个中转代理集。悦通订阅里已没有这个节点,代理集初次加载失败,
+//      内核据此让全部画像选路组停在 registryPending、协调器不接管;Gemini 严格判据拒绝了 url-test 基线挑的
+//      台北1 出口(Google 302 人机验证)却换不了节点,Google / YouTube / Gemini 从 23:10 起被拒。悦通恢复后再加回。
 // V4.43(用户要求):Matcha 的两个台湾节点(TW Chunghwa 01/02)做成中转落地,经 6 个地区跳板和台北2 各一条,
 //      并进 AI 组的台湾出口(TW_AI_FILTER),顶替 11-11 起全部不通的悦·台湾家宽2(悦通订阅只剩 5 个保底节点)。
 //      11-11 22:40 经临时内核实测:出口 1.168.169.60 / 36.234.185.3,反查 *.dynamic-ip.hinet.net、AS3462,是 HiNet 动态家宽;
@@ -184,7 +187,7 @@
   function main(config) {
   // 打印版本号，用于确认是否下载到了最新版
   // eslint-disable-next-line no-console
-  console.log("✅ 加载脚本 V4.43-AntiCN (Matcha 台湾家宽中转)...");
+  console.log("✅ 加载脚本 V4.44-AntiCN (暂去悦台湾家宽中转)...");
 
   // 关键修复：如果 config 为空，必须返回空对象 {} 而不是 null
 
@@ -395,8 +398,12 @@
   ];
   // 落地表:[代理集名前半, 落地节点 filter]
   //   台湾家宽2：只收 VLESS,「台湾家宽1」是 Hysteria2(UDP)，叠不到 VLESS 中转后面，实测全部失败。
+  //   ⚠️ 表里每个落地都必须在组合机场里真的有节点。V4.44 起暂时去掉悦·台湾家宽2:悦通 11-11 起订阅里没有它,
+  //   这 7 个中转代理集筛不出节点、初次加载失败(doesn't match any proxy),内核把它们当成「还没初始化完」,
+  //   用到它们的 9 个画像选路组全部停在 registryPending、协调器不接管,Gemini 判据只拒绝不换节点
+  //   (11-11 23:10 热重载 V4.43 后实测)。悦通恢复后把下面注释的两行加回来。
   const RELAY_LANDINGS = [
-    ["台湾家宽", "^悦·.*台湾家宽2"],
+    // ["台湾家宽", "^悦·.*台湾家宽2"],
     // Matcha 台湾家宽(V4.43):两个 HiNet 动态家宽节点,入口就是出口本机,直连走的是家 → 台湾这段拥堵路径,所以只做中转
     ["Matcha台湾家宽", "^Matcha·.*TW Chunghwa"],
     ["自建台北1SS", "^自建·台北1·SS$"],
@@ -411,7 +418,7 @@
     });
   });
   // 经台北2(不在地区表里):新机到台湾家宽2 A 入口 39ms、0 丢包,到旧机 0.6ms,出口仍是落地自己。台北2 不经台北2 自己转。
-  RELAYS.push(["台湾家宽经台北2", "^悦·.*台湾家宽2", "跳板·台北2", "中转·台北2-"]);
+  // RELAYS.push(["台湾家宽经台北2", "^悦·.*台湾家宽2", "跳板·台北2", "中转·台北2-"]); // V4.44 暂去,原因见落地表
   RELAYS.push(["Matcha台湾家宽经台北2", "^Matcha·.*TW Chunghwa", "跳板·台北2", "中转·台北2-"]);
   RELAYS.push(["自建台北1SS经台北2", "^自建·台北1·SS$", "跳板·台北2", "中转·台北2-"]);
   // 业务组和 Claude 组的 use:组合机场 + 上表全部中转代理集。各组用 .slice() 拿一份拷贝——共用同一个数组，

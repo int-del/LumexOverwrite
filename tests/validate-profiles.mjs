@@ -230,12 +230,12 @@ function assertMuseLandingOnly(groups) {
 // 中转 = 每个地区 × 每个落地,加经台北2 的两条。前缀和前置跳板必须对应,否则中转走错跳板或进错组。
 function assertRelayMatrix(providers) {
   const expected = new Map([
-    ['台湾家宽经台北2', '台北2'],
+    // V4.44:悦·台湾家宽2 已不在订阅里,它的中转暂时去掉(空代理集会让画像选路组停在 registryPending)
     ['Matcha台湾家宽经台北2', '台北2'],
     ['自建台北1SS经台北2', '台北2']
   ])
   for (const region of JUMP_REGIONS) {
-    for (const landing of ['台湾家宽', 'Matcha台湾家宽', '自建台北1SS', '自建台北2SS', '自建洛杉矶SS']) expected.set(`${landing}经${region}`, region)
+    for (const landing of ['Matcha台湾家宽', '自建台北1SS', '自建台北2SS', '自建洛杉矶SS']) expected.set(`${landing}经${region}`, region)
   }
   const relays = Object.entries(providers).filter(([, provider]) => provider.override?.['dialer-proxy'])
   assert.deepEqual(relays.map(([name]) => name).sort(), [...expected.keys()].sort(), 'Lumex_active.js: relay providers must be region x landing')
