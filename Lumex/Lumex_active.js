@@ -1,7 +1,9 @@
 // Lumex Party 专用配置文件覆写脚本
 // 引用链接: https://raw.githubusercontent.com/int-del/LumexOverwrite/main/Lumex_active.js
 // 加速链接: https://cdn.jsdelivr.net/gh/int-del/LumexOverwrite@main/Lumex_active.js
-// 版本: V4.46-AntiCN  | 更新日期: 2026-11-18
+// 版本: V4.47-AntiCN  | 更新日期: 2026-11-18
+// V4.47(用户要求):中转落地(Matcha 台湾家宽 01/02、悦·台湾家宽2、自建 SS)不再当跳板。跳板·台湾 按「台湾」收进了家宽,
+//      「中转·台湾-Matcha·TW Chunghwa 01」会经 01 自己去连 01、被服务器断开,11-12 起每天 4~35 次。排除项从落地表生成。
 // V4.46(用户要求):Claude、ChatGPT 共用的台湾出口(TW_AI_FILTER)加进 Matcha 台湾家宽 01/02 的直连(原来只收中转)。
 //      11-18 22:4x 对 api.anthropic.com 每条 8 轮实测:01 直连中位 367ms,与最好的中转(经韩国 343、经香港 358)相当,
 //      其余中转反而慢 40~260ms;7 天真实连接里 01 直连失败率 0.4%,与经香港/新加坡的 0.3% 相当。02 直连时好时坏
@@ -195,7 +197,7 @@
   function main(config) {
   // 打印版本号，用于确认是否下载到了最新版
   // eslint-disable-next-line no-console
-  console.log("✅ 加载脚本 V4.46-AntiCN (AI 组台湾出口加 Matcha 家宽直连)...");
+  console.log("✅ 加载脚本 V4.47-AntiCN (中转落地不当跳板)...");
 
   // 关键修复：如果 config 为空，必须返回空对象 {} 而不是 null
 
@@ -496,6 +498,11 @@
   //   interval 写了也不起作用:测速周期跟代理集走(组合机场 240~360 秒,一轮约 160 秒),线上实际 6~10 分钟一轮。
   //   为空(订阅改名把成员全滤掉)时必须 REJECT:回落直连会让 SS2022 从家里直接过墙，全加密流量会被识别，IP 可能被封。
   //   仍排除：自建(用自建当跳板是「跳板·台北2」的事);名字带「勿跑大流量」的。倍率不管(用户定)。
+  //   V4.47:落地表里的节点不当跳板(从 RELAY_LANDINGS 生成,加落地自动跟上)。跳板组收了落地本身时,「中转·台湾-Matcha·TW Chunghwa 01」
+  //   会经 01 自己去连 01,服务器把连接断掉(日志「tw1.oh-node.top:443 经 Matcha·🇹🇼TW Chunghwa 01 的连接中途断开」,
+  //   11-12 起每天 4~35 次)。代价是家宽不再给别的落地当入口:11-18 实测家宽 01 在跳板·台湾里只排第 5(中位 456ms,
+  //   前面有 142/268/273ms 的),02 不通,几乎没有损失。
+  const JUMP_EXCLUDE = ["^自建·", "勿跑大流量"].concat(RELAY_LANDINGS.map(function(landing) { return landing[1]; })).join("|");
   const JUMP_GROUPS = JUMP_REGIONS.map(function(region) {
     return {
       "name": "跳板·" + region[0],
@@ -503,7 +510,7 @@
       "icon": RELAY_ICON,
       "use": ["组合机场"],
       "filter": region[1],
-      "exclude-filter": "^自建·|勿跑大流量",
+      "exclude-filter": JUMP_EXCLUDE,
       "score-based": true,
       "url": "http://85.237.206.158:39078/generate_204",
       "expected-status": "204",
