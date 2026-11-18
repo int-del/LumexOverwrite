@@ -104,11 +104,12 @@ function assertAiGroupsAndRules(groups, rules) {
   for (const node of ['星链·LAX-洛杉矶1-TikTok', '星链·US芝加哥03', '星链·JP日本Read-IPLC', '一分·🇯🇵日本1号-0.1倍率', '一分·🇺🇸美国1号-0.1倍率', 'Navenix· 🇭🇰香港01｜HKT｜三网优化', '微斯·🇭🇰MO-01 · 备用入口', '中转·台湾-一分·🇺🇸美国1号-0.1倍率']) {
     assert(!keeps(byName.Gemini, node), `Lumex_active.js: Gemini must exclude ${node}`)
   }
-  // V4.43:AI 组的台湾出口收 Matcha 台湾家宽的中转,不收它的直连(入口就是出口本机,直连走家 → 台湾的拥堵路径)
-  for (const node of ['中转·香港-Matcha·🇹🇼TW Chunghwa 01', '中转·台北2-Matcha·🇹🇼TW Chunghwa 02', '中转·香港-悦·🇹🇼台湾家宽2💎', '中转·日本-自建·台北1·SS', '自建·台北2·Reality']) {
+  // V4.43:AI 组的台湾出口收 Matcha 台湾家宽的中转。V4.46(用户要求):也收它的直连 01/02(实测 01 直连不比中转差);
+  // 悦·台湾家宽2 仍只收中转,Matcha 的其他地区节点仍不收。
+  for (const node of ['中转·香港-Matcha·🇹🇼TW Chunghwa 01', '中转·台北2-Matcha·🇹🇼TW Chunghwa 02', 'Matcha·🇹🇼TW Chunghwa 01', 'Matcha·🇹🇼TW Chunghwa 02', '中转·香港-悦·🇹🇼台湾家宽2💎', '中转·日本-自建·台北1·SS', '自建·台北2·Reality']) {
     assert(keeps(byName.Claude, node), `Lumex_active.js: Claude must keep ${node}`)
   }
-  for (const node of ['Matcha·🇹🇼TW Chunghwa 01', 'Matcha·🇭🇰HK Telecom 01', '中转·台湾-Matcha·🇭🇰HK Telecom 01', '悦·🇹🇼台湾家宽2💎', '中转·香港-自建·洛杉矶·SS']) {
+  for (const node of ['Matcha·🇭🇰HK Telecom 01', 'Matcha·🇸🇬SG Katong 01', '中转·台湾-Matcha·🇭🇰HK Telecom 01', '悦·🇹🇼台湾家宽2💎', '中转·香港-自建·洛杉矶·SS']) {
     assert(!keeps(byName.Claude, node), `Lumex_active.js: Claude must exclude ${node}`)
   }
   assert(!byName.Google, 'Lumex_active.js: Google group was merged into Gemini (V4.35)')
