@@ -198,8 +198,9 @@ function assertJumpGroups(groups) {
   }
   // 远区、自建、勿跑大流量不当跳板;澳门带「｜HK｜」标记也不算香港。
   // V4.47:中转落地不当跳板,否则「中转·台湾-<家宽>」会经家宽自己去连家宽(上方 Matcha 香港/日本节点不是落地,照当跳板)。
+  // 悦·台湾家宽2 的落地 V4.48 注释掉了,没有经它的中转,也就不用排除;恢复落地时它自动回到排除名单。
   for (const node of [
-    'Matcha·🇹🇼TW Chunghwa 01', 'Matcha·🇹🇼TW Chunghwa 02', '悦·🇹🇼台湾家宽2💎',
+    'Matcha·🇹🇼TW Chunghwa 01', 'Matcha·🇹🇼TW Chunghwa 02',
     '自建·台北1·Reality', '自建·台北2·Reality', '自建·洛杉矶·Reality', '一分·日本勿跑大流量', '一分·香港勿跑大流量',
     '微斯·🇲🇴MO-01 · 备用入口', 'Navenix· 🇲🇴澳门01｜HK｜三网优化×0.5', 'Navenix· 🇬🇧英国01｜HK｜三网优化×0.5', '星链·SHKG-测试'
   ]) {
@@ -233,14 +234,13 @@ function assertMuseLandingOnly(groups) {
 
 // 中转 = 每个地区 × 每个落地,加经台北2 的两条。前缀和前置跳板必须对应,否则中转走错跳板或进错组。
 function assertRelayMatrix(providers) {
+  // V4.48:悦·台湾家宽2(代理集名前半「台湾家宽」)注释掉了——悦通 11-17 起不在组合机场里。恢复时把它加回下面两处。
   const expected = new Map([
-    // V4.45 加回(V4.44 曾暂去):LumexCore 44d700a3 起筛不出节点的代理集不再挡住协调器接管
-    ['台湾家宽经台北2', '台北2'],
     ['Matcha台湾家宽经台北2', '台北2'],
     ['自建台北1SS经台北2', '台北2']
   ])
   for (const region of JUMP_REGIONS) {
-    for (const landing of ['台湾家宽', 'Matcha台湾家宽', '自建台北1SS', '自建台北2SS', '自建洛杉矶SS']) expected.set(`${landing}经${region}`, region)
+    for (const landing of ['Matcha台湾家宽', '自建台北1SS', '自建台北2SS', '自建洛杉矶SS']) expected.set(`${landing}经${region}`, region)
   }
   const relays = Object.entries(providers).filter(([, provider]) => provider.override?.['dialer-proxy'])
   assert.deepEqual(relays.map(([name]) => name).sort(), [...expected.keys()].sort(), 'Lumex_active.js: relay providers must be region x landing')

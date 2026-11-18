@@ -1,7 +1,9 @@
 // Lumex Party 专用配置文件覆写脚本
 // 引用链接: https://raw.githubusercontent.com/int-del/LumexOverwrite/main/Lumex_active.js
 // 加速链接: https://cdn.jsdelivr.net/gh/int-del/LumexOverwrite@main/Lumex_active.js
-// 版本: V4.47-AntiCN  | 更新日期: 2026-11-18
+// 版本: V4.48-AntiCN  | 更新日期: 2026-11-18
+// V4.48(用户要求):注释掉悦·台湾家宽2 这个中转落地(7 个代理集)。11-17 起组合机场里悦通一个节点都没有,这 7 个代理集
+//      一直为空、每次开机报 doesn't match any proxy。悦通恢复时取消落地表与「台湾家宽经台北2」两行的注释即可。
 // V4.47(用户要求):中转落地(Matcha 台湾家宽 01/02、悦·台湾家宽2、自建 SS)不再当跳板。跳板·台湾 按「台湾」收进了家宽,
 //      「中转·台湾-Matcha·TW Chunghwa 01」会经 01 自己去连 01、被服务器断开,11-12 起每天 4~35 次。排除项从落地表生成。
 // V4.46(用户要求):Claude、ChatGPT 共用的台湾出口(TW_AI_FILTER)加进 Matcha 台湾家宽 01/02 的直连(原来只收中转)。
@@ -197,7 +199,7 @@
   function main(config) {
   // 打印版本号，用于确认是否下载到了最新版
   // eslint-disable-next-line no-console
-  console.log("✅ 加载脚本 V4.47-AntiCN (中转落地不当跳板)...");
+  console.log("✅ 加载脚本 V4.48-AntiCN (注释掉悦台湾家宽中转)...");
 
   // 关键修复：如果 config 为空，必须返回空对象 {} 而不是 null
 
@@ -412,7 +414,9 @@
   //   停在 registryPending、协调器不接管(11-11 22:35~23:17 Gemini 被拒约 40 分钟,V4.44 曾为此暂去悦·台湾家宽2);
   //   LumexCore 44d700a3 起不再如此(RFC-028 §12),落地恢复后中转自动出现。需要 LumexCore 44d700a3 及以上。
   const RELAY_LANDINGS = [
-    ["台湾家宽", "^悦·.*台湾家宽2"],
+    // V4.48 注释掉(用户要求):11-17 起组合机场里悦通一个节点都没有,它的 7 个中转代理集一直为空,每次开机都报
+    //   doesn't match any proxy。悦通恢复时取消本行和下方「台湾家宽经台北2」那行的注释即可(AI 组 TW_AI_FILTER 仍认它的中转)。
+    // ["台湾家宽", "^悦·.*台湾家宽2"],
     // Matcha 台湾家宽(V4.43):两个 HiNet 动态家宽节点,入口就是出口本机,直连走的是家 → 台湾这段拥堵路径,当时只做中转。
     //   V4.46 起 AI 组的台湾出口也收它们的直连(实测 01 直连不比中转差),这里的中转照留。
     ["Matcha台湾家宽", "^Matcha·.*TW Chunghwa"],
@@ -428,7 +432,7 @@
     });
   });
   // 经台北2(不在地区表里):新机到台湾家宽2 A 入口 39ms、0 丢包,到旧机 0.6ms,出口仍是落地自己。台北2 不经台北2 自己转。
-  RELAYS.push(["台湾家宽经台北2", "^悦·.*台湾家宽2", "跳板·台北2", "中转·台北2-"]);
+  // RELAYS.push(["台湾家宽经台北2", "^悦·.*台湾家宽2", "跳板·台北2", "中转·台北2-"]); // V4.48 注释,见落地表
   RELAYS.push(["Matcha台湾家宽经台北2", "^Matcha·.*TW Chunghwa", "跳板·台北2", "中转·台北2-"]);
   RELAYS.push(["自建台北1SS经台北2", "^自建·台北1·SS$", "跳板·台北2", "中转·台北2-"]);
   // 业务组和 Claude 组的 use:组合机场 + 上表全部中转代理集。各组用 .slice() 拿一份拷贝——共用同一个数组，
