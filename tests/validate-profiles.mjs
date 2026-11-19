@@ -232,6 +232,28 @@ function assertMuseLandingOnly(groups) {
   }
 }
 
+// V4.49:悦通订阅固定从台北2 拉。成员换路径不换出口:只收台北2 直连和以台北2 为落地的中转;
+// 拿台北2 当跳板的中转出口在别处,裸 SS2022 会从家里直接过墙,悦通节点会随拉取失败消失,都不能进。
+function assertSubscriptionFetch(groups, providers, rules) {
+  const group = groups.find((g) => g.name === '订阅拉取')
+  assert(group, 'Lumex_active.js: 订阅拉取 group required')
+  assert.equal(group.type, 'fallback', 'Lumex_active.js: 订阅拉取 must switch automatically')
+  assert.equal(group['score-based'], true, 'Lumex_active.js: 订阅拉取 must pick by delay')
+  assert.equal(group['empty-fallback'], 'REJECT', 'Lumex_active.js: 订阅拉取 must REJECT when empty')
+  for (const name of group.use) assert(providers[name], `Lumex_active.js: 订阅拉取 uses missing provider ${name}`)
+  const viaJumps = JUMP_REGIONS.map((region) => `自建台北2SS经${region}`)
+  assert.deepEqual([...group.use].sort(), ['组合机场', ...viaJumps].sort(), 'Lumex_active.js: 订阅拉取 must use 组合机场 plus every 台北2 relay')
+  const keeps = (node) => new RegExp(group.filter, 'u').test(node)
+  for (const node of ['自建·台北2·Reality', ...JUMP_REGIONS.map((region) => `中转·${region}-自建·台北2·SS`)]) {
+    assert(keeps(node), `Lumex_active.js: 订阅拉取 must keep ${node}`)
+  }
+  for (const node of ['自建·台北2·SS', '中转·台北2-自建·台北1·SS', '中转·台北2-Matcha·🇹🇼TW Chunghwa 01', '自建·台北1·Reality', '中转·香港-自建·台北1·SS', '悦·🇭🇰香港1']) {
+    assert(!keeps(node), `Lumex_active.js: 订阅拉取 must exclude ${node}`)
+  }
+  const at = rules.indexOf('DOMAIN,sso.yuetoto.com,订阅拉取')
+  assert(at >= 0 && at < rules.indexOf('MATCH,自动选择'), 'Lumex_active.js: 悦通 subscription host must go through 订阅拉取')
+}
+
 // 中转 = 每个地区 × 每个落地,加经台北2 的两条。前缀和前置跳板必须对应,否则中转走错跳板或进错组。
 function assertRelayMatrix(providers) {
   // V4.48:悦·台湾家宽2(代理集名前半「台湾家宽」)注释掉了——悦通 11-17 起不在组合机场里。恢复时把它加回下面两处。
@@ -303,6 +325,7 @@ for (const relative of scripts) {
     assertRelayProviders(output['proxy-providers'], output['proxy-groups'])
     assertRelayMatrix(output['proxy-providers'])
     assertMuseLandingOnly(output['proxy-groups'])
+    assertSubscriptionFetch(output['proxy-groups'], output['proxy-providers'], output.rules)
     assertAiGroupsAndRules(output['proxy-groups'], output.rules)
     // main() 里那行日志是确认客户端有没有拉到新版的手段,V4.28~V4.31 都漏改过,一直显示 V4.27。
     const headerVersion = /版本: (V[\d.]+)/.exec(source)?.[1]

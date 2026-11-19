@@ -1,7 +1,9 @@
 // Lumex Party 专用配置文件覆写脚本
 // 引用链接: https://raw.githubusercontent.com/int-del/LumexOverwrite/main/Lumex_active.js
 // 加速链接: https://cdn.jsdelivr.net/gh/int-del/LumexOverwrite@main/Lumex_active.js
-// 版本: V4.48-AntiCN  | 更新日期: 2026-11-18
+// 版本: V4.49-AntiCN  | 更新日期: 2026-11-19
+// V4.49(用户要求):悦通订阅固定从台北2 拉。新组「订阅拉取」(fallback,台北2 直连 + 经各地区跳板的台北2 中转,出口都是台北2)
+//      加规则 DOMAIN,sso.yuetoto.com,订阅拉取;Sub-Store 那边仍填 7890 不用改。原来跟着 MATCH,自动选择,每次出口不同。
 // V4.48(用户要求):注释掉悦·台湾家宽2 这个中转落地(7 个代理集)。11-17 起组合机场里悦通一个节点都没有,这 7 个代理集
 //      一直为空、每次开机报 doesn't match any proxy。悦通恢复时取消落地表与「台湾家宽经台北2」两行的注释即可。
 // V4.47(用户要求):中转落地(Matcha 台湾家宽 01/02、悦·台湾家宽2、自建 SS)不再当跳板。跳板·台湾 按「台湾」收进了家宽,
@@ -199,7 +201,7 @@
   function main(config) {
   // 打印版本号，用于确认是否下载到了最新版
   // eslint-disable-next-line no-console
-  console.log("✅ 加载脚本 V4.48-AntiCN (注释掉悦台湾家宽中转)...");
+  console.log("✅ 加载脚本 V4.49-AntiCN (悦通订阅固定走台北2)...");
 
   // 关键修复：如果 config 为空，必须返回空对象 {} 而不是 null
 
@@ -937,6 +939,27 @@
       "type": "select",
       "icon": "https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/CN.png",
       "proxies": ["DIRECT", "自动选择"]
+    },
+
+    // 专用组:只被一条规则指向
+    {
+      // V4.49(用户要求):悦通订阅(sso.yuetoto.com,「悦通」「悦通备」两个订阅都在这)固定从台北2 出去拉。
+      //   Sub-Store 是 Node.js 版,订阅只能填代理地址(7890),出口原来跟着 MATCH,自动选择 每次都变;下方规则把这个域名交给本组。
+      //   成员:台北2 直连 Reality + 经各地区跳板的「中转·<地区>-自建·台北2·SS」,出口都是台北2 本机,
+      //   score-based 在通的里挑延迟低的(11-19 直连 1157ms、经台湾/香港 110~121ms),换路径不换 IP。
+      //   不收「中转·台北2-…」(拿台北2 当跳板,出口在别处)、裸「自建·台北2·SS」(SS2022 会从家里直接过墙)、
+      //   悦通自己的节点(拉取失败一次悦通节点就从组合机场掉出去,组空了下次也拉不回来)。
+      //   use 从中转表取,台北2 落地注释掉时这里跟着少,不会引用不存在的代理集。全不通时拒绝、不回落直连(用途就是出口 IP 不变)。
+      "name": "订阅拉取",
+      "type": "fallback",
+      "use": ["组合机场"].concat(RELAYS.filter(function(r) { return r[1] === "^自建·台北2·SS$"; }).map(function(r) { return r[0]; })),
+      "filter": "^(自建·台北2·Reality|中转·[^·-]+-自建·台北2·SS)$",
+      "score-based": true,
+      "url": "https://www.gstatic.com/generate_204",
+      "expected-status": "204",
+      "interval": 120,
+      "lazy": false,
+      "empty-fallback": "REJECT"
     }
     // V4.35 删除 Google 组、V4.36 删除 YouTube 组(用户要求):Google、Gemini、YouTube 合并到 Gemini 组，同一个 Google 账号走同一出口。
   ];
@@ -978,7 +1001,10 @@
     "DOMAIN-SUFFIX,startspoint.com,EMBY", // 起点公费A
     "DOMAIN-SUFFIX,mobaiemby.site,EMBY", // 墨云阁:公益30天保号
     "DOMAIN-SUFFIX,yue.to,EMBY", // 悦:stream.yue.to
-    "DOMAIN-SUFFIX,28.al,EMBY", // 起点:公益2-30天保号 
+    "DOMAIN-SUFFIX,28.al,EMBY", // 起点:公益2-30天保号
+
+    // 📥 悦通订阅固定从台北2 拉(V4.49,见「订阅拉取」组)
+    "DOMAIN,sso.yuetoto.com,订阅拉取",
 
     // 🏠 内网域名直连兜底保障
     "DOMAIN-SUFFIX,lan,DIRECT",
