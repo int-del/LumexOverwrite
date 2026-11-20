@@ -1,10 +1,12 @@
-# Last Updated: 2026-11-09 [Clash v1.10]
+# Last Updated: 2026-11-20 [Clash v1.11]
+# v1.11: Claude、ChatGPT 加 4 条中转「中转·(香港|台湾)-自建·台北N·SS」(新增 跳板·香港 / 跳板·台湾 两组和两个中转代理集);
+#        节点拉取间隔 6 小时改 1 小时(Sub-Store 改为每小时同步 Gist;没变化时只回 304)。手机 Claude 组原来只有台北两台 Reality 直连。
 # v1.10: EMBY 改为排除倍率高于 2 的全部节点(2 倍本身保留),取代 v1.09 的只排 10 倍,与 PC Lumex_active.js V4.34 同步。白名单里现在没有高倍率节点。
 # v1.09: EMBY 排除 10 倍率节点,与 PC Lumex_active.js V4.33 同步。现在的白名单里本来就没有 10 倍节点,这条是防以后加机场时漏掉。
 # v1.08: 节点域名解析去掉腾讯 DoH、改阿里两个地址,与 PC Lumex_active.js V4.30 同步(腾讯对一分的 cf.yfjc.sbs 等一律回空答案)。
 # mihomo 配置,按 Clash(OmniWide)1.0.13 / 内核 v1.19.33-clash.4 的源码调优,Clash Mi 也能导入,但下面标了 OmniWide 的说法不适用于它。
 # 分流基本同 IosStash/Stash.stoverride v3.00,差别:只认纯 IP 连接的嗅探、Apple 17.0.0.0/8 直连、STUN 走代理、隧道接管 IPv6;除 EMBY、Muse 外,各组都多收自建台北两台;自建洛杉矶进除 Claude 外的各组;除 Muse 外,各组都多收悦的台湾家宽;不收新加坡。
-# ⚠️ 本仓库公开,下方订阅地址是占位符。导入前换成 Sub-Store 的 Group.yaml 地址(ClashMeta 格式)。
+# ⚠️ 本仓库公开,下方订阅地址是占位符(3 处,组合机场和两个中转代理集)。导入前都换成 Sub-Store 的 Group.yaml 地址(ClashMeta 格式)。
 
 mode: rule
 log-level: error
@@ -88,7 +90,7 @@ proxy-providers:
     type: http
     url: "https://example.invalid/replace-with-group-yaml-url"
     path: ./providers/group.yaml
-    interval: 21600 # 与 Sub-Store 每 6 小时同步 Gist 对齐
+    interval: 3600 # v1.11:Sub-Store 每小时同步一次 Gist(PC 开着时);内容没变时 Gist 回 304,不重新下载
     filter: "^(微斯·(🇭🇰|🇨🇳TW|🇯🇵|🇰🇷|🇺🇸).*备用入口$|悦·(🇭🇰|🇺🇸)|悦·(🇯🇵日本|🇹🇼台湾|🇰🇷韩国)[12]( · |$)|悦·🇹🇼台湾家宽[12]|悦·🇯🇵[^·]*AI解锁|一分·(🇭🇰|🇯🇵日本专线|🇹🇼)|自建·(台北[0-9]+|洛杉矶)·Reality$)"
     # 不按协议排除 Hysteria2:2026-11-02 同机场比较,悦差一些、一分更好,家宽数据也不能代表手机。QUIC 连接在用时每 10 秒发一次心跳(sing-quic DefaultKeepAlivePeriod),耗电差多少没测过。
     health-check:
@@ -97,6 +99,44 @@ proxy-providers:
       expected-status: 204
       interval: 1800 # 这只是兜底:OmniWide 在开机、唤醒、换网和连续拨号失败时都会另外测,不用靠定时发现坏节点
       timeout: 3000 # 死节点占着并发名额直到超时,一轮的时间几乎都花在这;2026-11-01 实测活节点超过 3 秒的只有 1/49
+      lazy: true
+
+  # v1.11 中转:裸 SS「自建·台北N·SS」经机场跳板连,出口仍是台北本机(PC 上同名中转的手机版)。
+  #   必须是 http:Clash(OmniWide)不带本地文件,type: file 的代理集会加载成空的(bind/clash/plan_resources.go
+  #   「a file provider reads a path this app does not carry」),所以不能像 PC 那样读组合机场下载好的文件,各自再下一份 Gist。
+  #   按跳板拆、不按落地拆:每多一个代理集就多下载一份 Gist。dialer-proxy 指向的组名写错时整份配置加载失败(不会偷偷直连)。
+  #   只被 Claude、ChatGPT 用,懒加载按代理集算,这两组闲着时这里不测。
+  台北经香港:
+    type: http
+    url: "https://example.invalid/replace-with-group-yaml-url"
+    path: ./providers/relay-hk.yaml
+    interval: 3600
+    filter: "^自建·台北[0-9]+·SS$"
+    override:
+      dialer-proxy: 跳板·香港
+      additional-prefix: "中转·香港-"
+    health-check:
+      enable: true
+      url: http://www.gstatic.com/generate_204
+      expected-status: 204
+      interval: 1800
+      timeout: 3000
+      lazy: true
+  台北经台湾:
+    type: http
+    url: "https://example.invalid/replace-with-group-yaml-url"
+    path: ./providers/relay-tw.yaml
+    interval: 3600
+    filter: "^自建·台北[0-9]+·SS$"
+    override:
+      dialer-proxy: 跳板·台湾
+      additional-prefix: "中转·台湾-"
+    health-check:
+      enable: true
+      url: http://www.gstatic.com/generate_204
+      expected-status: 204
+      interval: 1800
+      timeout: 3000
       lazy: true
 
 # ==========================================
@@ -221,17 +261,22 @@ proxy-groups:
     icon: https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/OpenAI.png
     use:
       - 组合机场
-    filter: "^(微斯·(🇨🇳TW|🇯🇵|🇺🇸).*备用入口$|悦·(🇯🇵|🇺🇸)[^·]*AI解锁|悦·🇺🇸美国[12]( · |$)|悦·🇹🇼台湾家宽[12]|自建·(台北[0-9]+|洛杉矶)·Reality$)"
+      - 台北经香港
+      - 台北经台湾
+    filter: "^(微斯·(🇨🇳TW|🇯🇵|🇺🇸).*备用入口$|悦·(🇯🇵|🇺🇸)[^·]*AI解锁|悦·🇺🇸美国[12]( · |$)|悦·🇹🇼台湾家宽[12]|自建·(台北[0-9]+|洛杉矶)·Reality$|中转·(香港|台湾)-自建·台北[0-9]+·SS$)"
     tolerance: 100
     empty-fallback: REJECT
 
-  # 只收台湾出口:台北两台加悦的台湾家宽。PC 上台湾家宽经中转(2026-10-18 家宽直连只有 31~37%),手机不走中转,测不通时 url-test 不会选。
+  # 只收台湾出口:台北两台(直连 Reality,v1.11 起加经香港 / 台湾跳板的 SS 中转)加悦的台湾家宽。
+  #   悦的台湾家宽在手机上仍是直连(PC 上经中转,2026-10-18 家宽直连只有 31~37%),测不通时 url-test 不会选。
   - name: Claude
     type: url-test
     icon: https://www.google.com/s2/favicons?domain=claude.ai&sz=128
     use:
       - 组合机场
-    filter: "^(自建·台北[0-9]+·Reality$|悦·🇹🇼台湾家宽[12])"
+      - 台北经香港
+      - 台北经台湾
+    filter: "^(自建·台北[0-9]+·Reality$|悦·🇹🇼台湾家宽[12]|中转·(香港|台湾)-自建·台北[0-9]+·SS$)"
     tolerance: 100
     empty-fallback: REJECT
 
@@ -242,6 +287,25 @@ proxy-groups:
     use:
       - 组合机场
     filter: "^(微斯·🇺🇸.*备用入口$|悦·🇺🇸|自建·洛杉矶·Reality$)"
+    tolerance: 100
+    empty-fallback: REJECT
+
+  # v1.11 中转的跳板(上方「台北经香港 / 台北经台湾」的 dialer-proxy),从组合机场按地区挑延迟最低的。
+  #   只收微斯和悦:一分到台北的非标准端口不通(PC 实测 0/44);自建不当跳板;台湾家宽不当跳板(动态家宽 IP)。
+  #   empty-fallback 必须 REJECT:Clash 遇到空组默认回落 COMPATIBLE,也就是直连,SS2022 会从手机直接过墙。
+  - name: 跳板·香港
+    type: url-test
+    use:
+      - 组合机场
+    filter: "^(微斯·🇭🇰.*备用入口$|悦·🇭🇰)"
+    tolerance: 100
+    empty-fallback: REJECT
+
+  - name: 跳板·台湾
+    type: url-test
+    use:
+      - 组合机场
+    filter: "^(微斯·🇨🇳TW.*备用入口$|悦·🇹🇼台湾[12]( · |$))"
     tolerance: 100
     empty-fallback: REJECT
 

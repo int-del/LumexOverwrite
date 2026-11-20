@@ -542,8 +542,22 @@ const IOS_EXPECTED_MEMBERS = {
   // 公开仓库只放占位符
   const provider = section('proxy-providers')
   const urls = provider.map((line) => line.match(/^\s*url:\s*"?([^"\s]+)/)?.[1]).filter(Boolean)
-  assert.deepEqual(urls, ['https://example.invalid/replace-with-group-yaml-url', 'http://www.gstatic.com/generate_204'], `${relative}: subscription url must stay a placeholder`)
-  assert(provider.some((line) => /^\s*lazy: true/.test(line)), `${relative}: health-check must be lazy`)
+  const placeholder = 'https://example.invalid/replace-with-group-yaml-url'
+  const gstatic = 'http://www.gstatic.com/generate_204'
+  // v1.11:组合机场 + 两个中转代理集,三处都是同一个 Group.yaml 占位符
+  assert.deepEqual(urls, [placeholder, gstatic, placeholder, gstatic, placeholder, gstatic], `${relative}: subscription urls must stay placeholders`)
+  // 按两格缩进的名字切开各代理集
+  const providers = {}
+  for (const line of provider) {
+    const name = line.match(/^ {2}([^\s#][^:]*):\s*$/)?.[1]
+    if (name) providers[name] = []
+    else if (Object.keys(providers).length && line.trim() && !line.trim().startsWith('#')) providers[Object.keys(providers).at(-1)].push(line)
+  }
+  assert.deepEqual(Object.keys(providers), ['组合机场', '台北经香港', '台北经台湾'], `${relative}: unexpected providers`)
+  for (const [name, body] of Object.entries(providers)) {
+    assert(body.some((line) => /^ {4}type: http$/.test(line)), `${relative}: ${name} must be http (Clash for iOS loads file providers empty)`)
+    assert(body.some((line) => /^ {6}lazy: true/.test(line)), `${relative}: ${name} health-check must be lazy`)
+  }
 
   const groups = []
   for (const line of section('proxy-groups')) {
@@ -596,9 +610,50 @@ const IOS_EXPECTED_MEMBERS = {
   for (const [key, node] of Object.entries(IOS_NODES)) {
     if (key !== 'sgAi') assert(testAll(providerFilter, node),`${relative}: provider filter must keep ${node}`)
   }
+  // v1.11 中转:裸 SS 只能经跳板出现。中转代理集只收台北的裸 SS,dialer-proxy 指向同地区的跳板组;
+  // 跳板组只收微斯、悦,为空时必须拒绝(Clash 默认回落 COMPATIBLE 即直连,SS2022 会从手机直接过墙)。
+  const groupField = (group, key) => group.fields.find((line) => line.startsWith(`${key}:`))?.split('#')[0].slice(key.length + 1).trim()
+  const RELAYS = { 台北经香港: '香港', 台北经台湾: '台湾' }
+  const relayNodes = []
+  for (const [name, region] of Object.entries(RELAYS)) {
+    const body = providers[name].map((line) => line.trim())
+    const filter = new RegExp(body.find((line) => line.startsWith('filter:')).match(/"(.+)"/)[1], 'u')
+    for (const node of ['自建·台北1·SS', '自建·台北2·SS']) assert(filter.test(node), `${relative}: ${name} must keep ${node}`)
+    for (const node of ['自建·洛杉矶·SS', '自建·台北1·Reality', '微斯·🇭🇰HK-01 · 备用入口']) assert(!filter.test(node), `${relative}: ${name} must exclude ${node}`)
+    assert(body.includes(`dialer-proxy: 跳板·${region}`), `${relative}: ${name} must dial through 跳板·${region}`)
+    assert(body.includes(`additional-prefix: "中转·${region}-"`), `${relative}: ${name} prefix must name its jump`)
+    relayNodes.push(`中转·${region}-自建·台北1·SS`, `中转·${region}-自建·台北2·SS`)
+  }
+  const JUMPS = {
+    '跳板·香港': { in: ['微斯·🇭🇰HK-01 · 备用入口', '微斯·🇭🇰HK-04[Residential] · 备用入口', '悦·🇭🇰香港1'], out: ['一分·🇭🇰香港HKBN', '微斯·🇨🇳TW-01 · 备用入口', '悦·🇹🇼台湾2'] },
+    '跳板·台湾': { in: ['微斯·🇨🇳TW-01 · 备用入口', '微斯·🇨🇳TW-02[Residential] · 备用入口', '悦·🇹🇼台湾2'], out: ['一分·🇹🇼台湾', '悦·🇹🇼台湾家宽2💎', '微斯·🇭🇰HK-01 · 备用入口'] }
+  }
+  for (const [name, expected] of Object.entries(JUMPS)) {
+    const jump = groups.find((group) => group.name === name)
+    assert(jump, `${relative}: ${name} required`)
+    assert.equal(groupField(jump, 'type'), 'url-test', `${relative}: ${name} unexpected type`)
+    assert.equal(groupField(jump, 'empty-fallback'), 'REJECT', `${relative}: ${name} must not fall back to direct when empty`)
+    assert(!jump.fields.some((line) => /^(url|interval|lazy):/.test(line)), `${relative}: ${name} must leave testing to the provider`)
+    assert(jump.fields.includes('- 组合机场') && !jump.fields.some((line) => /^- 台北经/.test(line)), `${relative}: ${name} must pick from 组合机场 only`)
+    const filter = filterOf(jump.fields)
+    for (const node of expected.in) {
+      assert(testAll(filter, node), `${relative}: ${name} must keep ${node}`)
+      assert(testAll(providerFilter, node), `${relative}: provider filter must keep jump ${node}`)
+    }
+    for (const node of [...expected.out, '自建·台北1·Reality', '自建·台北2·SS', ...relayNodes]) assert(testNone(filter, node), `${relative}: ${name} must exclude ${node}`)
+  }
   for (const group of groups) {
-    const field = (key) => group.fields.find((line) => line.startsWith(`${key}:`))?.split('#')[0].slice(key.length + 1).trim()
+    const field = (key) => groupField(group, key)
     if (field('type') === 'select') continue
+    if (group.name in JUMPS) continue
+    // 中转只进 Claude、ChatGPT;其他组既不能用中转代理集,也不能收中转节点和裸 SS
+    const relayGroup = ['Claude', 'ChatGPT'].includes(group.name)
+    const groupFilter = filterOf(group.fields)
+    for (const name of Object.keys(RELAYS)) {
+      assert.equal(group.fields.includes(`- ${name}`), relayGroup, `${relative}: ${group.name} ${relayGroup ? 'must use' : 'must not use'} ${name}`)
+    }
+    for (const node of relayNodes) assert.equal(groupFilter.test(node), relayGroup, `${relative}: ${group.name} ${relayGroup ? 'must keep' : 'must exclude'} ${node}`)
+    for (const node of ['自建·台北1·SS', '自建·台北2·SS']) assert(!groupFilter.test(node), `${relative}: ${group.name} must exclude bare ${node}`)
     assert.equal(field('type'), 'url-test', `${relative}: ${group.name} unexpected type`)
     // 组上写 url 会给代理集多注册一个测速任务，整个代理集多测一轮
     assert(!group.fields.some((line) => /^(url|interval|lazy):/.test(line)), `${relative}: ${group.name} must leave testing to the provider`)
