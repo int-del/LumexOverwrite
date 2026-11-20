@@ -544,8 +544,9 @@ const IOS_EXPECTED_MEMBERS = {
   const urls = provider.map((line) => line.match(/^\s*url:\s*"?([^"\s]+)/)?.[1]).filter(Boolean)
   const placeholder = 'https://example.invalid/replace-with-group-yaml-url'
   const gstatic = 'http://www.gstatic.com/generate_204'
-  // v1.11:组合机场 + 两个中转代理集,三处都是同一个 Group.yaml 占位符
-  assert.deepEqual(urls, [placeholder, gstatic, placeholder, gstatic, placeholder, gstatic], `${relative}: subscription urls must stay placeholders`)
+  // v1.11:组合机场 + 两个中转代理集,三处都是同一个 Group.yaml 占位符;v1.12 加「已验证」(Verified.yaml 占位符)
+  const verifiedPlaceholder = 'https://example.invalid/replace-with-verified-yaml-url'
+  assert.deepEqual(urls, [placeholder, gstatic, placeholder, gstatic, placeholder, gstatic, verifiedPlaceholder, gstatic], `${relative}: subscription urls must stay placeholders`)
   // 按两格缩进的名字切开各代理集
   const providers = {}
   for (const line of provider) {
@@ -553,7 +554,7 @@ const IOS_EXPECTED_MEMBERS = {
     if (name) providers[name] = []
     else if (Object.keys(providers).length && line.trim() && !line.trim().startsWith('#')) providers[Object.keys(providers).at(-1)].push(line)
   }
-  assert.deepEqual(Object.keys(providers), ['组合机场', '台北经香港', '台北经台湾'], `${relative}: unexpected providers`)
+  assert.deepEqual(Object.keys(providers), ['组合机场', '自建经香港', '自建经台湾', '已验证'], `${relative}: unexpected providers`)
   for (const [name, body] of Object.entries(providers)) {
     assert(body.some((line) => /^ {4}type: http$/.test(line)), `${relative}: ${name} must be http (Clash for iOS loads file providers empty)`)
     assert(body.some((line) => /^ {6}lazy: true/.test(line)), `${relative}: ${name} health-check must be lazy`)
@@ -607,22 +608,28 @@ const IOS_EXPECTED_MEMBERS = {
   for (const node of [IOS_NODES.sgAi, '微斯·🇸🇬SG-01 · 备用入口', '悦·🇸🇬新加坡2','一分·🇸🇬新加坡专线']) {
     assert(testNone(providerFilter, node),`${relative}: provider filter must exclude ${node}`)
   }
-  for (const [key, node] of Object.entries(IOS_NODES)) {
-    if (key !== 'sgAi') assert(testAll(providerFilter, node),`${relative}: provider filter must keep ${node}`)
+  // v1.12:组合机场只给 自动选择 / EMBY / YouTube 和跳板用;美国与 AI 解锁节点只有改用「已验证」的四组要,不再收
+  for (const key of ['hk', 'hkFast', 'jp', 'tw', 'twFast', 'kr', 'oneHk', 'oneJp', 'claude']) {
+    assert(testAll(providerFilter, IOS_NODES[key]), `${relative}: provider filter must keep ${IOS_NODES[key]}`)
   }
-  // v1.11 中转:裸 SS 只能经跳板出现。中转代理集只收台北的裸 SS,dialer-proxy 指向同地区的跳板组;
+  for (const key of ['us', 'usFast', 'jpAi']) assert(testNone(providerFilter, IOS_NODES[key]), `${relative}: provider filter must drop ${IOS_NODES[key]}`)
+  // 中转:裸 SS 只能经跳板出现。中转代理集只收台北、洛杉矶的裸 SS,dialer-proxy 指向同地区的跳板组;
   // 跳板组只收微斯、悦,为空时必须拒绝(Clash 默认回落 COMPATIBLE 即直连,SS2022 会从手机直接过墙)。
   const groupField = (group, key) => group.fields.find((line) => line.startsWith(`${key}:`))?.split('#')[0].slice(key.length + 1).trim()
-  const RELAYS = { 台北经香港: '香港', 台北经台湾: '台湾' }
+  const RELAYS = { 自建经香港: '香港', 自建经台湾: '台湾' }
   const relayNodes = []
   for (const [name, region] of Object.entries(RELAYS)) {
     const body = providers[name].map((line) => line.trim())
     const filter = new RegExp(body.find((line) => line.startsWith('filter:')).match(/"(.+)"/)[1], 'u')
-    for (const node of ['自建·台北1·SS', '自建·台北2·SS']) assert(filter.test(node), `${relative}: ${name} must keep ${node}`)
-    for (const node of ['自建·洛杉矶·SS', '自建·台北1·Reality', '微斯·🇭🇰HK-01 · 备用入口']) assert(!filter.test(node), `${relative}: ${name} must exclude ${node}`)
+    for (const node of ['自建·台北1·SS', '自建·台北2·SS', '自建·洛杉矶·SS']) assert(filter.test(node), `${relative}: ${name} must keep ${node}`)
+    for (const node of ['自建·台北1·Reality', '自建·洛杉矶·Reality', '微斯·🇭🇰HK-01 · 备用入口']) assert(!filter.test(node), `${relative}: ${name} must exclude ${node}`)
     assert(body.includes(`dialer-proxy: 跳板·${region}`), `${relative}: ${name} must dial through 跳板·${region}`)
     assert(body.includes(`additional-prefix: "中转·${region}-"`), `${relative}: ${name} prefix must name its jump`)
-    relayNodes.push(`中转·${region}-自建·台北1·SS`, `中转·${region}-自建·台北2·SS`)
+    relayNodes.push(`中转·${region}-自建·台北1·SS`, `中转·${region}-自建·台北2·SS`, `中转·${region}-自建·洛杉矶·SS`)
+  }
+  {
+    const body = providers['已验证'].map((line) => line.trim())
+    assert(body.includes('filter: "✓"') && !body.some((line) => line.startsWith('override')), `${relative}: 已验证 must take every tagged node as is`)
   }
   const JUMPS = {
     '跳板·香港': { in: ['微斯·🇭🇰HK-01 · 备用入口', '微斯·🇭🇰HK-04[Residential] · 备用入口', '悦·🇭🇰香港1'], out: ['一分·🇭🇰香港HKBN', '微斯·🇨🇳TW-01 · 备用入口', '悦·🇹🇼台湾2'] },
@@ -634,7 +641,7 @@ const IOS_EXPECTED_MEMBERS = {
     assert.equal(groupField(jump, 'type'), 'url-test', `${relative}: ${name} unexpected type`)
     assert.equal(groupField(jump, 'empty-fallback'), 'REJECT', `${relative}: ${name} must not fall back to direct when empty`)
     assert(!jump.fields.some((line) => /^(url|interval|lazy):/.test(line)), `${relative}: ${name} must leave testing to the provider`)
-    assert(jump.fields.includes('- 组合机场') && !jump.fields.some((line) => /^- 台北经/.test(line)), `${relative}: ${name} must pick from 组合机场 only`)
+    assert(jump.fields.includes('- 组合机场') && !jump.fields.some((line) => /^- (自建经|已验证)/.test(line)), `${relative}: ${name} must pick from 组合机场 only`)
     const filter = filterOf(jump.fields)
     for (const node of expected.in) {
       assert(testAll(filter, node), `${relative}: ${name} must keep ${node}`)
@@ -642,18 +649,43 @@ const IOS_EXPECTED_MEMBERS = {
     }
     for (const node of [...expected.out, '自建·台北1·Reality', '自建·台北2·SS', ...relayNodes]) assert(testNone(filter, node), `${relative}: ${name} must exclude ${node}`)
   }
+  // v1.12:这四组的机场节点只取「已验证」里本组的 ✓ 节点(PC 判据通过的出口),外加各自的中转:
+  // Claude、ChatGPT 是到台北的,Muse 是到洛杉矶的,Gemini 没有。没 ✓、或 ✓ 的是别的组,都不能进。
+  const taipeiRelays = relayNodes.filter((node) => /台北\d+·SS$/.test(node))
+  const VERIFIED = { Gemini: [], ChatGPT: taipeiRelays, Claude: taipeiRelays, Muse: relayNodes.filter((node) => /洛杉矶·SS$/.test(node)) }
+  for (const [name, relays] of Object.entries(VERIFIED)) {
+    const group = groups.find((g) => g.name === name)
+    assert(group, `${relative}: ${name} required`)
+    assert.equal(groupField(group, 'type'), 'url-test', `${relative}: ${name} unexpected type`)
+    assert.equal(groupField(group, 'empty-fallback'), 'REJECT', `${relative}: ${name} must not fall back to direct when empty`)
+    assert(!group.fields.some((line) => /^(url|interval|lazy):/.test(line)), `${relative}: ${name} must leave testing to the provider`)
+    assert(group.fields.includes('- 已验证') && !group.fields.includes('- 组合机场'), `${relative}: ${name} must take airport nodes only from 已验证`)
+    for (const provider of Object.keys(RELAYS)) {
+      assert.equal(group.fields.includes(`- ${provider}`), relays.length > 0, `${relative}: ${name} ${relays.length ? 'must use' : 'must not use'} ${provider}`)
+    }
+    const filter = filterOf(group.fields)
+    for (const node of ['微斯·🇯🇵JP-02 · 备用入口', '自建·台北2·Reality', 'Matcha·🇹🇼TW Chunghwa 01']) {
+      assert(filter.test(`${node} ✓${name}`), `${relative}: ${name} must keep ${node} ✓${name}`)
+      assert(!filter.test(node), `${relative}: ${name} must not take unverified ${node}`)
+      for (const other of Object.keys(VERIFIED).filter((o) => o !== name)) {
+        assert(!filter.test(`${node} ✓${other}`), `${relative}: ${name} must not take ${node} ✓${other}`)
+      }
+    }
+    for (const node of relayNodes) assert.equal(filter.test(node), relays.includes(node), `${relative}: ${name} ${relays.includes(node) ? 'must keep' : 'must exclude'} ${node}`)
+    for (const node of ['自建·台北1·SS', '自建·台北2·SS', '自建·洛杉矶·SS']) assert(!filter.test(node), `${relative}: ${name} must exclude bare ${node}`)
+  }
   for (const group of groups) {
     const field = (key) => groupField(group, key)
     if (field('type') === 'select') continue
-    if (group.name in JUMPS) continue
-    // 中转只进 Claude、ChatGPT;其他组既不能用中转代理集,也不能收中转节点和裸 SS
-    const relayGroup = ['Claude', 'ChatGPT'].includes(group.name)
+    if (group.name in JUMPS || group.name in VERIFIED) continue
+    // 其余组只从组合机场取:不用中转与已验证代理集,不收中转节点、裸 SS 和 ✓ 节点
     const groupFilter = filterOf(group.fields)
-    for (const name of Object.keys(RELAYS)) {
-      assert.equal(group.fields.includes(`- ${name}`), relayGroup, `${relative}: ${group.name} ${relayGroup ? 'must use' : 'must not use'} ${name}`)
+    for (const name of [...Object.keys(RELAYS), '已验证']) {
+      assert(!group.fields.includes(`- ${name}`), `${relative}: ${group.name} must not use ${name}`)
     }
-    for (const node of relayNodes) assert.equal(groupFilter.test(node), relayGroup, `${relative}: ${group.name} ${relayGroup ? 'must keep' : 'must exclude'} ${node}`)
-    for (const node of ['自建·台北1·SS', '自建·台北2·SS']) assert(!groupFilter.test(node), `${relative}: ${group.name} must exclude bare ${node}`)
+    for (const node of [...relayNodes, '自建·台北1·SS', '自建·台北2·SS', '微斯·🇯🇵JP-02 · 备用入口 ✓Gemini']) {
+      assert(!groupFilter.test(node), `${relative}: ${group.name} must exclude ${node}`)
+    }
     assert.equal(field('type'), 'url-test', `${relative}: ${group.name} unexpected type`)
     // 组上写 url 会给代理集多注册一个测速任务，整个代理集多测一轮
     assert(!group.fields.some((line) => /^(url|interval|lazy):/.test(line)), `${relative}: ${group.name} must leave testing to the provider`)

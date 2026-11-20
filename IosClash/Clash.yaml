@@ -1,4 +1,8 @@
-# Last Updated: 2026-11-20 [Clash v1.11]
+# Last Updated: 2026-11-20 [Clash v1.12]
+# v1.12: Gemini、Muse、Claude、ChatGPT 只用 PC 验证通过的出口:新代理集「已验证」拉 Lumex 每小时导出的 Verified.yaml
+#        (节点名末尾「✓组名」),手机没有解锁判据,同一节点从手机连出口 IP 与 PC 相同,结论可以直接用。
+#        Claude、ChatGPT 另收经香港 / 台湾跳板到台北的 SS 中转,Muse 另收到洛杉矶的(出口固定是自建机,PC 一直判通过)。
+#        中转代理集改名「自建经香港 / 自建经台湾」并加洛杉矶;组合机场白名单去掉只有这四组用的美国与 AI 解锁节点。
 # v1.11: Claude、ChatGPT 加 4 条中转「中转·(香港|台湾)-自建·台北N·SS」(新增 跳板·香港 / 跳板·台湾 两组和两个中转代理集);
 #        节点拉取间隔 6 小时改 1 小时(Sub-Store 改为每小时同步 Gist;没变化时只回 304)。手机 Claude 组原来只有台北两台 Reality 直连。
 # v1.10: EMBY 改为排除倍率高于 2 的全部节点(2 倍本身保留),取代 v1.09 的只排 10 倍,与 PC Lumex_active.js V4.34 同步。白名单里现在没有高倍率节点。
@@ -91,7 +95,9 @@ proxy-providers:
     url: "https://example.invalid/replace-with-group-yaml-url"
     path: ./providers/group.yaml
     interval: 3600 # v1.11:Sub-Store 每小时同步一次 Gist(PC 开着时);内容没变时 Gist 回 304,不重新下载
-    filter: "^(微斯·(🇭🇰|🇨🇳TW|🇯🇵|🇰🇷|🇺🇸).*备用入口$|悦·(🇭🇰|🇺🇸)|悦·(🇯🇵日本|🇹🇼台湾|🇰🇷韩国)[12]( · |$)|悦·🇹🇼台湾家宽[12]|悦·🇯🇵[^·]*AI解锁|一分·(🇭🇰|🇯🇵日本专线|🇹🇼)|自建·(台北[0-9]+|洛杉矶)·Reality$)"
+    # v1.12 起只给 自动选择 / EMBY / YouTube 和两个跳板组用(Gemini、Muse、Claude、ChatGPT 改用下方「已验证」),
+    #   去掉了只有那四组用的微斯 / 悦的美国节点与悦的 AI 解锁节点,少测一批。
+    filter: "^(微斯·(🇭🇰|🇨🇳TW|🇯🇵|🇰🇷).*备用入口$|悦·🇭🇰|悦·(🇯🇵日本|🇹🇼台湾|🇰🇷韩国)[12]( · |$)|悦·🇹🇼台湾家宽[12]|一分·(🇭🇰|🇯🇵日本专线|🇹🇼)|自建·(台北[0-9]+|洛杉矶)·Reality$)"
     # 不按协议排除 Hysteria2:2026-11-02 同机场比较,悦差一些、一分更好,家宽数据也不能代表手机。QUIC 连接在用时每 10 秒发一次心跳(sing-quic DefaultKeepAlivePeriod),耗电差多少没测过。
     health-check:
       enable: true
@@ -101,17 +107,17 @@ proxy-providers:
       timeout: 3000 # 死节点占着并发名额直到超时,一轮的时间几乎都花在这;2026-11-01 实测活节点超过 3 秒的只有 1/49
       lazy: true
 
-  # v1.11 中转:裸 SS「自建·台北N·SS」经机场跳板连,出口仍是台北本机(PC 上同名中转的手机版)。
+  # 中转(v1.11 台北,v1.12 加洛杉矶):裸 SS「自建·<机器>·SS」经机场跳板连,出口仍是自建机本机(PC 上同名中转的手机版)。
   #   必须是 http:Clash(OmniWide)不带本地文件,type: file 的代理集会加载成空的(bind/clash/plan_resources.go
   #   「a file provider reads a path this app does not carry」),所以不能像 PC 那样读组合机场下载好的文件,各自再下一份 Gist。
   #   按跳板拆、不按落地拆:每多一个代理集就多下载一份 Gist。dialer-proxy 指向的组名写错时整份配置加载失败(不会偷偷直连)。
-  #   只被 Claude、ChatGPT 用,懒加载按代理集算,这两组闲着时这里不测。
-  台北经香港:
+  #   台北的给 Claude、ChatGPT,洛杉矶的给 Muse;懒加载按代理集算,这些组闲着时这里不测。
+  自建经香港:
     type: http
     url: "https://example.invalid/replace-with-group-yaml-url"
     path: ./providers/relay-hk.yaml
     interval: 3600
-    filter: "^自建·台北[0-9]+·SS$"
+    filter: "^自建·(台北[0-9]+|洛杉矶)·SS$"
     override:
       dialer-proxy: 跳板·香港
       additional-prefix: "中转·香港-"
@@ -122,15 +128,32 @@ proxy-providers:
       interval: 1800
       timeout: 3000
       lazy: true
-  台北经台湾:
+  自建经台湾:
     type: http
     url: "https://example.invalid/replace-with-group-yaml-url"
     path: ./providers/relay-tw.yaml
     interval: 3600
-    filter: "^自建·台北[0-9]+·SS$"
+    filter: "^自建·(台北[0-9]+|洛杉矶)·SS$"
     override:
       dialer-proxy: 跳板·台湾
       additional-prefix: "中转·台湾-"
+    health-check:
+      enable: true
+      url: http://www.gstatic.com/generate_204
+      expected-status: 204
+      interval: 1800
+      timeout: 3000
+      lazy: true
+
+  # v1.12:PC 验证通过的出口。Lumex(GUI 手机导出,每小时 25 分)读内核的解锁判据结论,把通过的写进 Sub-Store 的
+  #   Verified.yaml,30 分随同步推到 Gist。节点名末尾「✓组名」,同一节点按组各出现一次;不含裸 SS。
+  #   Gemini、Muse、Claude、ChatGPT 只从这里取机场节点:PC 没验过或验出不符的一律不用,组为空时拒绝连接。
+  已验证:
+    type: http
+    url: "https://example.invalid/replace-with-verified-yaml-url"
+    path: ./providers/verified.yaml
+    interval: 3600
+    filter: "✓"
     health-check:
       enable: true
       url: http://www.gstatic.com/generate_204
@@ -245,52 +268,56 @@ proxy-groups:
     filter: "^(悦·🇭🇰|悦·(🇰🇷韩国|🇹🇼台湾)[12]( · |$)|悦·🇹🇼台湾家宽[12]|一分·(🇭🇰|🇹🇼)|自建·(台北[0-9]+|洛杉矶)·Reality$)"
     tolerance: 100
 
-  # Google 与 TikTok 也走本组。不收港澳(Gemini 不可用)和一分(与 PC 一致)。
-  # empty-fallback:组被滤空时拒绝连接,不带真实 IP 直连;内核不认识这个字段时会忽略。
+  # v1.12:下面四组只用 PC 验证通过的出口(代理集「已验证」,见上方),候选范围随 PC 各组而定。
+  #   empty-fallback:组被滤空时拒绝连接,不带真实 IP 直连。
+  # Google 与 TikTok 也走本组。PC 判据看 Google 自己判定的国家(Gemini 首页三字母码)。
   - name: Gemini
     type: url-test
     icon: https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/Google.png
     use:
-      - 组合机场
-    filter: "^(微斯·(🇨🇳TW|🇯🇵|🇺🇸).*备用入口$|悦·(🇯🇵|🇺🇸)[^·]*AI解锁|悦·🇺🇸美国[12]( · |$)|悦·🇹🇼台湾家宽[12]|自建·(台北[0-9]+|洛杉矶)·Reality$)"
+      - 已验证
+    filter: "✓Gemini$"
     tolerance: 100
     empty-fallback: REJECT
 
+  # PC 判据:chatgpt.com 前面 Cloudflare 的 loc=TW。另收经香港 / 台湾跳板到台北的 SS 中转(出口是台北本机)。
   - name: ChatGPT
     type: url-test
     icon: https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/OpenAI.png
     use:
-      - 组合机场
-      - 台北经香港
-      - 台北经台湾
-    filter: "^(微斯·(🇨🇳TW|🇯🇵|🇺🇸).*备用入口$|悦·(🇯🇵|🇺🇸)[^·]*AI解锁|悦·🇺🇸美国[12]( · |$)|悦·🇹🇼台湾家宽[12]|自建·(台北[0-9]+|洛杉矶)·Reality$|中转·(香港|台湾)-自建·台北[0-9]+·SS$)"
+      - 已验证
+      - 自建经香港
+      - 自建经台湾
+    filter: "(✓ChatGPT$|^中转·(香港|台湾)-自建·台北[0-9]+·SS$)"
     tolerance: 100
     empty-fallback: REJECT
 
-  # 只收台湾出口:台北两台(直连 Reality,v1.11 起加经香港 / 台湾跳板的 SS 中转)加悦的台湾家宽。
-  #   悦的台湾家宽在手机上仍是直连(PC 上经中转,2026-10-18 家宽直连只有 31~37%),测不通时 url-test 不会选。
+  # PC 判据:claude.ai 前面 Cloudflare 的 loc=TW。另收经香港 / 台湾跳板到台北的 SS 中转。
   - name: Claude
     type: url-test
     icon: https://www.google.com/s2/favicons?domain=claude.ai&sz=128
     use:
-      - 组合机场
-      - 台北经香港
-      - 台北经台湾
-    filter: "^(自建·台北[0-9]+·Reality$|悦·🇹🇼台湾家宽[12]|中转·(香港|台湾)-自建·台北[0-9]+·SS$)"
+      - 已验证
+      - 自建经香港
+      - 自建经台湾
+    filter: "(✓Claude$|^中转·(香港|台湾)-自建·台北[0-9]+·SS$)"
     tolerance: 100
     empty-fallback: REJECT
 
-  # 只收美国落地(PC V4.24),含自建洛杉矶。Facebook / Instagram 也走本组(V4.25),保持 Meta 看到的地区一致。
+  # PC 判据:Meta 判定的国家是美国。Facebook / Instagram 也走本组(V4.25),保持 Meta 看到的地区一致。
+  #   另收经香港 / 台湾跳板到洛杉矶的 SS 中转(出口是洛杉矶本机,PC 上同名中转判通过)。
   - name: Muse
     type: url-test
     icon: https://www.google.com/s2/favicons?domain=muse.ai&sz=128
     use:
-      - 组合机场
-    filter: "^(微斯·🇺🇸.*备用入口$|悦·🇺🇸|自建·洛杉矶·Reality$)"
+      - 已验证
+      - 自建经香港
+      - 自建经台湾
+    filter: "(✓Muse$|^中转·(香港|台湾)-自建·洛杉矶·SS$)"
     tolerance: 100
     empty-fallback: REJECT
 
-  # v1.11 中转的跳板(上方「台北经香港 / 台北经台湾」的 dialer-proxy),从组合机场按地区挑延迟最低的。
+  # 中转的跳板(上方「自建经香港 / 自建经台湾」的 dialer-proxy),从组合机场按地区挑延迟最低的。
   #   只收微斯和悦:一分到台北的非标准端口不通(PC 实测 0/44);自建不当跳板;台湾家宽不当跳板(动态家宽 IP)。
   #   empty-fallback 必须 REJECT:Clash 遇到空组默认回落 COMPATIBLE,也就是直连,SS2022 会从手机直接过墙。
   - name: 跳板·香港
