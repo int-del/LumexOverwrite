@@ -1,7 +1,10 @@
 // Lumex Party 专用配置文件覆写脚本
 // 引用链接: https://raw.githubusercontent.com/int-del/LumexOverwrite/main/Lumex_active.js
 // 加速链接: https://cdn.jsdelivr.net/gh/int-del/LumexOverwrite@main/Lumex_active.js
-// 版本: V4.50-AntiCN  | 更新日期: 2026-11-20
+// 版本: V4.51-AntiCN  | 更新日期: 2026-11-20
+// V4.51(用户要求):所有机场订阅(含以后新加的)都从台北2 拉。新增只监听本机的入口「订阅入口」(http 127.0.0.1:7894)
+//      和规则 IN-NAME,订阅入口,订阅拉取;Sub-Store「默认代理/策略」填 http://127.0.0.1:7894、各订阅自己的代理留空。
+//      原来只有悦通走订阅拉取,一分按 yfjc.xyz 直连,其余落到 MATCH,自动选择。台北2 整台不通时各家一起拉不到(用户接受)。
 // V4.50(用户要求):删除 Cursor 组,Cursor 的 6 条域名规则与 2 条进程规则改走 ChatGPT 组。本机 Cursor 6 月起没用过,
 //      11-14~20 内核日志里 Cursor 组 0 条连接,组却有 207 个成员、lazy:false 每 5 分钟测一轮。不能落到自动选择:
 //      Cursor 按出口 IP 套用模型厂商的地区限制,香港出口会丢掉 Claude/GPT 模型;ChatGPT 组只收台湾出口且严格核对 loc=TW。
@@ -204,7 +207,7 @@
   function main(config) {
   // 打印版本号，用于确认是否下载到了最新版
   // eslint-disable-next-line no-console
-  console.log("✅ 加载脚本 V4.50-AntiCN (Cursor 并入 ChatGPT)...");
+  console.log("✅ 加载脚本 V4.51-AntiCN (所有订阅走台北2)...");
 
   // 关键修复：如果 config 为空，必须返回空对象 {} 而不是 null
 
@@ -926,6 +929,7 @@
       //   不收「中转·台北2-…」(拿台北2 当跳板,出口在别处)、裸「自建·台北2·SS」(SS2022 会从家里直接过墙)、
       //   悦通自己的节点(拉取失败一次悦通节点就从组合机场掉出去,组空了下次也拉不回来)。
       //   use 从中转表取,台北2 落地注释掉时这里跟着少,不会引用不存在的代理集。全不通时拒绝、不回落直连(用途就是出口 IP 不变)。
+      // V4.51 起 Sub-Store 的所有请求都经「订阅入口」进本组(见 listeners),不再只是悦通。
       "name": "订阅拉取",
       "type": "fallback",
       "use": ["组合机场"].concat(RELAYS.filter(function(r) { return r[1] === "^自建·台北2·SS$"; }).map(function(r) { return r[0]; })),
@@ -944,6 +948,20 @@
   const jumpInsertAt = config["proxy-groups"].map(function(group) { return group.name; }).indexOf("跳板·台北2");
   Array.prototype.splice.apply(config["proxy-groups"], [jumpInsertAt, 0].concat(JUMP_GROUPS));
 
+  // V4.51(用户要求):Sub-Store 拉订阅的专用入口。Sub-Store「默认代理/策略」= http://127.0.0.1:7894,各订阅自己的代理留空,
+  //   所有机场(含以后新加的)都从这里进来,由下方规则 IN-NAME,订阅入口,订阅拉取 交给「订阅拉取」(出口台北2)。
+  //   不写 proxy 字段:它会跳过全部规则,本地订阅「自建：台湾」(127.0.0.1:38324)会被送去台北2 而失败;
+  //   走规则时回环地址先命中 IP-CIDR,127.0.0.0/8,DIRECT。只监听本机。
+  //   Sub-Store 的 Gist 同步、覆写文件下载、流量查询也用默认代理,同样从台北2 出去。
+  config["listeners"] = (Array.isArray(config["listeners"]) ? config["listeners"] : []).filter(function(l) {
+    return l && l.name !== "订阅入口";
+  }).concat([{
+    "name": "订阅入口",
+    "type": "http",
+    "listen": "127.0.0.1",
+    "port": 7894
+  }]);
+
   config["rules"] = [
     // 🔴 层级 0：BoundaryAI 内网域名直连(放在最前，优先于一切规则；hosts 见上方 2.1)
     "DOMAIN-SUFFIX,boundaryai.com,DIRECT",
@@ -960,6 +978,10 @@
     "IP-CIDR,224.0.0.0/4,DIRECT,no-resolve", // 优化：组播地址直连
     "IP-CIDR,255.255.255.255/32,DIRECT,no-resolve", // 优化：广播地址直连
     "GEOIP,PRIVATE,DIRECT,no-resolve",
+
+    // 📥 V4.51:从「订阅入口」进来的(Sub-Store 拉订阅、同步 Gist)一律走订阅拉取。必须在上面的回环 / 局域网直连之后:
+    //   本地订阅「自建：台湾」是 127.0.0.1:38324,要直连;也必须在 yfjc.xyz 直连等域名规则之前,否则一分会从家里拉。
+    "IN-NAME,订阅入口,订阅拉取",
 
     // ==========================================
     // 🟠 层级 2：绝对特权区 - 专有业务与内网域名强制分流
@@ -979,7 +1001,7 @@
     "DOMAIN-SUFFIX,yue.to,EMBY", // 悦:stream.yue.to
     "DOMAIN-SUFFIX,28.al,EMBY", // 起点:公益2-30天保号
 
-    // 📥 悦通订阅固定从台北2 拉(V4.49,见「订阅拉取」组)
+    // 📥 悦通订阅固定从台北2 拉(V4.49,见「订阅拉取」组)。V4.51 起 Sub-Store 走上方 IN-NAME,这条管其他来源(如 7890、浏览器)
     "DOMAIN,sso.yuetoto.com,订阅拉取",
 
     // 🏠 内网域名直连兜底保障

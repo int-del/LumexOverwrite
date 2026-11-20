@@ -243,7 +243,7 @@ function assertMuseLandingOnly(groups) {
 
 // V4.49:悦通订阅固定从台北2 拉。成员换路径不换出口:只收台北2 直连和以台北2 为落地的中转;
 // 拿台北2 当跳板的中转出口在别处,裸 SS2022 会从家里直接过墙,悦通节点会随拉取失败消失,都不能进。
-function assertSubscriptionFetch(groups, providers, rules) {
+function assertSubscriptionFetch(groups, providers, rules, listeners) {
   const group = groups.find((g) => g.name === '订阅拉取')
   assert(group, 'Lumex_active.js: 订阅拉取 group required')
   assert.equal(group.type, 'fallback', 'Lumex_active.js: 订阅拉取 must switch automatically')
@@ -261,6 +261,21 @@ function assertSubscriptionFetch(groups, providers, rules) {
   }
   const at = rules.indexOf('DOMAIN,sso.yuetoto.com,订阅拉取')
   assert(at >= 0 && at < rules.indexOf('MATCH,自动选择'), 'Lumex_active.js: 悦通 subscription host must go through 订阅拉取')
+  // V4.51(用户要求):Sub-Store 默认代理指向本机入口「订阅入口」,所有机场(含以后新加的)都走订阅拉取。
+  const entrances = (listeners || []).filter((l) => l.name === '订阅入口')
+  assert.equal(entrances.length, 1, 'Lumex_active.js: exactly one 订阅入口 listener required')
+  const [entrance] = entrances
+  assert.equal(entrance.type, 'http', 'Lumex_active.js: 订阅入口 must be an http proxy (Sub-Store only takes http/socks5 URLs)')
+  assert.equal(entrance.listen, '127.0.0.1', 'Lumex_active.js: 订阅入口 must listen on loopback only')
+  assert.equal(entrance.port, 7894, 'Lumex_active.js: 订阅入口 port is what Sub-Store default proxy points at')
+  // 写了 proxy / rule 会跳过主规则:本地订阅 127.0.0.1:38324 会被送去台北2
+  assert(!('proxy' in entrance) && !('rule' in entrance), 'Lumex_active.js: 订阅入口 must go through the main rules')
+  const entry = rules.indexOf('IN-NAME,订阅入口,订阅拉取')
+  assert(entry > rules.indexOf('IP-CIDR,127.0.0.0/8,DIRECT,no-resolve') && rules.indexOf('IP-CIDR,127.0.0.0/8,DIRECT,no-resolve') >= 0, 'Lumex_active.js: 订阅入口 rule must come after loopback DIRECT')
+  // 之前只能是局域网 / 回环直连与 BoundaryAI 内网域名,不能有会截走机场域名的规则(如 yfjc.xyz 直连)
+  for (const rule of rules.slice(0, entry)) {
+    assert(/^(IP-CIDR,[^,]+,DIRECT,no-resolve|GEOIP,PRIVATE,DIRECT,no-resolve|DOMAIN-SUFFIX,boundaryai\.(com|cn),DIRECT)$/.test(rule), `Lumex_active.js: rule before 订阅入口 may capture airports: ${rule}`)
+  }
 }
 
 // 中转 = 每个地区 × 每个落地,加经台北2 的两条。前缀和前置跳板必须对应,否则中转走错跳板或进错组。
@@ -334,7 +349,7 @@ for (const relative of scripts) {
     assertRelayProviders(output['proxy-providers'], output['proxy-groups'])
     assertRelayMatrix(output['proxy-providers'])
     assertMuseLandingOnly(output['proxy-groups'])
-    assertSubscriptionFetch(output['proxy-groups'], output['proxy-providers'], output.rules)
+    assertSubscriptionFetch(output['proxy-groups'], output['proxy-providers'], output.rules, output.listeners)
     assertAiGroupsAndRules(output['proxy-groups'], output.rules)
     // main() 里那行日志是确认客户端有没有拉到新版的手段,V4.28~V4.31 都漏改过,一直显示 V4.27。
     const headerVersion = /版本: (V[\d.]+)/.exec(source)?.[1]
