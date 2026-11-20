@@ -1,7 +1,10 @@
 // Lumex Party 专用配置文件覆写脚本
 // 引用链接: https://raw.githubusercontent.com/int-del/LumexOverwrite/main/Lumex_active.js
 // 加速链接: https://cdn.jsdelivr.net/gh/int-del/LumexOverwrite@main/Lumex_active.js
-// 版本: V4.49-AntiCN  | 更新日期: 2026-11-19
+// 版本: V4.50-AntiCN  | 更新日期: 2026-11-20
+// V4.50(用户要求):删除 Cursor 组,Cursor 的 6 条域名规则与 2 条进程规则改走 ChatGPT 组。本机 Cursor 6 月起没用过,
+//      11-14~20 内核日志里 Cursor 组 0 条连接,组却有 207 个成员、lazy:false 每 5 分钟测一轮。不能落到自动选择:
+//      Cursor 按出口 IP 套用模型厂商的地区限制,香港出口会丢掉 Claude/GPT 模型;ChatGPT 组只收台湾出口且严格核对 loc=TW。
 // V4.49(用户要求):悦通订阅固定从台北2 拉。新组「订阅拉取」(fallback,台北2 直连 + 经各地区跳板的台北2 中转,出口都是台北2)
 //      加规则 DOMAIN,sso.yuetoto.com,订阅拉取;Sub-Store 那边仍填 7890 不用改。原来跟着 MATCH,自动选择,每次出口不同。
 // V4.48(用户要求):注释掉悦·台湾家宽2 这个中转落地(7 个代理集)。11-17 起组合机场里悦通一个节点都没有,这 7 个代理集
@@ -201,7 +204,7 @@
   function main(config) {
   // 打印版本号，用于确认是否下载到了最新版
   // eslint-disable-next-line no-console
-  console.log("✅ 加载脚本 V4.49-AntiCN (悦通订阅固定走台北2)...");
+  console.log("✅ 加载脚本 V4.50-AntiCN (Cursor 并入 ChatGPT)...");
 
   // 关键修复：如果 config 为空，必须返回空对象 {} 而不是 null
 
@@ -786,41 +789,14 @@
 
       "lazy": true // 🎯 非实时性业务：延迟测速
     },
-    {
-      "name": "Cursor",
-      "type": "url-test",
-      "icon": "https://www.google.com/s2/favicons?domain=cursor.com&sz=128",
-      "use": RELAY_USE.slice(), // 引入代理集：组合机场 + 全部中转(见上方中转代理集表)
-      "filter": "(?i)(美国|洛杉矶|(?<![A-Za-z])US|日本|Japan|(?<![A-Za-z])JP(?![A-Za-z])|新加坡|Singapore|(?<![A-Za-z])SG(?![A-Za-z])|台湾|台北|Taiwan|(?<![A-Za-z])TW(?![A-Za-z])|英国|(?<![A-Za-z])UK(?![A-Za-z])|(?<![A-Za-z])GB(?![A-Za-z])|加拿大|(?<![A-Za-z])CA(?![A-Za-z])|澳大利亚|Australia|(?<![A-Za-z])AU(?![A-Za-z]))", // 洛杉矶 = 自建洛杉矶(V4.26)
-      // 兜底排除港/马来落地（见文件头 Fix 说明）;只查落地部分，不误杀「中转·香港·…」(与 Claude 组同一写法，V4.20)
-      "exclude-filter": "^(?:中转·[^·-]+-|(?!中转·))(?=.*(三毛|一毛|一分|🇭🇰|香港|🇲🇾|马来))",
-      "empty-fallback": "REJECT", // 白名单滤空时显式失败，不回落直连（见文件头 Fix 说明）
-      "url": "https://api2.cursor.sh", // 标准 Lumex 兼容字段
-      "urls": [
-        {
-          "url": "https://api2.cursor.sh",
-          "weight": 0.7,
-          "expected-status": "200/301/302/307/308"
-        },
-        {
-          "url": "https://www.cursor.com",
-          "weight": 0.3,
-          "expected-status": "200/301/302/307/308"
-        }
-      ],
-      "interval": 300, // 🎯 开发工具核心业务：5 分钟周期
-      "tolerance": 60,
-      "adaptive-cooldown-sec": 60, // 🔥 AI 关键组
-      "adaptive-stage-cooldown-sec": 300,
-      "lazy": false // 🎯 关键业务：保持即时检测
-    },
+    // V4.50:Cursor 组已删除,Cursor 流量走下面的 ChatGPT 组(见文件头)。
     {
       "name": "ChatGPT",
       "type": "url-test",
       "icon": "https://cdn.jsdelivr.net/gh/Orz-3/mini@master/Color/OpenAI.png",
       "use": RELAY_USE.slice(), // 引入代理集：组合机场 + 全部中转(见上方中转代理集表)
       // V4.35 起与 Claude 组同一组台湾出口(见上方 TW_AI_FILTER)。此前白名单横跨美/日/新/台/英/加/澳，换节点时国家会变，
-      //   且 11-09 晚选中的是 Navenix「三网牛逼优化×10」。Cursor 组仍用原白名单(不在本次范围)。
+      //   且 11-09 晚选中的是 Navenix「三网牛逼优化×10」。V4.50 起 Cursor 的流量也走本组(Cursor 组已删除)。
       "filter": TW_AI_FILTER,
       "exclude-filter": TW_AI_EXCLUDE,
       "empty-fallback": "REJECT", // 白名单滤空时显式失败，不回落直连（见文件头 Fix 说明）
@@ -867,7 +843,7 @@
       //   2026-11-01 按实时节点缓存模拟：命中 89 个，兜底排除一分 / 三毛后剩 60 个。
       //   V4.32:中转节点跳过「中转·<跳板>-」再查,否则「中转·美国-自建·台北1·SS」会因跳板名进组,出口却在台湾。
       "filter": "^(?:中转·[^·-]+-|(?!中转·))(?=.*(美国|🇺🇸|(?<![A-Za-z])US|(?<![A-Za-z])LAX(?![A-Za-z])|洛杉矶|圣何塞|硅谷|西雅图|拉斯维加斯|凤凰城|达拉斯|休斯敦|芝加哥|纽约|迈阿密))",
-      // 与 ChatGPT / Cursor 同一兜底排除(见文件头 Fix 说明);只查落地部分，不误杀「中转·香港·…」
+      // 兜底排除港/马来落地与一分、三毛(见文件头 Fix 说明);只查落地部分，不误杀「中转·香港·…」
       "exclude-filter": "^(?:中转·[^·-]+-|(?!中转·))(?=.*(三毛|一毛|一分|🇭🇰|香港|🇲🇾|马来))",
       "empty-fallback": "REJECT", // 白名单滤空时显式失败，不回落直连（见文件头 Fix 说明）
       "url": "https://muse.ai", // 标准 Lumex 兼容字段
@@ -1147,13 +1123,14 @@
     "DOMAIN-SUFFIX,bing.com,Copilot", 
     "DOMAIN-SUFFIX,copilot.microsoft.com,Copilot",
 
-    // Cursor 核心链路前置，避免被泛规则抢占
-    "DOMAIN-SUFFIX,cursor.com,Cursor",
-    "DOMAIN-SUFFIX,withcursor.com,Cursor", // 历史品牌域名，防止重定向链路误分流
-    "DOMAIN-SUFFIX,cursor.sh,Cursor",
-    "DOMAIN,api.cursor.sh,Cursor",
-    "DOMAIN,api2.cursor.sh,Cursor",
-    "DOMAIN,www.cursor.com,Cursor", // 显式命中主页域名，便于日志排查
+    // Cursor 核心链路前置，避免被泛规则抢占。V4.50 起走 ChatGPT 组(台湾出口):Cursor 按出口 IP 套用模型厂商的
+    //   地区限制,不能落到可能选中香港的自动选择。
+    "DOMAIN-SUFFIX,cursor.com,ChatGPT",
+    "DOMAIN-SUFFIX,withcursor.com,ChatGPT", // 历史品牌域名，防止重定向链路误分流
+    "DOMAIN-SUFFIX,cursor.sh,ChatGPT",
+    "DOMAIN,api.cursor.sh,ChatGPT",
+    "DOMAIN,api2.cursor.sh,ChatGPT",
+    "DOMAIN,www.cursor.com,ChatGPT", // 显式命中主页域名，便于日志排查
     
     // GitHub Copilot 专属 API（必须在 GEOSITE,github 之前，避免被宽泛规则抢占）
     "DOMAIN-SUFFIX,copilot.github.com,GitHub Copilot",
@@ -1207,8 +1184,8 @@
     "PROCESS-NAME,Code.exe,自动选择",
     "PROCESS-NAME,Code - Insiders.exe,自动选择",
     "PROCESS-NAME,Antigravity.exe,Gemini",
-    "PROCESS-NAME,cursor.exe,Cursor",
-    "PROCESS-NAME,Cursor.exe,Cursor",
+    "PROCESS-NAME,cursor.exe,ChatGPT",
+    "PROCESS-NAME,Cursor.exe,ChatGPT",
     "PROCESS-NAME,claude.exe,Claude", // Fix: Claude 桌面端进程强制走 Claude 组
     "PROCESS-NAME,ChatGPT.exe,ChatGPT",
     "PROCESS-NAME,codex.exe,ChatGPT",

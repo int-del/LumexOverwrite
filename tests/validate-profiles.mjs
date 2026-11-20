@@ -158,6 +158,15 @@ function assertAiGroupsAndRules(groups, rules) {
   const at = (rule) => rules.indexOf(rule)
   assert(at('GEOSITE,youtube,Gemini') >= 0 && at('GEOSITE,google,Gemini') >= 0, 'Lumex_active.js: YouTube and Google must go through Gemini')
   assert(at('PROCESS-NAME,Code.exe,自动选择') >= 0, 'Lumex_active.js: VS Code must go through 自动选择')
+  // V4.50(用户要求):Cursor 组删除,Cursor 走 ChatGPT 组的台湾出口。不能落到自动选择:Cursor 按出口 IP 套用模型厂商的
+  // 地区限制,香港出口会丢掉 Claude/GPT 模型。
+  assert(!byName.Cursor, 'Lumex_active.js: Cursor group was merged into ChatGPT (V4.50)')
+  const cursorRules = ['DOMAIN-SUFFIX,cursor.com', 'DOMAIN-SUFFIX,withcursor.com', 'DOMAIN-SUFFIX,cursor.sh', 'DOMAIN,api.cursor.sh', 'DOMAIN,api2.cursor.sh', 'DOMAIN,www.cursor.com', 'PROCESS-NAME,cursor.exe', 'PROCESS-NAME,Cursor.exe']
+  for (const rule of cursorRules) {
+    const i = at(`${rule},ChatGPT`)
+    assert(i >= 0 && i < at('MATCH,自动选择'), `Lumex_active.js: ${rule} must go through ChatGPT`)
+  }
+  for (const rule of rules.filter((r) => /cursor/i.test(r))) assert(rule.endsWith(',ChatGPT'), `Lumex_active.js: Cursor rule must target ChatGPT: ${rule}`)
 }
 
 // 跳板组承载自建 SS2022:为空时必须 REJECT(回落直连会从家里直接过墙)。2026-11 悦通改名、三毛停用，
