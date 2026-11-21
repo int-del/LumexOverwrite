@@ -519,6 +519,26 @@ const IOS_EXPECTED_MEMBERS = {
 // IosClash/Clash.yaml 是同一套分流的 mihomo 版。mihomo 按代理集测速，且规则语法与 Stash 不同，单独核对。
 {
   const relative = 'IosClash/Clash.yaml'
+  // v1.13:Clash 版去掉一分,改收多宝香港 hkt(两个出口各一)、Navenix 香港 01~03 的 ×0.5 与 HKT 两条入口、Matcha 东京 01/02;Stash 版不变
+  const CLASH_NODES = {
+    ...IOS_NODES,
+    oneTw: '一分·🇹🇼台湾',
+    duobaoHk: '多宝·🇭🇰香港02-hkt',
+    duobaoHk2: '多宝·🇭🇰香港04-hkt',
+    navenixHk: 'Navenix· 🇭🇰香港01｜三网优化×0.5',
+    navenixHkNoSpace: 'Navenix·🇭🇰香港02｜三网优化×0.5',
+    navenixHkt: 'Navenix· 🇭🇰香港03｜HKT｜移联优化',
+    matchaJp: 'Matcha·🇯🇵JP Tokyo 01'
+  }
+  const CLASH_HK_ADDED = ['duobaoHk', 'duobaoHk2', 'navenixHk', 'navenixHkNoSpace', 'navenixHkt']
+  const CLASH_EXPECTED_MEMBERS = {
+    ...IOS_EXPECTED_MEMBERS,
+    自动选择: { in: ['hk', 'hkFast', 'jp', 'tw', 'twFast', ...CLASH_HK_ADDED, 'matchaJp'], out: ['us', 'usFast', 'claude', 'oneHk', 'oneJp', 'oneTw'] },
+    EMBY: { in: ['hk', 'tw', 'kr', ...CLASH_HK_ADDED], out: ['hkFast', 'jp', 'jpAi', 'oneHk', 'oneJp', 'oneTw', 'matchaJp', 'claude'] },
+    YouTube: { in: ['hk', 'tw', 'kr', ...CLASH_HK_ADDED], out: ['hkFast', 'twFast', 'usFast', 'oneHk', 'oneTw', 'matchaJp', 'claude'] }
+  }
+  // 同一出口的其他名字、别的入口、高倍率与没挑中的节点都不进
+  const CLASH_PROVIDER_EXCLUDED = ['多宝·🇭🇰香港01-hkt', '多宝·🇭🇰香港hkt1-原生', '多宝·🇨🇳台湾-专线', 'Navenix· 🇭🇰香港01｜GCP｜三网', 'Navenix· 🇭🇰香港04｜三网优化×0.5', 'Navenix· 🇭🇰香港｜SBV6｜三网优化×3', 'Navenix· 🇹🇼台湾01｜HKT｜移联优化', 'Matcha·🇭🇰HK Telecom 01', 'Matcha·🇹🇼TW Chunghwa 01', 'Matcha·🇯🇵JP Tokyo 03', '一分·🇭🇰香港家宽专线']
   const raw = fs.readFileSync(path.join(root, relative), 'utf8')
   assert(!raw.startsWith('\uFEFF'), `${relative}: must not have BOM`)
   assert(!raw.includes('\uFFFD'), `${relative}: contains U+FFFD`)
@@ -609,10 +629,11 @@ const IOS_EXPECTED_MEMBERS = {
     assert(testNone(providerFilter, node),`${relative}: provider filter must exclude ${node}`)
   }
   // v1.12:组合机场只给 自动选择 / EMBY / YouTube 和跳板用;美国与 AI 解锁节点只有改用「已验证」的四组要,不再收
-  for (const key of ['hk', 'hkFast', 'jp', 'tw', 'twFast', 'kr', 'oneHk', 'oneJp', 'claude']) {
-    assert(testAll(providerFilter, IOS_NODES[key]), `${relative}: provider filter must keep ${IOS_NODES[key]}`)
+  for (const key of ['hk', 'hkFast', 'jp', 'tw', 'twFast', 'kr', ...CLASH_HK_ADDED, 'matchaJp', 'claude']) {
+    assert(testAll(providerFilter, CLASH_NODES[key]), `${relative}: provider filter must keep ${CLASH_NODES[key]}`)
   }
-  for (const key of ['us', 'usFast', 'jpAi']) assert(testNone(providerFilter, IOS_NODES[key]), `${relative}: provider filter must drop ${IOS_NODES[key]}`)
+  for (const key of ['us', 'usFast', 'jpAi', 'oneHk', 'oneJp', 'oneTw']) assert(testNone(providerFilter, CLASH_NODES[key]), `${relative}: provider filter must drop ${CLASH_NODES[key]}`)
+  for (const node of CLASH_PROVIDER_EXCLUDED) assert(!providerFilter.test(node), `${relative}: provider filter must exclude ${node}`)
   // 中转:裸 SS 只能经跳板出现。中转代理集只收台北、洛杉矶的裸 SS,dialer-proxy 指向同地区的跳板组;
   // 跳板组只收微斯、悦,为空时必须拒绝(Clash 默认回落 COMPATIBLE 即直连,SS2022 会从手机直接过墙)。
   const groupField = (group, key) => group.fields.find((line) => line.startsWith(`${key}:`))?.split('#')[0].slice(key.length + 1).trim()
@@ -690,11 +711,11 @@ const IOS_EXPECTED_MEMBERS = {
     // 组上写 url 会给代理集多注册一个测速任务，整个代理集多测一轮
     assert(!group.fields.some((line) => /^(url|interval|lazy):/.test(line)), `${relative}: ${group.name} must leave testing to the provider`)
     const filter = filterOf(group.fields)
-    const expected = IOS_EXPECTED_MEMBERS[group.name]
-    assert(expected, `${relative}: add ${group.name} to IOS_EXPECTED_MEMBERS`)
-    for (const key of expected.in.filter((key) => key !== 'sgAi')) assert(testAll(filter, IOS_NODES[key]),`${relative}: ${group.name} must keep ${IOS_NODES[key]}`)
+    const expected = CLASH_EXPECTED_MEMBERS[group.name]
+    assert(expected, `${relative}: add ${group.name} to CLASH_EXPECTED_MEMBERS`)
+    for (const key of expected.in.filter((key) => key !== 'sgAi')) assert(testAll(filter, CLASH_NODES[key]),`${relative}: ${group.name} must keep ${CLASH_NODES[key]}`)
     // 自建的边界与 Stash 版不同：除 EMBY、Muse 外都收台北两台
-    for (const key of expected.out.filter((key) => key !== 'claude')) assert(testNone(filter, IOS_NODES[key]),`${relative}: ${group.name} must exclude ${IOS_NODES[key]}`)
+    for (const key of expected.out.filter((key) => key !== 'claude')) assert(testNone(filter, CLASH_NODES[key]),`${relative}: ${group.name} must exclude ${CLASH_NODES[key]}`)
     const keepsSelfHosted = !['EMBY', 'Muse'].includes(group.name)
     for (const node of ['自建·台北1·Reality', '自建·台北2·Reality']) {
       assert.equal(filter.test(node), keepsSelfHosted, `${relative}: ${group.name} ${keepsSelfHosted ? 'must keep' : 'must exclude'} ${node}`)
@@ -719,10 +740,11 @@ const IOS_EXPECTED_MEMBERS = {
       const exclude = group.fields.map((line) => line.match(/^exclude-filter:\s*'(.+)'\s*$/)?.[1]).find(Boolean)
       assert(exclude, `${relative}: EMBY must exclude nodes above 2x`)
       const ex = new RegExp(exclude, 'u')
-      for (const node of EMBY_MULTIPLIER_OUT.flatMap((tag) => [`悦·🇭🇰香港 ${tag}`, `一分·🇹🇼台湾${tag}`])) {
+      for (const node of EMBY_MULTIPLIER_OUT.flatMap((tag) => [`悦·🇭🇰香港 ${tag}`, `悦·🇹🇼台湾家宽1💎${tag}`])) {
         assert(filter.test(node) && ex.test(node), `${relative}: EMBY must exclude ${node}`)
       }
-      for (const node of ['悦·🇭🇰香港家宽2💎', '一分·🇭🇰香港HKBN', '自建·洛杉矶·Reality', ...EMBY_MULTIPLIER_KEEP.map((tag) => `悦·🇭🇰香港 ${tag}`)]) {
+      // v1.13 的 Navenix ×0.5 入口、HKT 入口(不标倍率)与多宝 hkt 都要留下
+      for (const node of ['悦·🇭🇰香港家宽2💎', CLASH_NODES.navenixHk, CLASH_NODES.navenixHkt, CLASH_NODES.duobaoHk, '自建·洛杉矶·Reality', ...EMBY_MULTIPLIER_KEEP.map((tag) => `悦·🇭🇰香港 ${tag}`)]) {
         assert(!ex.test(node), `${relative}: EMBY exclude-filter must not drop ${node}`)
       }
     }
